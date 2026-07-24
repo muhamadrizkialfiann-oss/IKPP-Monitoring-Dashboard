@@ -103,33 +103,33 @@ export default function DataTable<T extends { id?: string; unitId?: string }>({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden flex flex-col justify-between">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/80 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col justify-between transition-colors duration-200">
       {/* Table Container */}
       <div className="overflow-x-auto min-h-[420px]">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wider">
+            <tr className="bg-gray-50 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800 text-xs sm:text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">
               <th className="py-4 px-5 w-12 text-center font-bold">No</th>
               {columns.map((col) => (
                 <th
                   key={col.header}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
                   className={`py-4 px-4 font-bold ${
-                    col.sortable !== false ? "cursor-pointer hover:bg-gray-100 select-none group" : ""
+                    col.sortable !== false ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 select-none group" : ""
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span>{col.header}</span>
                     {col.sortable !== false && (
-                      <span className="text-gray-400 group-hover:text-gray-600 transition-colors">
+                      <span className="text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300 transition-colors">
                         {sortKey === col.key ? (
                           sortDirection === "asc" ? (
-                            <ChevronUp className="w-3.5 h-3.5 text-blue-600" />
+                            <ChevronUp className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
                           ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-blue-600" />
+                            <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
                           )
                         ) : (
-                          <ArrowUpDown className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-400" />
+                          <ArrowUpDown className="w-3.5 h-3.5 text-gray-300 dark:text-slate-600 group-hover:text-gray-400 dark:group-hover:text-slate-400" />
                         )}
                       </span>
                     )}
@@ -138,24 +138,24 @@ export default function DataTable<T extends { id?: string; unitId?: string }>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 text-sm">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
             {paginatedData.length > 0 ? (
               paginatedData.map((item, idx) => {
                 const globalIndex = (currentPage - 1) * itemsPerPage + idx + 1;
-                const rowKey = item.id || item.unitId || `row-${idx}`;
+                const rowKey = (item as any).uniqueKey || (item.id ? `${item.id}_row_${globalIndex}` : item.unitId ? `${item.unitId}_row_${globalIndex}` : `row_${globalIndex}`);
                 return (
                   <tr
                     key={rowKey}
                     onClick={() => onRowClick && onRowClick(item)}
-                    className={`hover:bg-blue-50/30 transition-colors ${
+                    className={`hover:bg-blue-50/30 dark:hover:bg-slate-800/50 transition-colors ${
                       onRowClick ? "cursor-pointer" : ""
                     }`}
                   >
-                    <td className="py-3.5 px-5 text-center font-mono text-xs text-gray-400 font-bold">
+                    <td className="py-3.5 px-5 text-center font-mono text-xs text-gray-400 dark:text-slate-500 font-bold">
                       {globalIndex}
                     </td>
                     {columns.map((col) => (
-                      <td key={col.header} className="py-3.5 px-4 text-gray-700 font-medium">
+                      <td key={col.header} className="py-3.5 px-4 text-gray-700 dark:text-slate-200 font-medium">
                         {col.render ? col.render(item) : (item as any)[col.key]}
                       </td>
                     ))}
@@ -164,7 +164,7 @@ export default function DataTable<T extends { id?: string; unitId?: string }>({
               })
             ) : (
               <tr>
-                <td colSpan={columns.length + 1} className="py-12 text-center text-gray-400 font-medium">
+                <td colSpan={columns.length + 1} className="py-12 text-center text-gray-400 dark:text-slate-500 font-medium">
                   No records match your filters.
                 </td>
               </tr>
@@ -174,20 +174,20 @@ export default function DataTable<T extends { id?: string; unitId?: string }>({
       </div>
 
       {/* Pagination Controls */}
-      <div className="bg-gray-50/50 border-t border-gray-100 px-6 py-4 flex items-center justify-between">
-        <div className="text-xs font-bold text-gray-500">
-          Showing <span className="text-gray-800">{(currentPage - 1) * itemsPerPage + (data.length > 0 ? 1 : 0)}</span> to{" "}
-          <span className="text-gray-800">
+      <div className="bg-gray-50/50 dark:bg-slate-900/80 border-t border-gray-100 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+        <div className="text-xs font-bold text-gray-500 dark:text-slate-400">
+          Showing <span className="text-gray-800 dark:text-slate-200">{(currentPage - 1) * itemsPerPage + (data.length > 0 ? 1 : 0)}</span> to{" "}
+          <span className="text-gray-800 dark:text-slate-200">
             {Math.min(currentPage * itemsPerPage, data.length)}
           </span>{" "}
-          of <span className="text-gray-800">{data.length}</span> entries
+          of <span className="text-gray-800 dark:text-slate-200">{data.length}</span> entries
         </div>
 
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -208,13 +208,13 @@ export default function DataTable<T extends { id?: string; unitId?: string }>({
 
                 return (
                   <React.Fragment key={page}>
-                    {showEllipsis && <span className="text-gray-400 text-xs px-1">...</span>}
+                    {showEllipsis && <span className="text-gray-400 dark:text-slate-500 text-xs px-1">...</span>}
                     <button
                       onClick={() => handlePageChange(page)}
                       className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         currentPage === page
-                          ? "bg-[#0B2C6B] text-white shadow-md shadow-blue-900/10"
-                          : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                          ? "bg-[#0B2C6B] dark:bg-sky-600 text-white shadow-md shadow-blue-900/10"
+                          : "border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
                       }`}
                     >
                       {page}
@@ -227,7 +227,7 @@ export default function DataTable<T extends { id?: string; unitId?: string }>({
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

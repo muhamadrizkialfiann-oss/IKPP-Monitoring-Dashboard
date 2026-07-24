@@ -45,7 +45,7 @@ export default function App() {
   }[activeTab];
 
   return (
-    <div className="min-h-screen bg-gray-50/70 text-gray-800 flex relative overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50/70 dark:bg-slate-950 text-gray-800 dark:text-slate-100 flex relative overflow-x-hidden transition-colors duration-200">
       {/* Slide-out Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}

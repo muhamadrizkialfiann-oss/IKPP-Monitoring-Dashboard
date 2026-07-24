@@ -1,22 +1,18 @@
 import { Order, Shipment, FleetUnit, OrderType, OrderStatus, TripStatus, UnitStatus } from "../types";
 
-// Hand-crafted seed orders with new trailer unit types
+// Hand-crafted seed orders matching EXECUTED SINARMAS spreadsheet data
 const seedOrders: Partial<Order>[] = [
-  { id: "ORD-2607001", type: "ekspor", status: "in_progress", customer: "PT Indah Kiat Pulp & Paper", origin: "IKK Perawang", destination: "Tj. Priok Port", unitType: "Trailer 4x2 40ft", eta: "10 Jul 2026" },
-  { id: "ORD-2607002", type: "impor", status: "done", customer: "PT Riau Andalan Pulp & Paper", origin: "Tj. Perak Port", destination: "IKK Serang", unitType: "Trailer 4x2 20ft", eta: "08 Jul 2026" },
-  { id: "ORD-2607003", type: "repo", status: "open", customer: "Pancaran Internal", origin: "Depo Cikarang", destination: "Depo Bekasi", unitType: "Trailer 4x2 40ft", eta: "11 Jul 2026" },
-  { id: "ORD-2607004", type: "ekspor", status: "done", customer: "PT Tjiwi Kimia", origin: "IKK Sidoarjo", destination: "Tj. Perak Port", unitType: "Trailer 4x2 40ft", eta: "07 Jul 2026" },
-  { id: "ORD-2607005", type: "impor", status: "in_progress", customer: "PT Lontar Papyrus", origin: "Tj. Priok Port", destination: "IKK Karawang", unitType: "Trailer 4x2 40ft", eta: "09 Jul 2026" },
-  { id: "ORD-2607006", type: "ekspor", status: "open", customer: "PT Indah Kiat Pulp & Paper", origin: "IKK Tangerang", destination: "Tj. Priok Port", unitType: "Trailer 4x2 20ft", eta: "12 Jul 2026" },
-  { id: "ORD-2607007", type: "repo", status: "done", customer: "Pancaran Internal", origin: "Depo Marunda", destination: "Depo Cikarang", unitType: "Trailer 4x2 20ft", eta: "06 Jul 2026" },
-  { id: "ORD-2607008", type: "impor", status: "open", customer: "PT Pindo Deli", origin: "Tj. Mas Port", destination: "IKK Karawang", unitType: "Trailer 4x2 40ft", eta: "11 Jul 2026" },
-  { id: "ORD-2607009", type: "ekspor", status: "in_progress", customer: "PT Indah Kiat Pulp & Paper", origin: "IKK Serang", destination: "Tj. Priok Port", unitType: "Trailer 4x2 40ft", eta: "10 Jul 2026" },
-  { id: "ORD-2607010", type: "impor", status: "done", customer: "PT Pabrik Kertas Tjiwi Kimia", origin: "Tj. Perak Port", destination: "IKK Mojokerto", unitType: "Trailer 4x2 20ft", eta: "07 Jul 2026" },
-  { id: "ORD-2607011", type: "repo", status: "in_progress", customer: "Pancaran Internal", origin: "Depo Surabaya", destination: "Depo Gresik", unitType: "Trailer 4x2 40ft", eta: "10 Jul 2026" },
-  { id: "ORD-2607012", type: "ekspor", status: "in_progress", customer: "PT Riau Andalan Pulp & Paper", origin: "IKK Perawang", destination: "Tj. Buton Port", unitType: "Trailer 4x2 40ft", eta: "11 Jul 2026" },
-  { id: "ORD-2607013", type: "impor", status: "in_progress", customer: "PT Indah Kiat Pulp & Paper", origin: "Tj. Priok Port", destination: "IKK Serang", unitType: "Trailer 4x2 20ft", eta: "10 Jul 2026" },
-  { id: "ORD-2607014", type: "ekspor", status: "done", customer: "PT Pindo Deli", origin: "IKK Karawang", destination: "Tj. Priok Port", unitType: "Trailer 4x2 40ft", eta: "08 Jul 2026" },
-  { id: "ORD-2607015", type: "repo", status: "open", customer: "Pancaran Internal", origin: "Depo Cikarang", destination: "Depo Marunda", unitType: "Trailer 4x2 40ft", eta: "12 Jul 2026" }
+  { id: "SM-D000001", type: "ekspor", status: "in_progress", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "29/06/2026 9:00", quantity: 1, lastUpdateCS: "WAITING CONFIRM" },
+  { id: "SM-D000002", type: "ekspor", status: "in_progress", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "29/06/2026 9:00", quantity: 1, lastUpdateCS: "WAITING CONFIRM" },
+  { id: "SM-D000003", type: "ekspor", status: "in_progress", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "29/06/2026 19:17", quantity: 7, lastUpdateCS: "WAITING CONFIRM" },
+  { id: "SM-D000004", type: "ekspor", status: "in_progress", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "29/06/2026 22:42", quantity: 8, lastUpdateCS: "WAITING CONFIRM" },
+  { id: "SM-D000058", type: "ekspor", status: "done", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "01/07/2026 10:00", quantity: 3, lastUpdateCS: "SHIPMENT FINISH", driver: "DENI BIN EMAN", vehiclePlate: "B9851UFY" },
+  { id: "SM-D000059", type: "ekspor", status: "done", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "01/07/2026 14:20", quantity: 5, lastUpdateCS: "SHIPMENT FINISH", driver: "MUHAMAD MADAN", vehiclePlate: "B9811UFY" },
+  { id: "SM-D000060", type: "ekspor", status: "in_progress", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "02/07/2026 08:30", quantity: 4, lastUpdateCS: "ON JOB", driver: "FATHUROHMAN", vehiclePlate: "B9169XQ" },
+  { id: "SM-D000061", type: "ekspor", status: "open", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "02/07/2026 11:00", quantity: 1, lastUpdateCS: "CANCEL CS" },
+  { id: "SM-D000062", type: "ekspor", status: "in_progress", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "02/07/2026 15:00", quantity: 3, lastUpdateCS: "ON JOB", driver: "MUHAMAD RIDWAN", vehiclePlate: "B9708UIW" },
+  { id: "SM-D000063", type: "ekspor", status: "done", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "03/07/2026 09:15", quantity: 2, lastUpdateCS: "SHIPMENT FINISH", driver: "MAHDIAN", vehiclePlate: "B9987UIV" },
+  { id: "SM-D000064", type: "ekspor", status: "done", customer: "INDAH KIAT PULP & PAPER TBK.", origin: "IKK Karawang", destination: "INDAH KIAT PULP & PAPER TBK.", unitType: "Trailer 4x2 40ft", eta: "03/07/2026 16:00", quantity: 3, lastUpdateCS: "SHIPMENT FINISH", driver: "HERI BIN MUHAMAD", vehiclePlate: "B9713UIW" }
 ];
 
 // Hand-crafted seed shipments with plate units
@@ -63,7 +59,7 @@ const indonesianCustomers = [
 ];
 
 const origins = [
-  "IKK Perawang",
+  "IKK Karawang",
   "Tj. Perak Port",
   "Depo Cikarang",
   "IKK Sidoarjo",
@@ -126,7 +122,23 @@ export const generateIndonesianPlate = (index: number, prefixSeed: number): stri
 };
 
 export const generateOrders = (): Order[] => {
-  return [];
+  return seedOrders.map((o) => ({
+    id: o.id || "SM-D000001",
+    type: o.type || "ekspor",
+    status: o.status || "in_progress",
+    customer: o.customer || "INDAH KIAT PULP & PAPER TBK.",
+    origin: o.origin || "IKK Karawang",
+    destination: o.destination || "INDAH KIAT PULP & PAPER TBK.",
+    containerTier: "40ft",
+    unitType: o.unitType || "Trailer 4x2 40ft",
+    eta: o.eta || "29/06/2026 09:00",
+    bookingDate: "28/06/2026",
+    quantity: o.quantity || 1,
+    lastUpdateCS: o.lastUpdateCS || "WAITING CONFIRM",
+    driver: o.driver,
+    vehiclePlate: o.vehiclePlate,
+    source: "Google Sheet"
+  }));
 };
 
 export const generateShipments = (): Shipment[] => {

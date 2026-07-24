@@ -276,10 +276,10 @@ export default function AvailabilityPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Unit Type Breakdown Table + Mini Charts (Left 2 cols) */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-6 shadow-sm lg:col-span-2 flex flex-col justify-between transition-colors duration-200">
           <div>
-            <h3 className="text-base font-extrabold text-gray-900 pb-3 border-b border-gray-100 flex items-center gap-2">
-              <Truck className="w-5 h-5 text-[#0B2C6B]" />
+            <h3 className="text-base font-extrabold text-gray-900 dark:text-slate-100 pb-3 border-b border-gray-100 dark:border-slate-800 flex items-center gap-2">
+              <Truck className="w-5 h-5 text-[#0B2C6B] dark:text-sky-400" />
               Breakdown per Tipe Unit
             </h3>
             
@@ -287,7 +287,7 @@ export default function AvailabilityPage() {
             <div className="overflow-x-auto mt-4">
               <table className="w-full text-left border-collapse text-sm sm:text-base font-bold">
                 <thead>
-                  <tr className="border-b border-gray-300 text-gray-800 font-extrabold uppercase tracking-wider text-xs sm:text-sm">
+                  <tr className="border-b border-gray-300 dark:border-slate-700 text-gray-800 dark:text-slate-200 font-extrabold uppercase tracking-wider text-xs sm:text-sm">
                     <th className="pb-3 text-left">Tipe Unit</th>
                     <th className="pb-3 text-center">Total</th>
                     <th className="pb-3 text-center">Available</th>
@@ -297,24 +297,24 @@ export default function AvailabilityPage() {
                     <th className="pb-3 text-center w-32">Ratio Alloc</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 text-gray-900 font-semibold">
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-900 dark:text-slate-100 font-semibold">
                   {fleetTypeBreakdowns.map((item, idx) => (
                     <tr
                       key={idx}
                       onClick={() => setTypeFilter(item.type)}
-                      className={`hover:bg-blue-50/50 transition-colors cursor-pointer ${
-                        typeFilter === item.type ? "bg-blue-50/80 font-black" : ""
+                      className={`hover:bg-blue-50/50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer ${
+                        typeFilter === item.type ? "bg-blue-50/80 dark:bg-slate-800 font-black" : ""
                       }`}
                     >
-                      <td className="py-3.5 font-extrabold text-gray-950 text-sm sm:text-base">{item.type}</td>
-                      <td className="py-3.5 text-center font-black tabular-nums text-gray-950 text-sm sm:text-base">{item.total}</td>
-                      <td className="py-3.5 text-center font-black text-emerald-800 bg-emerald-50/30 font-mono text-sm sm:text-base">{item.available}</td>
-                      <td className="py-3.5 text-center font-black text-blue-800 bg-blue-50/30 font-mono text-sm sm:text-base">{item.utilized}</td>
-                      <td className="py-3.5 text-center font-black text-sky-800 bg-sky-50/30 font-mono text-sm sm:text-base">{item.standby}</td>
-                      <td className="py-3.5 text-center font-black text-rose-800 bg-rose-50/30 font-mono text-sm sm:text-base">{item.downtime}</td>
+                      <td className="py-3.5 font-extrabold text-gray-950 dark:text-slate-100 text-sm sm:text-base">{item.type}</td>
+                      <td className="py-3.5 text-center font-black tabular-nums text-gray-950 dark:text-slate-100 text-sm sm:text-base">{item.total}</td>
+                      <td className="py-3.5 text-center font-black text-emerald-800 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/40 font-mono text-sm sm:text-base">{item.available}</td>
+                      <td className="py-3.5 text-center font-black text-blue-800 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-950/40 font-mono text-sm sm:text-base">{item.utilized}</td>
+                      <td className="py-3.5 text-center font-black text-sky-800 dark:text-sky-400 bg-sky-50/30 dark:bg-sky-950/40 font-mono text-sm sm:text-base">{item.standby}</td>
+                      <td className="py-3.5 text-center font-black text-rose-800 dark:text-rose-400 bg-rose-50/30 dark:bg-rose-950/40 font-mono text-sm sm:text-base">{item.downtime}</td>
                       <td className="py-3.5">
                         {/* Nested mini horizontal stacked progress bar */}
-                        <div className="w-full h-2.5 bg-gray-100 rounded-full flex overflow-hidden border border-gray-200 shadow-inner">
+                        <div className="w-full h-2.5 bg-gray-100 dark:bg-slate-800 rounded-full flex overflow-hidden border border-gray-200 dark:border-slate-700 shadow-inner">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${(item.utilized / item.total) * 100}%` }}
@@ -345,7 +345,7 @@ export default function AvailabilityPage() {
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-gray-400 dark:text-slate-400 font-bold uppercase tracking-wider">
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-500 inline-block"></span> Utilized (On Trip)</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-sky-500 inline-block"></span> Standby (Ready)</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Downtime (Outages)</span>
@@ -353,17 +353,17 @@ export default function AvailabilityPage() {
         </div>
 
         {/* Section: Driver Availability (Right 1 col) */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between transition-colors duration-200">
           <div>
-            <h3 className="text-base font-extrabold text-gray-900 pb-3 border-b border-gray-100 flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#0B2C6B]" />
+            <h3 className="text-base font-extrabold text-gray-900 dark:text-slate-100 pb-3 border-b border-gray-100 dark:border-slate-800 flex items-center gap-2">
+              <Users className="w-5 h-5 text-[#0B2C6B] dark:text-sky-400" />
               Driver Availability
             </h3>
 
             {/* Overall stats */}
-            <div className="mt-5 text-center bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Total Registered Drivers</span>
-              <span className="text-4xl font-black block text-gray-800 tracking-tight mt-1 tabular-nums">
+            <div className="mt-5 text-center bg-gray-50 dark:bg-slate-800/80 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+              <span className="text-xs text-gray-400 dark:text-slate-400 font-bold uppercase tracking-wider">Total Registered Drivers</span>
+              <span className="text-4xl font-black block text-gray-800 dark:text-slate-100 tracking-tight mt-1 tabular-nums">
                 {driverStats.total}
               </span>
             </div>

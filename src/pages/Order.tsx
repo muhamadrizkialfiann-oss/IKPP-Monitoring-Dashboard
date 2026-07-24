@@ -1,20 +1,78 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, Filter, AlertCircle, ShoppingCart, RefreshCw, X, ArrowRight, Eye, Calendar, Plus, CheckCircle2, Truck, UserCheck, ShieldCheck, FileSpreadsheet, ExternalLink, Database } from "lucide-react";
+import { Search, Filter, AlertCircle, ShoppingCart, RefreshCw, X, ArrowRight, Eye, Calendar, Plus, CheckCircle2, Truck, UserCheck, ShieldCheck, FileSpreadsheet, ExternalLink, Database, Sliders, Layers } from "lucide-react";
 import StatCard from "../components/StatCard";
 import DataTable, { Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
+import SheetManagerModal, { DEFAULT_SHEET_SOURCES } from "../components/SheetManagerModal";
 import { dummyOrders } from "../lib/dummy-data";
-import { Order, OrderType, OrderStatus } from "../types";
+import { Order, OrderType, OrderStatus, SheetSource } from "../types";
 
 interface OrderProps {
   initialTypeFilter?: string;
   onClearInitialFilter?: () => void;
 }
 
+function CSStatusBadge({ status }: { status?: string }) {
+  const val = (status || "WAITING CONFIRM").toUpperCase().trim();
+
+  let badgeStyle = "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+  let dotStyle = "bg-emerald-500";
+
+  if (val.includes("WAITING") || val.includes("CONFIRM")) {
+    badgeStyle = "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800";
+    dotStyle = "bg-amber-500";
+  } else if (val.includes("FINISH") || val.includes("FIN") || val.includes("DONE") || val.includes("COMPLETE")) {
+    badgeStyle = "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+    dotStyle = "bg-emerald-500";
+  } else if (val.includes("JOB") || val.includes("TRIP") || val.includes("TRANSIT") || val.includes("JALAN")) {
+    badgeStyle = "bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800";
+    dotStyle = "bg-sky-500";
+  } else if (val.includes("CANCEL") || val.includes("BATAL") || val.includes("REJECT")) {
+    badgeStyle = "bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800";
+    dotStyle = "bg-rose-500";
+  } else if (val.includes("PLANNING") || val.includes("OPR")) {
+    badgeStyle = "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800";
+    dotStyle = "bg-indigo-500";
+  }
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold px-2.5 py-1 rounded-lg border shrink-0 shadow-2xs ${badgeStyle}`}>
+      <span className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${dotStyle}`} />
+      <span>{val}</span>
+    </span>
+  );
+}
+
 export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: OrderProps) {
-  // Live orders state initialized to empty array (0 initial orders)
-  const [orders, setOrders] = useState<Order[]>([]);
+  // Live orders state initialized with Sinarmas orders
+  const [orders, setOrders] = useState<Order[]>(dummyOrders);
+
+  // Multi-Spreadsheet Sources State
+  const [sheetSources, setSheetSources] = useState<SheetSource[]>(() => {
+    try {
+      const saved = localStorage.getItem("logistics_sheet_sources_v3");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to load sheet sources from localStorage:", e);
+    }
+    return DEFAULT_SHEET_SOURCES;
+  });
+
+  const [isSheetModalOpen, setIsSheetModalOpen] = useState(false);
+
+  // Persist sheet sources changes to localStorage
+  const handleUpdateSheetSources = (newSources: SheetSource[]) => {
+    setSheetSources(newSources);
+    try {
+      localStorage.setItem("logistics_sheet_sources_v3", JSON.stringify(newSources));
+    } catch (e) {
+      console.error("Failed to save sheet sources:", e);
+    }
+  };
 
   // Google Sheets integration state
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
@@ -30,7 +88,7 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
     fetchedAt: null,
     error: null
   });
-  const [sourceFilter, setSourceFilter] = useState<"all" | "sheets" | "local">("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,11 +103,20 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
   // Selected Order Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // Fetch Google Sheets orders from backend proxy API
-  const syncGoogleSheets = async (showNotification = true) => {
+  // Fetch Google Sheets orders from backend proxy API (Supports Multi-Sheet sync)
+  const syncGoogleSheets = async (showNotification = true, sourcesToSync = sheetSources) => {
     setIsSyncingSheets(true);
     try {
-      const res = await fetch("/api/sheets/orders");
+      const activeSources = sourcesToSync.filter((s) => s.enabled && s.url);
+      
+      const res = await fetch("/api/sheets/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ sheets: activeSources })
+      });
+
       const json = await res.json();
 
       if (json.success && Array.isArray(json.orders)) {
@@ -60,6 +127,29 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
           return [...userCreated, ...sheetOrders];
         });
 
+        // Update row counts & statuses on sheetSources
+        if (Array.isArray(json.sheetResults)) {
+          setSheetSources((prevSources) => {
+            const updated = prevSources.map((source) => {
+              const resMeta = json.sheetResults.find((r: any) => r.id === source.id || r.name === source.name);
+              if (resMeta) {
+                return {
+                  ...source,
+                  rowCount: resMeta.rowCount,
+                  status: (resMeta.status === "success" ? "success" : "error") as "success" | "error",
+                  errorMessage: resMeta.errorMessage,
+                  lastSyncedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                };
+              }
+              return source;
+            });
+            try {
+              localStorage.setItem("logistics_sheet_sources", JSON.stringify(updated));
+            } catch (e) {}
+            return updated;
+          });
+        }
+
         setSheetSyncMeta({
           connected: true,
           totalRows: sheetOrders.length,
@@ -68,8 +158,11 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
         });
 
         if (showNotification) {
-          setNotification(`Berhasil menyinkronkan ${sheetOrders.length} data order dari Google Spreadsheet!`);
-          setTimeout(() => setNotification(null), 4000);
+          const names = activeSources.map((s) => s.name).join(", ");
+          setNotification(
+            `Berhasil menyinkronkan ${sheetOrders.length} data order dari ${activeSources.length} Google Spreadsheet (${names || "Active Sheets"})!`
+          );
+          setTimeout(() => setNotification(null), 5000);
         }
       } else {
         setSheetSyncMeta((prev) => ({
@@ -88,13 +181,16 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
     }
   };
 
+  const sheetSourcesRef = useRef(sheetSources);
+  sheetSourcesRef.current = sheetSources;
+
   // Auto-sync Google Sheets on mount and poll continuously in real-time
   useEffect(() => {
-    syncGoogleSheets(false);
+    syncGoogleSheets(false, sheetSourcesRef.current);
 
     const interval = setInterval(() => {
-      syncGoogleSheets(false);
-    }, 10000); // Live real-time sync every 10 seconds
+      syncGoogleSheets(false, sheetSourcesRef.current);
+    }, 12000); // Live real-time sync every 12 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -188,7 +284,8 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       const matchesSource =
         sourceFilter === "all" ||
         (sourceFilter === "sheets" && order.source === "Google Sheet") ||
-        (sourceFilter === "local" && order.source !== "Google Sheet");
+        (sourceFilter === "local" && order.source !== "Google Sheet") ||
+        order.sourceSheetName === sourceFilter;
 
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -198,6 +295,8 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
         order.origin.toLowerCase().includes(q) ||
         order.destination.toLowerCase().includes(q) ||
         order.unitType.toLowerCase().includes(q) ||
+        (order.lastUpdateCS && order.lastUpdateCS.toLowerCase().includes(q)) ||
+        (order.sourceSheetName && order.sourceSheetName.toLowerCase().includes(q)) ||
         (order.source && order.source.toLowerCase().includes(q));
 
       const idQ = orderIdFilter.toLowerCase().trim();
@@ -234,13 +333,13 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       sortable: true,
       render: (item) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono font-black text-xs sm:text-sm text-[#0B2C6B]">{item.id}</span>
+          <span className="font-mono font-black text-xs sm:text-sm text-[#0B2C6B] dark:text-sky-400">{item.id}</span>
           {item.source === "Google Sheet" ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 w-fit">
-              <FileSpreadsheet className="w-2.5 h-2.5 text-emerald-600" /> Google Sheet
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 w-fit">
+              <FileSpreadsheet className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" /> {item.sourceSheetName || "Google Sheet"}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/80 w-fit">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/80 dark:border-slate-700 w-fit">
               <Database className="w-2.5 h-2.5 text-slate-400" /> System
             </span>
           )}
@@ -260,10 +359,16 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       render: (item) => <StatusBadge status={item.status} />
     },
     {
+      key: "lastUpdateCS" as keyof Order,
+      header: "LAST UPDATE CS",
+      sortable: true,
+      render: (item) => <CSStatusBadge status={item.lastUpdateCS} />
+    },
+    {
       key: "customer",
       header: "Customer",
       sortable: true,
-      render: (item) => <span className="font-semibold text-xs sm:text-sm text-gray-800">{item.customer}</span>
+      render: (item) => <span className="font-semibold text-xs sm:text-sm text-gray-800 dark:text-slate-200">{item.customer}</span>
     },
     {
       key: "origin",
@@ -332,34 +437,38 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       </AnimatePresence>
 
       {/* Header Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-200">
         <div>
-          <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
-            <ShoppingCart className="w-6 h-6 text-[#0B2C6B]" />
+          <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <ShoppingCart className="w-6 h-6 text-[#0B2C6B] dark:text-sky-400" />
             Order Management Console
           </h2>
-          <p className="text-xs text-gray-500 font-semibold mt-1">
+          <p className="text-xs text-gray-500 dark:text-slate-400 font-semibold mt-1">
             Real-time container logistics orders, allocation queue, and status tracking
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
+            onClick={() => setIsSheetModalOpen(true)}
+            className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100/80 dark:hover:bg-emerald-900 px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer shrink-0 shadow-xs"
+            title="Kelola & Tambah Link Google Spreadsheet"
+          >
+            <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Kelola Link Sheets ({sheetSources.filter((s) => s.enabled).length} Aktif)</span>
+          </button>
+          <button
             onClick={() => setShowSheetBanner(!showSheetBanner)}
-            className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-3.5 py-2 rounded-xl border border-emerald-200 transition-colors cursor-pointer shrink-0 shadow-xs"
+            className="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-slate-300 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer shrink-0"
             title="Google Sheet Live Realtime Status"
           >
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Google Sheet Realtime Live Connected</span>
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Info Sync</span>
           </button>
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 bg-gray-50 px-3.5 py-2 rounded-xl border border-gray-200 shrink-0">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Klik Baris untuk Status Control & Detail Order</span>
-          </div>
         </div>
       </div>
 
-      {/* Google Sheets Integration Card */}
+      {/* Google Sheets Integration Card (Multi-Sheet Banner) */}
       {showSheetBanner && (
         <div className="relative bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-5 rounded-2xl shadow-md border border-emerald-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <button
@@ -370,18 +479,18 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
             <X className="w-4 h-4" />
           </button>
 
-          <div className="flex items-start gap-3.5 pr-6 md:pr-0">
+          <div className="flex items-start gap-3.5 pr-6 md:pr-0 min-w-0">
             <div className="bg-emerald-500/20 p-2.5 rounded-xl border border-emerald-400/30 shrink-0 mt-0.5">
-              <FileSpreadsheet className="w-6 h-6 text-emerald-300" />
+              <Layers className="w-6 h-6 text-emerald-300" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
-                  Terhubung dengan Google Spreadsheet
+                  Terhubung Multi-Spreadsheet Google
                 </h3>
                 {sheetSyncMeta.connected ? (
                   <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider bg-emerald-400/20 text-emerald-200 px-2.5 py-0.5 rounded-full border border-emerald-400/40">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live Connected
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Realtime Live Connected
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-400/40">
@@ -389,20 +498,43 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                   </span>
                 )}
               </div>
-              <p className="text-xs text-emerald-100/90 font-medium mt-1">
-                Data terhubung langsung dengan Google Sheets link:{" "}
-                <a
-                  href="https://docs.google.com/spreadsheets/d/1pavvP7EtzMvHiIhCP5X_aoTVP5nLkV03Vw_IV0iQkxU/edit?gid=1444994189#gid=1444994189"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline hover:text-white font-mono inline-flex items-center gap-1 font-semibold"
+
+              {/* Active Sheet Pills */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {sheetSources.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setSourceFilter(sourceFilter === s.name ? "all" : s.name);
+                    }}
+                    className={`text-[11px] font-extrabold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 ${
+                      s.enabled
+                        ? sourceFilter === s.name
+                          ? "bg-white text-emerald-950 border-white shadow-xs"
+                          : "bg-emerald-950/70 text-emerald-100 border-emerald-600/60 hover:bg-emerald-800"
+                        : "bg-emerald-950/30 text-emerald-400/50 border-emerald-900 line-through opacity-60"
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${s.enabled ? "bg-emerald-400" : "bg-slate-500"}`} />
+                    <span>{s.name}</span>
+                    {s.rowCount !== undefined && s.enabled && (
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-200 font-mono">
+                        {s.rowCount}
+                      </span>
+                    )}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setIsSheetModalOpen(true)}
+                  className="text-[11px] font-bold px-2 py-1 rounded-lg border border-dashed border-emerald-400/50 hover:border-emerald-300 text-emerald-200 hover:text-white transition-colors"
                 >
-                  1pavvP7EtzMvHiIhCP... <ExternalLink className="w-3 h-3" />
-                </a>
-              </p>
+                  + Tambah Link
+                </button>
+              </div>
+
               {sheetSyncMeta.fetchedAt && (
-                <p className="text-[11px] text-emerald-200/80 font-medium mt-1">
-                  Total <strong>{sheetSyncMeta.totalRows}</strong> order disinkronkan dari Google Sheets. Terakhir diperbarui jam {sheetSyncMeta.fetchedAt}.
+                <p className="text-[11px] text-emerald-200/80 font-medium mt-2">
+                  Total <strong>{sheetSyncMeta.totalRows}</strong> order disinkronkan dari {sheetSources.filter((s) => s.enabled).length} sheet aktif. Terakhir diperbarui jam {sheetSyncMeta.fetchedAt}.
                 </p>
               )}
             </div>
@@ -438,12 +570,20 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
             </div>
 
             <button
+              onClick={() => setIsSheetModalOpen(true)}
+              className="bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              Kelola Links
+            </button>
+
+            <button
               onClick={() => syncGoogleSheets(true)}
               disabled={isSyncingSheets}
               className="bg-white hover:bg-emerald-50 text-emerald-900 font-extrabold text-xs px-3.5 py-2 rounded-xl transition-all shadow hover:shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-75"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheets ? "animate-spin text-emerald-600" : ""}`} />
-              {isSyncingSheets ? "Syncing..." : "Sync Google Sheets"}
+              {isSyncingSheets ? "Syncing..." : "Sync Semua Sheet"}
             </button>
           </div>
         </div>
@@ -492,8 +632,8 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
           <div
             key={b.type}
             onClick={() => setTypeFilter(b.type)}
-            className={`bg-white rounded-2xl border transition-all cursor-pointer p-5 shadow-sm hover:shadow-md ${
-              typeFilter === b.type ? "ring-2 ring-[#0B2C6B] border-[#0B2C6B]" : "border-gray-200"
+            className={`bg-white dark:bg-slate-900 rounded-2xl border transition-all cursor-pointer p-5 shadow-sm hover:shadow-md ${
+              typeFilter === b.type ? "ring-2 ring-[#0B2C6B] dark:ring-sky-500 border-[#0B2C6B] dark:border-sky-500" : "border-gray-200 dark:border-slate-800"
             }`}
           >
             <div className="flex justify-between items-center mb-3">
@@ -503,18 +643,18 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
               <span className={`text-sm font-extrabold ${b.styles.totalText}`}>{b.total} total</span>
             </div>
             <div className="space-y-2 mt-4">
-              <div className="flex justify-between text-xs font-semibold text-gray-500">
+              <div className="flex justify-between text-xs font-semibold text-gray-500 dark:text-slate-400">
                 <span>Open: {b.open}</span>
                 <span>In Progress: {b.inProgress}</span>
                 <span>Done: {b.done}</span>
               </div>
               {/* Custom Multi-Segment Segmented Progress Bar */}
-              <div className="w-full h-3.5 bg-gray-100 rounded-full flex overflow-hidden border border-gray-200/80 shadow-inner">
+              <div className="w-full h-3.5 bg-gray-100 dark:bg-slate-800 rounded-full flex overflow-hidden border border-gray-200/80 dark:border-slate-700 shadow-inner">
                 <motion.div initial={{ width: 0 }} animate={{ width: `${b.openPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="bg-sky-500 h-full" title={`Open: ${b.open}`} />
                 <motion.div initial={{ width: 0 }} animate={{ width: `${b.inProgressPct}%` }} transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }} className="bg-blue-500 h-full" title={`In Progress: ${b.inProgress}`} />
                 <motion.div initial={{ width: 0 }} animate={{ width: `${b.donePct}%` }} transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }} className="bg-emerald-500 h-full" title={`Done: ${b.done}`} />
               </div>
-              <div className="flex justify-between text-[10px] text-gray-400 font-bold pt-1 uppercase tracking-wider">
+              <div className="flex justify-between text-[10px] text-gray-400 dark:text-slate-500 font-bold pt-1 uppercase tracking-wider">
                 <span>{b.open} Open</span>
                 <span>{b.inProgress} Transit</span>
                 <span>{b.done} Done</span>
@@ -525,22 +665,22 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors duration-200">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           {/* Global Search Bar */}
           <div className="relative flex-1 min-w-[240px]">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search keyword (ID, Customer, Origin, Dest...)"
-              className="w-full bg-gray-50 border border-gray-200 text-xs sm:text-sm rounded-xl pl-9 pr-8 py-2.5 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0B2C6B] text-gray-800 placeholder-gray-400 font-medium"
+              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-xs sm:text-sm rounded-xl pl-9 pr-8 py-2.5 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0B2C6B] dark:focus:ring-sky-500 text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 font-medium"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 p-1 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -724,14 +864,18 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 
                 {/* Visual Badges Row */}
-                <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div className="flex flex-wrap items-center gap-3 bg-gray-50 dark:bg-slate-800/80 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Service Type</span>
+                    <span className="text-[10px] text-gray-400 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Service Type</span>
                     <StatusBadge status={selectedOrder.type} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Operational Status</span>
+                    <span className="text-[10px] text-gray-400 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Operational Status</span>
                     <StatusBadge status={selectedOrder.status} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-400 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Last Update CS</span>
+                    <CSStatusBadge status={selectedOrder.lastUpdateCS} />
                   </div>
                 </div>
 
@@ -840,6 +984,19 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
           </div>
         )}
       </AnimatePresence>
+
+      {/* Multi-Spreadsheet Link Manager Modal */}
+      <SheetManagerModal
+        isOpen={isSheetModalOpen}
+        onClose={() => setIsSheetModalOpen(false)}
+        sources={sheetSources}
+        onUpdateSources={(updated) => {
+          handleUpdateSheetSources(updated);
+          syncGoogleSheets(false, updated);
+        }}
+        onSyncAll={() => syncGoogleSheets(true, sheetSources)}
+        isSyncing={isSyncingSheets}
+      />
     </motion.div>
   );
 }

@@ -16,6 +16,51 @@ export interface Order {
   bookingDate?: string;
   quantity?: number;
   notes?: string;
+  lastUpdateCS?: string;
+  driver?: string;
+  vehiclePlate?: string;
+  sourceSheetName?: string;
+  sourceUrl?: string;
+}
+
+export interface FormulaRule {
+  id: string;
+  targetField: "status" | "type" | "lastUpdateCS" | "customNote";
+  conditionType: "contains" | "equals" | "starts_with" | "is_not_empty" | "always";
+  conditionValue: string;
+  resultValue: string;
+}
+
+export interface ColumnMapping {
+  headerRowIndex?: number;
+  idField?: string;
+  typeField?: string;
+  statusField?: string;
+  customerField?: string;
+  originField?: string;
+  destinationField?: string;
+  unitTypeField?: string;
+  quantityField?: string;
+  etaField?: string;
+  lastUpdateCSField?: string;
+  driverField?: string;
+  vehiclePlateField?: string;
+}
+
+export interface SheetSource {
+  id: string;
+  name: string;
+  url: string;
+  spreadsheetId?: string;
+  gid?: string;
+  enabled: boolean;
+  lastSyncedAt?: string;
+  rowCount?: number;
+  status?: "success" | "error" | "pending";
+  errorMessage?: string;
+  headerRowIndex?: number;
+  columnMapping?: ColumnMapping;
+  formulaRules?: FormulaRule[];
 }
 
 export interface Shipment {
