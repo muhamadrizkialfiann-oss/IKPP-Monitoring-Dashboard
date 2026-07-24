@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import { getTikProMirrorData } from "./server/tikpro.js";
 
 const SPREADSHEET_ID = "1pavvP7EtzMvHiIhCP5X_aoTVP5nLkV03Vw_IV0iQkxU";
 const GID = "1444994189";
@@ -845,6 +846,29 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
       return res.status(500).json({
         success: false,
         message: error?.message || "Internal server error fetching multi-sheets",
+        error: String(error)
+      });
+    }
+  });
+
+  // API endpoint for TikPro (monitoring-kontrak-export.web.app) Live Data Mirroring
+  app.all("/api/tikpro/data", async (req, res) => {
+    try {
+      const email = (req.body?.email || req.query?.email || "pdt@ikk.com").toString();
+      const password = (req.body?.password || req.query?.password || "pdt@ikk.com").toString();
+      const vendorFilter = (req.body?.vendorFilter || req.query?.vendorFilter || "Pancaran Darat").toString();
+      const forceRefresh = req.body?.forceRefresh === true || req.query?.forceRefresh === "true";
+
+      const data = await getTikProMirrorData(email, password, vendorFilter, forceRefresh);
+      return res.json({
+        success: true,
+        data
+      });
+    } catch (error: any) {
+      console.error("Error fetching TikPro mirror data:", error);
+      return res.status(500).json({
+        success: false,
+        message: error?.message || "Gagal melakukan mirroring data TikPro",
         error: String(error)
       });
     }

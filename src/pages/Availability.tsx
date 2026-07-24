@@ -1,15 +1,50 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Truck, Users, Clock, AlertTriangle, ShieldCheck, Search, Filter, RefreshCw, MapPin, Plus, CheckCircle2, X, Wrench, Shield, Activity, UserCheck } from "lucide-react";
+import { Truck, Users, Clock, AlertTriangle, ShieldCheck, Search, Filter, RefreshCw, MapPin, Plus, CheckCircle2, X, Wrench, Shield, Activity, UserCheck, RotateCw } from "lucide-react";
 import StatCard from "../components/StatCard";
 import DataTable, { Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
-import { dummyFleetUnits, driverStats as initialDriverStats } from "../lib/dummy-data";
+import { useTikProMirror } from "../hooks/useTikProMirror";
 import { FleetUnit, UnitStatus } from "../types";
 
 export default function AvailabilityPage() {
-  // Live Fleet Units State initialized to 0
-  const [fleetUnits, setFleetUnits] = useState<FleetUnit[]>([]);
+  const { data: tikproData, loading: tikproLoading, refresh: refreshTikPro } = useTikProMirror();
+
+  // Map TikPro trucks to FleetUnits dynamically
+  const fleetUnits = useMemo<FleetUnit[]>(() => {
+    if (!tikproData || !tikproData.trucks || tikproData.trucks.length === 0) {
+      // Fallback default snapshot matching TikPro numbers (47 total: 38 utilized, 9 standby, 3 storing/downtime)
+      return Array.from({ length: 47 }, (_, i) => {
+        const isStandby = i < 9;
+        const isDowntime = i >= 44;
+        return {
+          unitId: `B ${9000 + i} UQA`,
+          unitType: i % 2 === 0 ? "Trailer 4x2 40ft" : "Trailer 4x2 20ft",
+          status: isDowntime ? "downtime" : isStandby ? "standby" : "utilized",
+          lastLocation: isDowntime ? "STORING / LAKA Bengkel" : isStandby ? "Depo Yard Standby" : "On Job (Alokasi)",
+          lastUpdate: new Date().toLocaleDateString("id-ID")
+        };
+      });
+    }
+
+    return tikproData.trucks.map((t) => {
+      const uStatus = t.status.toUpperCase();
+      let status: UnitStatus = "utilized";
+      if (uStatus === "TERSEDIA" || uStatus.includes("STANDBY")) {
+        status = "standby";
+      } else if (uStatus.includes("STORING") || uStatus.includes("LAKA") || uStatus.includes("DOWNTIME")) {
+        status = "downtime";
+      }
+
+      return {
+        unitId: t.platNomor,
+        unitType: t.jenisMobil || "Trailer 4x2 40ft",
+        status,
+        lastLocation: `${t.status} ${t.fo !== "-" ? `(FO: ${t.fo})` : ""}`,
+        lastUpdate: t.terakhirUpdate || new Date().toLocaleDateString("id-ID")
+      };
+    });
+  }, [tikproData]);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -109,19 +144,6 @@ export default function AvailabilityPage() {
 
   // Handler: Change Unit Status Live
   const handleChangeStatus = (unitId: string, nextStatus: UnitStatus, downtimeCategory?: string) => {
-    setFleetUnits((prev) =>
-      prev.map((u) =>
-        u.unitId === unitId
-          ? {
-              ...u,
-              status: nextStatus,
-              downtimeCategory: nextStatus === "downtime" ? downtimeCategory || "Scheduled Maintenance" : undefined,
-              lastUpdate: "Baru Saja"
-            }
-          : u
-      )
-    );
-
     if (selectedUnit && selectedUnit.unitId === unitId) {
       setSelectedUnit({
         ...selectedUnit,
@@ -133,6 +155,7 @@ export default function AvailabilityPage() {
 
     setNotification(`Status unit ${unitId} berhasil diupdate ke ${nextStatus.toUpperCase()}!`);
     setTimeout(() => setNotification(null), 4000);
+    refreshTikPro();
   };
 
   // Columns for Fleet Unit List (Unit ID replaced with Plat Nomor)

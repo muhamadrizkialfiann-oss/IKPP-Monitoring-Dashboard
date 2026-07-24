@@ -76,6 +76,44 @@ export interface Shipment {
   quantity?: number;
 }
 
+export interface TikProStatusItem {
+  key: string;
+  label: string;
+  count: number;
+  icon?: string;
+  colorClass?: string;
+  badgeColor?: string;
+}
+
+export interface TikProTruck {
+  id: string;
+  platNomor: string;
+  driverName: string;
+  phone: string;
+  jenisMobil: string;
+  vendor: string;
+  status: string;
+  fo: string;
+  dn: string;
+  noContainer: string;
+  jenisProduk: string;
+  terakhirUpdate: string;
+}
+
+export interface TikProMirrorData {
+  lastSyncedAt: string;
+  vendorName: string;
+  userEmail: string;
+  accessRole: string;
+  totalArmadaTerdaftar: number;
+  dalamTugasAlokasi: number;
+  standbyTersedia: number;
+  totalVendorMitra: number;
+  statusBreakdown: Record<string, number>;
+  statusItems: TikProStatusItem[];
+  trucks: TikProTruck[];
+}
+
 export interface FleetUnit {
   unitId: string;
   unitType: string;

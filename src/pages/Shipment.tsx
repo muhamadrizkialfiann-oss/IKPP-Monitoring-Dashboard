@@ -15,11 +15,13 @@ export default function ShipmentPage() {
 
   // Auto-fetch Google Sheets data on mount and poll continuously in real-time
   useEffect(() => {
+    let isMounted = true;
     const fetchShipments = async () => {
       try {
         const res = await fetch("/api/sheets/orders");
+        if (!res.ok) return;
         const json = await res.json();
-        if (json.success && Array.isArray(json.orders)) {
+        if (isMounted && json.success && Array.isArray(json.orders)) {
           const list: Shipment[] = [];
           json.orders.forEach((o: any) => {
             const qty = o.quantity || 1;
@@ -45,13 +47,16 @@ export default function ShipmentPage() {
           setShipments(list);
         }
       } catch (err) {
-        console.error("Shipments sheet fetch error:", err);
+        // Silent catch during background sync
       }
     };
 
     fetchShipments();
     const interval = setInterval(fetchShipments, 10000); // Live real-time sync every 10s
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   // Filter States

@@ -45,8 +45,8 @@ function CSStatusBadge({ status }: { status?: string }) {
 }
 
 export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: OrderProps) {
-  // Live orders state initialized with Sinarmas orders
-  const [orders, setOrders] = useState<Order[]>(dummyOrders);
+  // Live orders state initialized with empty array (loaded live from Google Sheets)
+  const [orders, setOrders] = useState<Order[]>([]);
 
   // Multi-Spreadsheet Sources State
   const [sheetSources, setSheetSources] = useState<SheetSource[]>(() => {
