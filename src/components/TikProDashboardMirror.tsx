@@ -138,10 +138,6 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
             <h3 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2 text-white">
               Halo, <span className="text-blue-400">{mirror.vendorName}!</span> 🚚
             </h3>
-            <p className="text-slate-300 text-xs font-semibold mt-0.5">
-              AKSES: <span className="bg-blue-600/60 text-white px-2 py-0.5 rounded text-[11px] font-black tracking-wide ml-1">{mirror.accessRole}</span>
-              <span className="ml-3 text-slate-400 text-[11px]">User: {mirror.userEmail}</span>
-            </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">

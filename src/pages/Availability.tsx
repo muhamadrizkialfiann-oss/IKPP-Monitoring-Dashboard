@@ -77,7 +77,7 @@ export default function AvailabilityPage() {
     const utilized = fleetUnits.filter((u) => u.status === "utilized").length;
     const standby = fleetUnits.filter((u) => u.status === "standby").length;
     const downtime = fleetUnits.filter((u) => u.status === "downtime").length;
-    const available = utilized + standby;
+    const available = standby;
     return {
       total,
       available,
@@ -94,8 +94,8 @@ export default function AvailabilityPage() {
   // Dynamic Driver Stats matched to Fleet Availability
   const driverStats = useMemo(() => {
     const total = stats.total;
-    const onDuty = stats.available;
-    const offDuty = stats.downtime;
+    const onDuty = stats.utilized;
+    const offDuty = stats.standby + stats.downtime;
     return {
       total,
       onDuty,
@@ -120,7 +120,7 @@ export default function AvailabilityPage() {
       const utilized = units.filter((u) => u.status === "utilized").length;
       const standby = units.filter((u) => u.status === "standby").length;
       const downtime = units.filter((u) => u.status === "downtime").length;
-      const available = utilized + standby;
+      const available = standby;
       return {
         type,
         total,
@@ -147,7 +147,7 @@ export default function AvailabilityPage() {
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "available"
-          ? unit.status === "utilized" || unit.status === "standby"
+          ? unit.status === "standby"
           : unit.status === statusFilter);
 
       const matchesType = typeFilter === "all" || unit.unitType === typeFilter;
@@ -280,7 +280,7 @@ export default function AvailabilityPage() {
             title="Available"
             value={String(stats.available)}
             statusType="success"
-            description={`Utilize + Standby (${stats.availablePct}%)`}
+            description={`Ready / Standby (${stats.availablePct}%)`}
           />
         </div>
         <div onClick={() => setStatusFilter("utilized")} className="cursor-pointer transition-transform hover:scale-[1.01]">
