@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { LayoutDashboard, ClipboardList, Truck, Package, ChevronLeft, ShieldCheck, LogOut } from "lucide-react";
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
-import { useTheme } from "../ThemeContext";
 
 export type TabType = "overview" | "logistik_pro" | "order" | "availability" | "shipment";
 
@@ -14,9 +13,6 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
-  const { isDark, toggleTheme } = useTheme();
-  const [lang, setLang] = useState<"EN" | "ID">("ID");
-
   const menuItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "order", label: "Order Management", icon: ClipboardList },
@@ -104,35 +100,8 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
                 })}
               </nav>
 
-              {/* Controls & Sign Out Section */}
-              <div className="px-5 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto space-y-3">
-                {/* Language Selector EN / ID right above Sign Out */}
-                <div className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-800">
-                  <span className="text-xs font-bold text-gray-500 dark:text-slate-400 pl-2">Language</span>
-                  <div className="flex items-center bg-gray-200/70 dark:bg-slate-900 rounded-xl p-1 border border-gray-200 dark:border-slate-700">
-                    <button
-                      onClick={() => setLang("EN")}
-                      className={`text-xs font-black px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                        lang === "EN"
-                          ? "bg-white dark:bg-sky-950 text-[#0B2C6B] dark:text-sky-300 shadow-xs"
-                          : "text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"
-                      }`}
-                    >
-                      EN
-                    </button>
-                    <button
-                      onClick={() => setLang("ID")}
-                      className={`text-xs font-black px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                        lang === "ID"
-                          ? "bg-white dark:bg-sky-950 text-[#0B2C6B] dark:text-sky-300 shadow-xs"
-                          : "text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"
-                      }`}
-                    >
-                      ID
-                    </button>
-                  </div>
-                </div>
-
+              {/* Sign Out Section */}
+              <div className="px-5 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto">
                 {/* Sign Out Button */}
                 <button
                   id="sidebar-sign-out"
