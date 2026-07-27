@@ -5,7 +5,6 @@ import TripStepper from "../components/TripStepper";
 import StackedBarChart from "../components/StackedBarChart";
 import BarChart from "../components/BarChart";
 import ServiceStreamCard from "../components/ServiceStreamCard";
-import TikProDashboardMirror from "../components/TikProDashboardMirror";
 import { useTikProMirror } from "../hooks/useTikProMirror";
 import { TabType } from "../components/Sidebar";
 import { Order } from "../types";
@@ -17,7 +16,7 @@ interface OverviewProps {
 
 export default function Overview({ onNavigate }: OverviewProps) {
   const [orders, setOrders] = useState<Order[]>([]);
-  const { data: tikproData, loading: tikproLoading, error: tikproError, refresh: refreshTikPro } = useTikProMirror();
+  const { data: tikproData } = useTikProMirror();
 
   // Real-time live auto-connection to Google Sheets with Vercel client fallback support
   useEffect(() => {
@@ -192,14 +191,6 @@ export default function Overview({ onNavigate }: OverviewProps) {
         <div className="absolute -right-16 -top-16 w-48 h-48 bg-gray-50 dark:bg-slate-800/40 rounded-full blur-2xl"></div>
         <div className="absolute -left-10 -bottom-10 w-36 h-36 bg-gray-50 dark:bg-slate-800/40 rounded-full blur-xl"></div>
       </div>
-
-      {/* TikPro Live Data Mirroring Section - Placed prominently at the top */}
-      <TikProDashboardMirror
-        data={tikproData}
-        loading={tikproLoading}
-        error={tikproError}
-        onRefresh={refreshTikPro}
-      />
 
       {/* Grid of 4 Widget Boxes (Bento Dashboard Grid) - now more compact and interactive */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

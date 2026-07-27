@@ -15,10 +15,10 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "logistik_pro", label: "Dashboard Logistik Pro IKK", icon: ShieldCheck },
     { id: "order", label: "Order Management", icon: ClipboardList },
     { id: "availability", label: "Resources & Availability", icon: Truck },
     { id: "shipment", label: "Shipment Tracking", icon: Package },
+    { id: "logistik_pro", label: "Dashboard Logistik Pro IKK", icon: ShieldCheck },
   ] as const;
 
   return (
