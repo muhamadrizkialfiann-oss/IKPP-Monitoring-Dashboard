@@ -106,18 +106,9 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
 
               {/* Controls & Sign Out Section */}
               <div className="px-5 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto space-y-3">
-                {/* Controls row right above Sign Out */}
-                <div className="flex items-center justify-between gap-2 p-1.5 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-800">
-                  {/* Mode Toggle (Emoji/Icon only, no text label) */}
-                  <button
-                    onClick={toggleTheme}
-                    className="flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-700 transition-all cursor-pointer shadow-xs text-base shrink-0"
-                    title={isDark ? "Mode Terang" : "Mode Gelap"}
-                  >
-                    {isDark ? "☀️" : "🌙"}
-                  </button>
-
-                  {/* Language Selector EN / ID */}
+                {/* Language Selector EN / ID right above Sign Out */}
+                <div className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-800">
+                  <span className="text-xs font-bold text-gray-500 dark:text-slate-400 pl-2">Language</span>
                   <div className="flex items-center bg-gray-200/70 dark:bg-slate-900 rounded-xl p-1 border border-gray-200 dark:border-slate-700">
                     <button
                       onClick={() => setLang("EN")}

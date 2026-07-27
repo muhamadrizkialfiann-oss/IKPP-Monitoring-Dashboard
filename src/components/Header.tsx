@@ -55,15 +55,6 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
 
       {/* Right side controls */}
       <div className="flex items-center gap-2 md:gap-3 lg:gap-5 shrink-0">
-        {/* Dark / Light Mode Toggle Button */}
-        <button
-          onClick={toggleTheme}
-          className="flex items-center justify-center p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-xs text-base"
-          title={isDark ? "Mode Terang" : "Mode Gelap"}
-        >
-          {isDark ? "☀️" : "🌙"}
-        </button>
-
         {/* Language Switcher */}
         <div className="hidden sm:flex items-center bg-gray-100 dark:bg-slate-800 rounded-full p-0.5 border border-gray-200 dark:border-slate-700">
           <button className="text-[10px] md:text-xs font-bold px-2 md:px-3 py-0.5 md:py-1 rounded-full bg-white dark:bg-slate-900 text-[#0B2C6B] dark:text-sky-400 shadow-sm cursor-pointer">
@@ -151,10 +142,10 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
         {/* User Profile */}
         <div className="flex items-center gap-2 md:gap-3 pl-1 md:pl-2">
           <div className="w-8 h-8 md:w-9 h-9 rounded-full bg-[#0B2C6B] flex items-center justify-center text-white text-xs md:text-sm font-semibold border-2 border-[#00AEEF] shadow shrink-0">
-            IK
+            MR
           </div>
           <div className="hidden md:flex flex-col">
-            <span className="text-xs font-bold text-gray-800 dark:text-slate-200">Rizki Moril</span>
+            <span className="text-xs font-bold text-gray-800 dark:text-slate-200">Muhamad Rizki Alfian</span>
             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
               <Shield className="w-3 h-3 text-emerald-500" /> Authorized
             </span>
