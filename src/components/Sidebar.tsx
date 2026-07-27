@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { LayoutDashboard, ClipboardList, Truck, Package, ChevronLeft, ShieldCheck, LogOut } from "lucide-react";
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
 
-export type TabType = "overview" | "order" | "availability" | "shipment";
+export type TabType = "overview" | "logistik_pro" | "order" | "availability" | "shipment";
 
 interface SidebarProps {
   activeTab: TabType;
@@ -15,6 +15,7 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "logistik_pro", label: "Dashboard Logistik Pro IKK", icon: ShieldCheck },
     { id: "order", label: "Order Management", icon: ClipboardList },
     { id: "availability", label: "Resources & Availability", icon: Truck },
     { id: "shipment", label: "Shipment Tracking", icon: Package },

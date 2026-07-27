@@ -5,8 +5,13 @@ import Overview from "./pages/Overview";
 import OrderPage from "./pages/Order";
 import AvailabilityPage from "./pages/Availability";
 import ShipmentPage from "./pages/Shipment";
+import TikProDashboardMirror from "./components/TikProDashboardMirror";
+import { useTikProMirror } from "./hooks/useTikProMirror";
 
 export default function App() {
+  // Shared TikPro Live Mirroring Hook
+  const { data: tikproData, loading: tikproLoading, error: tikproError, refresh: refreshTikPro } = useTikProMirror();
+
   // Navigation State
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
@@ -29,6 +34,10 @@ export default function App() {
     overview: {
       title: "IKPP Monitoring Dashboard",
       subtitle: "PT Indah Kiat Pulp & Paper Tbk (IKPP) Partner Overview Cockpit"
+    },
+    logistik_pro: {
+      title: "Dashboard Logistik Pro IKK",
+      subtitle: "Live Data Mirroring TikPro IKPP - Live Armada & Status Tracker"
     },
     order: {
       title: "Order Management System",
@@ -69,6 +78,15 @@ export default function App() {
         <main className="p-6 md:p-8 flex-1 overflow-y-auto max-w-none w-full mx-auto">
           {activeTab === "overview" && (
             <Overview onNavigate={handleNavigate} />
+          )}
+
+          {activeTab === "logistik_pro" && (
+            <TikProDashboardMirror
+              data={tikproData}
+              loading={tikproLoading}
+              error={tikproError}
+              onRefresh={refreshTikPro}
+            />
           )}
 
           {activeTab === "order" && (

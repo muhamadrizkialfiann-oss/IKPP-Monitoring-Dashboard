@@ -36,9 +36,17 @@ export default function AvailabilityPage() {
         status = "downtime";
       }
 
+      const rawJenis = (t.jenisMobil || "").toUpperCase();
+      let unitType = "Trailer 4x2 40ft";
+      if (rawJenis.includes("20")) {
+        unitType = "Trailer 4x2 20ft";
+      } else if (rawJenis.includes("40") || rawJenis.includes("TRAILER") || rawJenis.includes("HC")) {
+        unitType = "Trailer 4x2 40ft";
+      }
+
       return {
         unitId: t.platNomor,
-        unitType: t.jenisMobil || "Trailer 4x2 40ft",
+        unitType,
         status,
         lastLocation: `${t.status} ${t.fo !== "-" ? `(FO: ${t.fo})` : ""}`,
         lastUpdate: t.terakhirUpdate || new Date().toLocaleDateString("id-ID")
@@ -101,7 +109,13 @@ export default function AvailabilityPage() {
   const fleetTypeBreakdowns = useMemo(() => {
     const types = ["Trailer 4x2 40ft", "Trailer 4x2 20ft"];
     return types.map((type) => {
-      const units = fleetUnits.filter((u) => u.unitType === type);
+      const units = fleetUnits.filter((u) => {
+        if (type === "Trailer 4x2 40ft") {
+          return u.unitType === "Trailer 4x2 40ft" || u.unitType.includes("40") || u.unitType.includes("HC");
+        } else {
+          return u.unitType === "Trailer 4x2 20ft" || u.unitType.includes("20");
+        }
+      });
       const total = units.length;
       const utilized = units.filter((u) => u.status === "utilized").length;
       const standby = units.filter((u) => u.status === "standby").length;

@@ -156,7 +156,6 @@ function generateFallbackOrders(): Order[] {
       customer: "INDAH KIAT PULP & PAPER TBK.",
       origin: isRepo ? "CAKUNG" : "IKK Karawang",
       destination: isRepo ? "DEPO PDT" : (i % 3 === 0 ? "KOJA" : i % 3 === 1 ? "BSA" : "NPCT 1"),
-      containerTier: "40ft",
       unitType: "Trailer 4x2 40ft",
       status: isDone ? "done" : isInProgress ? "in_progress" : "open",
       eta: "24/07/2026 14:00",
