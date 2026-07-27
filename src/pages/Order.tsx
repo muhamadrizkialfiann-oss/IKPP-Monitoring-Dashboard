@@ -7,6 +7,7 @@ import StatusBadge from "../components/StatusBadge";
 import SheetManagerModal, { DEFAULT_SHEET_SOURCES } from "../components/SheetManagerModal";
 import { dummyOrders } from "../lib/dummy-data";
 import { Order, OrderType, OrderStatus, SheetSource } from "../types";
+import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
 
 interface OrderProps {
   initialTypeFilter?: string;
@@ -103,9 +104,11 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
   // Selected Order Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // Fetch Google Sheets orders from backend proxy API (Supports Multi-Sheet sync)
+  // Fetch Google Sheets orders from backend proxy API (Supports Multi-Sheet sync with client fallback)
   const syncGoogleSheets = async (showNotification = true, sourcesToSync = sheetSources) => {
     setIsSyncingSheets(true);
+    let sheetOrders: Order[] = [];
+
     try {
       const activeSources = sourcesToSync.filter((s) => s.enabled && s.url);
       
@@ -117,68 +120,69 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
         body: JSON.stringify({ sheets: activeSources })
       });
 
-      const json = await res.json();
-
-      if (json.success && Array.isArray(json.orders)) {
-        const sheetOrders: Order[] = json.orders;
-        
-        setOrders((prev) => {
-          const userCreated = prev.filter((o) => (o as any).isUserCreated);
-          return [...userCreated, ...sheetOrders];
-        });
-
-        // Update row counts & statuses on sheetSources
-        if (Array.isArray(json.sheetResults)) {
-          setSheetSources((prevSources) => {
-            const updated = prevSources.map((source) => {
-              const resMeta = json.sheetResults.find((r: any) => r.id === source.id || r.name === source.name);
-              if (resMeta) {
-                return {
-                  ...source,
-                  rowCount: resMeta.rowCount,
-                  status: (resMeta.status === "success" ? "success" : "error") as "success" | "error",
-                  errorMessage: resMeta.errorMessage,
-                  lastSyncedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-                };
-              }
-              return source;
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.orders)) {
+          sheetOrders = json.orders;
+          
+          if (Array.isArray(json.sheetResults)) {
+            setSheetSources((prevSources) => {
+              const updated = prevSources.map((source) => {
+                const resMeta = json.sheetResults.find((r: any) => r.id === source.id || r.name === source.name);
+                if (resMeta) {
+                  return {
+                    ...source,
+                    rowCount: resMeta.rowCount,
+                    status: (resMeta.status === "success" ? "success" : "error") as "success" | "error",
+                    errorMessage: resMeta.errorMessage,
+                    lastSyncedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                  };
+                }
+                return source;
+              });
+              try {
+                localStorage.setItem("logistics_sheet_sources", JSON.stringify(updated));
+              } catch (e) {}
+              return updated;
             });
-            try {
-              localStorage.setItem("logistics_sheet_sources", JSON.stringify(updated));
-            } catch (e) {}
-            return updated;
-          });
+          }
         }
-
-        setSheetSyncMeta({
-          connected: true,
-          totalRows: sheetOrders.length,
-          fetchedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-          error: null
-        });
-
-        if (showNotification) {
-          const names = activeSources.map((s) => s.name).join(", ");
-          setNotification(
-            `Berhasil menyinkronkan ${sheetOrders.length} data order dari ${activeSources.length} Google Spreadsheet (${names || "Active Sheets"})!`
-          );
-          setTimeout(() => setNotification(null), 5000);
-        }
-      } else {
-        setSheetSyncMeta((prev) => ({
-          ...prev,
-          error: json.message || "Gagal memuat Google Sheets"
-        }));
       }
-    } catch (err: any) {
-      console.error("Sheets sync error:", err);
-      setSheetSyncMeta((prev) => ({
-        ...prev,
-        error: "Gagal terhubung ke API server Google Sheets"
-      }));
-    } finally {
-      setIsSyncingSheets(false);
+    } catch (e) {
+      // Backend proxy API offline / static host
     }
+
+    if (sheetOrders.length === 0) {
+      sheetOrders = await fetchLiveOrdersClient();
+    }
+
+    if (sheetOrders.length > 0) {
+      setOrders((prev) => {
+        const userCreated = prev.filter((o) => (o as any).isUserCreated);
+        return [...userCreated, ...sheetOrders];
+      });
+
+      setSheetSyncMeta({
+        connected: true,
+        totalRows: sheetOrders.length,
+        fetchedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        error: null
+      });
+
+      if (showNotification) {
+        setNotification(`Berhasil menyinkronkan ${sheetOrders.length} Order dari Google Sheets!`);
+        setTimeout(() => setNotification(null), 5000);
+      }
+    } else {
+      setSheetSyncMeta({
+        connected: false,
+        totalRows: 0,
+        fetchedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        error: "Gagal menghubungkan Google Sheets"
+      });
+    }
+
+    setIsSyncingSheets(false);
   };
 
   const sheetSourcesRef = useRef(sheetSources);

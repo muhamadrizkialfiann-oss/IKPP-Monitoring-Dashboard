@@ -9,6 +9,7 @@ import TikProDashboardMirror from "../components/TikProDashboardMirror";
 import { useTikProMirror } from "../hooks/useTikProMirror";
 import { TabType } from "../components/Sidebar";
 import { Order } from "../types";
+import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
 
 interface OverviewProps {
   onNavigate: (tab: TabType, filterType?: string) => void;
@@ -18,16 +19,14 @@ export default function Overview({ onNavigate }: OverviewProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const { data: tikproData, loading: tikproLoading, error: tikproError, refresh: refreshTikPro } = useTikProMirror();
 
-  // Real-time live auto-connection to Google Sheets
+  // Real-time live auto-connection to Google Sheets with Vercel client fallback support
   useEffect(() => {
     let isMounted = true;
     const fetchOrders = async () => {
       try {
-        const res = await fetch("/api/sheets/orders");
-        if (!res.ok) return;
-        const json = await res.json();
-        if (isMounted && json.success && Array.isArray(json.orders)) {
-          setOrders(json.orders);
+        const liveOrders = await fetchLiveOrdersClient();
+        if (isMounted && Array.isArray(liveOrders) && liveOrders.length > 0) {
+          setOrders(liveOrders);
         }
       } catch (err) {
         // Silent catch during background syncs
@@ -194,6 +193,13 @@ export default function Overview({ onNavigate }: OverviewProps) {
         <div className="absolute -left-10 -bottom-10 w-36 h-36 bg-gray-50 dark:bg-slate-800/40 rounded-full blur-xl"></div>
       </div>
 
+      {/* TikPro Live Data Mirroring Section - Placed prominently at the top */}
+      <TikProDashboardMirror
+        data={tikproData}
+        loading={tikproLoading}
+        error={tikproError}
+        onRefresh={refreshTikPro}
+      />
 
       {/* Grid of 4 Widget Boxes (Bento Dashboard Grid) - now more compact and interactive */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -495,14 +501,6 @@ export default function Overview({ onNavigate }: OverviewProps) {
         </div>
 
       </div>
-
-      {/* TikPro Live Data Mirroring Section */}
-      <TikProDashboardMirror
-        data={tikproData}
-        loading={tikproLoading}
-        error={tikproError}
-        onRefresh={refreshTikPro}
-      />
     </motion.div>
   );
 }

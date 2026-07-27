@@ -8,6 +8,7 @@ import TripStepper from "../components/TripStepper";
 import GpsMap from "../components/GpsMap";
 import { dummyShipments } from "../lib/dummy-data";
 import { Shipment, TripStatus } from "../types";
+import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
 
 export default function ShipmentPage() {
   // Live Shipments state initialized to 0
@@ -18,12 +19,10 @@ export default function ShipmentPage() {
     let isMounted = true;
     const fetchShipments = async () => {
       try {
-        const res = await fetch("/api/sheets/orders");
-        if (!res.ok) return;
-        const json = await res.json();
-        if (isMounted && json.success && Array.isArray(json.orders)) {
+        const orders = await fetchLiveOrdersClient();
+        if (isMounted && Array.isArray(orders) && orders.length > 0) {
           const list: Shipment[] = [];
-          json.orders.forEach((o: any) => {
+          orders.forEach((o: any) => {
             const qty = o.quantity || 1;
             let tripStatus: TripStatus = "on_trip";
             if (o.status === "open") tripStatus = "pre_trip";
@@ -37,7 +36,7 @@ export default function ShipmentPage() {
                 tripStatus,
                 unit: o.vehiclePlate || "B 9481 UIK",
                 driver: o.driver || "Ahmad Supriyadi",
-                currentLocation: o.origin || "Perawang Yard",
+                currentLocation: o.origin || "IKK Karawang Yard",
                 eta: o.eta || "25 Jul 2026",
                 customer: o.customer || "PT IKPP",
                 quantity: 1
