@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { motion } from "motion/react";
 import { Truck, ClipboardList, ShieldCheck, BarChart3, FileSpreadsheet } from "lucide-react";
 import TripStepper from "../components/TripStepper";
@@ -8,37 +8,15 @@ import ServiceStreamCard from "../components/ServiceStreamCard";
 import { useTikProMirror } from "../hooks/useTikProMirror";
 import { TabType } from "../components/Sidebar";
 import { Order } from "../types";
-import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
+import { useOrderContext } from "../context/OrderContext";
 
 interface OverviewProps {
   onNavigate: (tab: TabType, filterType?: string) => void;
 }
 
 export default function Overview({ onNavigate }: OverviewProps) {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { orders } = useOrderContext();
   const { data: tikproData } = useTikProMirror();
-
-  // Real-time live auto-connection to Google Sheets with Vercel client fallback support
-  useEffect(() => {
-    let isMounted = true;
-    const fetchOrders = async () => {
-      try {
-        const liveOrders = await fetchLiveOrdersClient();
-        if (isMounted && Array.isArray(liveOrders) && liveOrders.length > 0) {
-          setOrders(liveOrders);
-        }
-      } catch (err) {
-        // Silent catch during background syncs
-      }
-    };
-
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Live real-time sync every 10s
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
 
   // Fleet stats derived directly from TikPro live mirror data
   const fleetStats = useMemo(() => {

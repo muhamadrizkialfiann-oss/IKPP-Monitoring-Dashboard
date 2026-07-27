@@ -7,6 +7,7 @@ import AvailabilityPage from "./pages/Availability";
 import ShipmentPage from "./pages/Shipment";
 import TikProDashboardMirror from "./components/TikProDashboardMirror";
 import { useTikProMirror } from "./hooks/useTikProMirror";
+import { OrderProvider } from "./context/OrderContext";
 
 export default function App() {
   // Shared TikPro Live Mirroring Hook
@@ -54,57 +55,59 @@ export default function App() {
   }[activeTab];
 
   return (
-    <div className="min-h-screen bg-gray-50/70 dark:bg-slate-950 text-gray-800 dark:text-slate-100 flex relative overflow-x-hidden transition-colors duration-200">
-      {/* Slide-out Navigation Sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={(tab) => handleNavigate(tab)}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
-
-      {/* Main Content Area (Now full width with fluid expansion) */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full ${isSidebarOpen ? "md:pl-72" : "pl-0"}`}>
-        {/* Shared top header with explicit back button if not on Overview */}
-        <Header
-          title={headerDetails.title}
-          subtitle={headerDetails.subtitle}
-          onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          showBackButton={activeTab !== "overview"}
-          onBackClick={() => setActiveTab("overview")}
+    <OrderProvider>
+      <div className="min-h-screen bg-gray-50/70 dark:bg-slate-950 text-gray-800 dark:text-slate-100 flex relative overflow-x-hidden transition-colors duration-200">
+        {/* Slide-out Navigation Sidebar */}
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={(tab) => handleNavigate(tab)}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Scrollable page body */}
-        <main className="p-6 md:p-8 flex-1 overflow-y-auto max-w-none w-full mx-auto">
-          {activeTab === "overview" && (
-            <Overview onNavigate={handleNavigate} />
-          )}
+        {/* Main Content Area (Now full width with fluid expansion) */}
+        <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full ${isSidebarOpen ? "md:pl-72" : "pl-0"}`}>
+          {/* Shared top header with explicit back button if not on Overview */}
+          <Header
+            title={headerDetails.title}
+            subtitle={headerDetails.subtitle}
+            onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            showBackButton={activeTab !== "overview"}
+            onBackClick={() => setActiveTab("overview")}
+          />
 
-          {activeTab === "logistik_pro" && (
-            <TikProDashboardMirror
-              data={tikproData}
-              loading={tikproLoading}
-              error={tikproError}
-              onRefresh={refreshTikPro}
-            />
-          )}
+          {/* Scrollable page body */}
+          <main className="p-6 md:p-8 flex-1 overflow-y-auto max-w-none w-full mx-auto">
+            {activeTab === "overview" && (
+              <Overview onNavigate={handleNavigate} />
+            )}
 
-          {activeTab === "order" && (
-            <OrderPage
-              initialTypeFilter={initialOrderFilter}
-              onClearInitialFilter={() => setInitialOrderFilter(undefined)}
-            />
-          )}
+            {activeTab === "logistik_pro" && (
+              <TikProDashboardMirror
+                data={tikproData}
+                loading={tikproLoading}
+                error={tikproError}
+                onRefresh={refreshTikPro}
+              />
+            )}
 
-          {activeTab === "availability" && (
-            <AvailabilityPage />
-          )}
+            {activeTab === "order" && (
+              <OrderPage
+                initialTypeFilter={initialOrderFilter}
+                onClearInitialFilter={() => setInitialOrderFilter(undefined)}
+              />
+            )}
 
-          {activeTab === "shipment" && (
-            <ShipmentPage />
-          )}
-        </main>
+            {activeTab === "availability" && (
+              <AvailabilityPage />
+            )}
+
+            {activeTab === "shipment" && (
+              <ShipmentPage />
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </OrderProvider>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ShieldCheck, CircleDot, Truck, Clock, Search, Filter, RefreshCw, Navigation, MapPin, Compass, Package, X, CheckCircle2, UserCheck, Shield, ChevronRight } from "lucide-react";
 import StatCard from "../components/StatCard";
@@ -7,56 +7,38 @@ import StatusBadge from "../components/StatusBadge";
 import TripStepper from "../components/TripStepper";
 import GpsMap from "../components/GpsMap";
 import { dummyShipments } from "../lib/dummy-data";
-import { Shipment, TripStatus } from "../types";
-import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
+import { Shipment, TripStatus, OrderStatus } from "../types";
+import { useOrderContext } from "../context/OrderContext";
 
 export default function ShipmentPage() {
-  // Live Shipments state initialized to 0
-  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const { orders, handleAdvanceStatus } = useOrderContext();
 
-  // Auto-fetch Google Sheets data on mount and poll continuously in real-time
-  useEffect(() => {
-    let isMounted = true;
-    const fetchShipments = async () => {
-      try {
-        const orders = await fetchLiveOrdersClient();
-        if (isMounted && Array.isArray(orders) && orders.length > 0) {
-          const list: Shipment[] = [];
-          orders.forEach((o: any) => {
-            const qty = o.quantity || 1;
-            let tripStatus: TripStatus = "on_trip";
-            if (o.status === "open") tripStatus = "pre_trip";
-            else if (o.status === "done") tripStatus = "end_trip";
+  // Compute Live Shipments directly from unified OrderContext
+  const shipments = useMemo<Shipment[]>(() => {
+    const list: Shipment[] = [];
+    orders.forEach((o: any) => {
+      const qty = o.quantity || 1;
+      let tripStatus: TripStatus = "on_trip";
+      if (o.status === "open") tripStatus = "pre_trip";
+      else if (o.status === "done") tripStatus = "end_trip";
 
-            for (let i = 0; i < qty; i++) {
-              list.push({
-                id: qty === 1 ? `SHP-${o.id}` : `SHP-${o.id}-${String(i + 1).padStart(2, "0")}`,
-                orderRef: o.id,
-                type: o.type,
-                tripStatus,
-                unit: o.vehiclePlate || "B 9481 UIK",
-                driver: o.driver || "Ahmad Supriyadi",
-                currentLocation: o.origin || "IKK Karawang Yard",
-                eta: o.eta || "25 Jul 2026",
-                customer: o.customer || "PT IKPP",
-                quantity: 1
-              });
-            }
-          });
-          setShipments(list);
-        }
-      } catch (err) {
-        // Silent catch during background sync
+      for (let i = 0; i < qty; i++) {
+        list.push({
+          id: qty === 1 ? `SHP-${o.id}` : `SHP-${o.id}-${String(i + 1).padStart(2, "0")}`,
+          orderRef: o.id,
+          type: o.type,
+          tripStatus,
+          unit: o.vehiclePlate || "B 9481 UIK",
+          driver: o.driver || "Ahmad Supriyadi",
+          currentLocation: o.origin || "IKK Karawang Yard",
+          eta: o.eta || "25 Jul 2026",
+          customer: o.customer || "PT IKPP",
+          quantity: 1
+        });
       }
-    };
-
-    fetchShipments();
-    const interval = setInterval(fetchShipments, 10000); // Live real-time sync every 10s
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
+    });
+    return list;
+  }, [orders]);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -163,21 +145,17 @@ export default function ShipmentPage() {
 
   // Handler: Advance or set Trip Status Live
   const handleUpdateTripStatus = (shipmentId: string, nextStatus: TripStatus) => {
-    const etaText = nextStatus === "end_trip" ? "Completed" : nextStatus === "on_trip" ? "In Transit (~3 Jam)" : "Standby Loading";
+    const shipment = shipments.find((s) => s.id === shipmentId);
+    if (shipment && shipment.orderRef) {
+      let orderStatus: OrderStatus = "in_progress";
+      if (nextStatus === "pre_trip") orderStatus = "open";
+      else if (nextStatus === "end_trip") orderStatus = "done";
 
-    setShipments((prev) =>
-      prev.map((s) =>
-        s.id === shipmentId
-          ? {
-              ...s,
-              tripStatus: nextStatus,
-              eta: etaText
-            }
-          : s
-      )
-    );
+      handleAdvanceStatus(shipment.orderRef, orderStatus);
+    }
 
     if (selectedShipment && selectedShipment.id === shipmentId) {
+      const etaText = nextStatus === "end_trip" ? "Completed" : nextStatus === "on_trip" ? "In Transit (~3 Jam)" : "Standby Loading";
       setSelectedShipment({
         ...selectedShipment,
         tripStatus: nextStatus,
