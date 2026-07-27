@@ -54,70 +54,97 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
     vendorName: "Pancaran Darat",
     userEmail: "pdt@ikk.com",
     accessRole: "VENDOR EMKL",
-    totalArmadaTerdaftar: 47,
-    dalamTugasAlokasi: 38,
-    standbyTersedia: 9,
+    totalArmadaTerdaftar: 46,
+    dalamTugasAlokasi: 10,
+    standbyTersedia: 36,
     totalVendorMitra: 1,
     statusBreakdown: {
-      "TERSEDIA": 9,
-      "MUAT DEPO": 5,
+      "TERSEDIA": 36,
+      "MUAT DEPO": 0,
       "OTW IKK": 0,
       "DAFTAR DCO - ESTIMASI": 0,
-      "GUDANG ANTRI MUAT": 15,
-      "OTW PELABUHAN": 1,
+      "GUDANG ANTRI MUAT": 1,
+      "OTW PELABUHAN": 4,
       "BONGKAR PORT / DONE": 0,
-      "STORING / LAKA": 3,
+      "STORING / LAKA": 2,
       "NO DRIVER": 0,
       "TUNGGU LOKASI": 0,
       "GROUNDING": 0,
       "REPO FULL": 0,
       "REPO EMPTY": 0,
-      "TUNGGU KARTU EKSPOR": 14,
+      "TUNGGU KARTU EKSPOR": 3,
     },
     statusItems: [],
     trucks: [],
   };
 
   const statusCards = [
-    { key: "TERSEDIA", label: "TERSEDIA", count: mirror.statusBreakdown["TERSEDIA"] || 9, icon: CheckCircle2, borderCol: "border-l-emerald-500", textCol: "text-emerald-600 dark:text-emerald-400", bgCol: "bg-emerald-500/10" },
-    { key: "MUAT DEPO", label: "MUAT DEPO", count: mirror.statusBreakdown["MUAT DEPO"] || 5, icon: Ship, borderCol: "border-l-blue-500", textCol: "text-blue-600 dark:text-blue-400", bgCol: "bg-blue-500/10" },
-    { key: "OTW IKK", label: "OTW IKK", count: mirror.statusBreakdown["OTW IKK"] || 0, icon: Truck, borderCol: "border-l-indigo-500", textCol: "text-indigo-600 dark:text-indigo-400", bgCol: "bg-indigo-500/10" },
-    { key: "DAFTAR DCO - ESTIMASI", label: "DAFTAR DCO - ESTIMASI", count: mirror.statusBreakdown["DAFTAR DCO - ESTIMASI"] || 0, icon: FileEdit, borderCol: "border-l-purple-500", textCol: "text-purple-600 dark:text-purple-400", bgCol: "bg-purple-500/10" },
-    { key: "GUDANG ANTRI MUAT", label: "GUDANG ANTRI MUAT", count: mirror.statusBreakdown["GUDANG ANTRI MUAT"] || 15, icon: Hourglass, borderCol: "border-l-sky-500", textCol: "text-sky-600 dark:text-sky-400", bgCol: "bg-sky-500/10" },
-    { key: "OTW PELABUHAN", label: "OTW PELABUHAN", count: mirror.statusBreakdown["OTW PELABUHAN"] || 1, icon: Ship, borderCol: "border-l-cyan-600", textCol: "text-cyan-600 dark:text-cyan-400", bgCol: "bg-cyan-500/10" },
-    { key: "BONGKAR PORT / DONE", label: "BONGKAR PORT / DONE", count: mirror.statusBreakdown["BONGKAR PORT / DONE"] || 0, icon: Truck, borderCol: "border-l-teal-500", textCol: "text-teal-600 dark:text-teal-400", bgCol: "bg-teal-500/10" },
-    { key: "STORING / LAKA", label: "STORING / LAKA", count: mirror.statusBreakdown["STORING / LAKA"] || 3, icon: Wrench, borderCol: "border-l-rose-500", textCol: "text-rose-600 dark:text-rose-400", bgCol: "bg-rose-500/10" },
-    { key: "NO DRIVER", label: "NO DRIVER", count: mirror.statusBreakdown["NO DRIVER"] || 0, icon: UserX, borderCol: "border-l-pink-500", textCol: "text-pink-600 dark:text-pink-400", bgCol: "bg-pink-500/10" },
-    { key: "TUNGGU LOKASI", label: "TUNGGU LOKASI", count: mirror.statusBreakdown["TUNGGU LOKASI"] || 0, icon: MapPin, borderCol: "border-l-slate-500", textCol: "text-slate-600 dark:text-slate-400", bgCol: "bg-slate-500/10" },
-    { key: "GROUNDING", label: "GROUNDING", count: mirror.statusBreakdown["GROUNDING"] || 0, icon: Truck, borderCol: "border-l-gray-600", textCol: "text-gray-600 dark:text-gray-400", bgCol: "bg-gray-500/10" },
-    { key: "REPO FULL", label: "REPO FULL", count: mirror.statusBreakdown["REPO FULL"] || 0, icon: Package, borderCol: "border-l-stone-600", textCol: "text-stone-600 dark:text-stone-400", bgCol: "bg-stone-500/10" },
-    { key: "REPO EMPTY", label: "REPO EMPTY", count: mirror.statusBreakdown["REPO EMPTY"] || 0, icon: Package, borderCol: "border-l-zinc-600", textCol: "text-zinc-600 dark:text-zinc-400", bgCol: "bg-zinc-500/10" },
-    { key: "TUNGGU KARTU EKSPOR", label: "TUNGGU KARTU EKSPOR", count: mirror.statusBreakdown["TUNGGU KARTU EKSPOR"] || 14, icon: CreditCard, borderCol: "border-l-indigo-600", textCol: "text-indigo-600 dark:text-indigo-400", bgCol: "bg-indigo-500/10" },
+    { key: "TERSEDIA", label: "TERSEDIA", count: mirror.statusBreakdown["TERSEDIA"] ?? 36, icon: CheckCircle2, borderCol: "border-l-emerald-500", textCol: "text-emerald-600 dark:text-emerald-400", bgCol: "bg-emerald-500/10" },
+    { key: "MUAT DEPO", label: "MUAT DEPO", count: mirror.statusBreakdown["MUAT DEPO"] ?? 0, icon: Ship, borderCol: "border-l-blue-500", textCol: "text-blue-600 dark:text-blue-400", bgCol: "bg-blue-500/10" },
+    { key: "OTW IKK", label: "OTW IKK", count: mirror.statusBreakdown["OTW IKK"] ?? 0, icon: Truck, borderCol: "border-l-indigo-500", textCol: "text-indigo-600 dark:text-indigo-400", bgCol: "bg-indigo-500/10" },
+    { key: "DAFTAR DCO - ESTIMASI", label: "DAFTAR DCO - ESTIMASI", count: mirror.statusBreakdown["DAFTAR DCO - ESTIMASI"] ?? 0, icon: FileEdit, borderCol: "border-l-purple-500", textCol: "text-purple-600 dark:text-purple-400", bgCol: "bg-purple-500/10" },
+    { key: "GUDANG ANTRI MUAT", label: "GUDANG ANTRI MUAT", count: mirror.statusBreakdown["GUDANG ANTRI MUAT"] ?? 1, icon: Hourglass, borderCol: "border-l-sky-500", textCol: "text-sky-600 dark:text-sky-400", bgCol: "bg-sky-500/10" },
+    { key: "OTW PELABUHAN", label: "OTW PELABUHAN", count: mirror.statusBreakdown["OTW PELABUHAN"] ?? 4, icon: Ship, borderCol: "border-l-cyan-600", textCol: "text-cyan-600 dark:text-cyan-400", bgCol: "bg-cyan-500/10" },
+    { key: "BONGKAR PORT / DONE", label: "BONGKAR PORT / DONE", count: mirror.statusBreakdown["BONGKAR PORT / DONE"] ?? 0, icon: Truck, borderCol: "border-l-teal-500", textCol: "text-teal-600 dark:text-teal-400", bgCol: "bg-teal-500/10" },
+    { key: "STORING / LAKA", label: "STORING / LAKA", count: mirror.statusBreakdown["STORING / LAKA"] ?? 2, icon: Wrench, borderCol: "border-l-rose-500", textCol: "text-rose-600 dark:text-rose-400", bgCol: "bg-rose-500/10" },
+    { key: "NO DRIVER", label: "NO DRIVER", count: mirror.statusBreakdown["NO DRIVER"] ?? 0, icon: UserX, borderCol: "border-l-pink-500", textCol: "text-pink-600 dark:text-pink-400", bgCol: "bg-pink-500/10" },
+    { key: "TUNGGU LOKASI", label: "TUNGGU LOKASI", count: mirror.statusBreakdown["TUNGGU LOKASI"] ?? 0, icon: MapPin, borderCol: "border-l-slate-500", textCol: "text-slate-600 dark:text-slate-400", bgCol: "bg-slate-500/10" },
+    { key: "GROUNDING", label: "GROUNDING", count: mirror.statusBreakdown["GROUNDING"] ?? 0, icon: Truck, borderCol: "border-l-gray-600", textCol: "text-gray-600 dark:text-gray-400", bgCol: "bg-gray-500/10" },
+    { key: "REPO FULL", label: "REPO FULL", count: mirror.statusBreakdown["REPO FULL"] ?? 0, icon: Package, borderCol: "border-l-stone-600", textCol: "text-stone-600 dark:text-stone-400", bgCol: "bg-stone-500/10" },
+    { key: "REPO EMPTY", label: "REPO EMPTY", count: mirror.statusBreakdown["REPO EMPTY"] ?? 0, icon: Package, borderCol: "border-l-zinc-600", textCol: "text-zinc-600 dark:text-zinc-400", bgCol: "bg-zinc-500/10" },
+    { key: "TUNGGU KARTU EKSPOR", label: "TUNGGU KARTU EKSPOR", count: mirror.statusBreakdown["TUNGGU KARTU EKSPOR"] ?? 3, icon: CreditCard, borderCol: "border-l-indigo-600", textCol: "text-indigo-600 dark:text-indigo-400", bgCol: "bg-indigo-500/10" },
   ];
 
-  const fallbackTrucks = Array.from({ length: 47 }, (_, i) => {
-    let status = "TERSEDIA";
-    if (i >= 9 && i < 14) status = "MUAT DEPO";
-    else if (i >= 14 && i < 29) status = "GUDANG ANTRI MUAT";
-    else if (i === 29) status = "OTW PELABUHAN";
-    else if (i >= 30 && i < 33) status = "STORING / LAKA";
-    else if (i >= 33) status = "TUNGGU KARTU EKSPOR";
+  const fallbackTrucks = [
+    { id: "truck-1", platNomor: "B 9814 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "26 Jul 2026, 23.25" },
+    { id: "truck-2", platNomor: "B 9713 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "26 Jul 2026, 22.52" },
+    { id: "truck-3", platNomor: "B 9928 UWW", driverName: "DRIVER PANCARAN 3", phone: "08123456703", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "STORING / LAKA", fo: "STORING CHECK UP", dn: "STORING CHECK UP", noContainer: "STORING CHECK UP", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "14 Jul 2026, 12.19" },
+    { id: "truck-4", platNomor: "B 9790 UFY", driverName: "DRIVER PANCARAN 4", phone: "08123456704", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "OTW PELABUHAN", fo: "6100510934", dn: "FI00000767", noContainer: "ONEU6444360", lokasiMuat: "EXPORT PM 3", timbang1: "26 Jul 2026, 14.22", timbang2: "26 Jul 2026, 16.20", terakhirUpdate: "27 Jul 2026, 09.50" },
+    { id: "truck-5", platNomor: "B 9849 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "26 Jul 2026, 22.00" },
+    { id: "truck-6", platNomor: "B 9847 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "26 Jul 2026, 23.28" },
+    { id: "truck-7", platNomor: "B 9739 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "26 Jul 2026, 23.21" },
+    { id: "truck-8", platNomor: "B 9697 UIW", driverName: "DRIVER PANCARAN 8", phone: "08123456708", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "OTW PELABUHAN", fo: "6100510926", dn: "FI00000767", noContainer: "ONEU5052087", lokasiMuat: "EXPORT PM 3", timbang1: "26 Jul 2026, 14.35", timbang2: "26 Jul 2026, 17.23", terakhirUpdate: "27 Jul 2026, 09.50" },
+    { id: "truck-9", platNomor: "B 9851 UFY", driverName: "DRIVER PANCARAN 9", phone: "08123456709", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TUNGGU KARTU EKSPOR", fo: "6100510778", dn: "FI00000764", noContainer: "JXLU4565026", lokasiMuat: "EXPORT PM 1", timbang1: "26 Jul 2026, 16.07", timbang2: "26 Jul 2026, 22.38", terakhirUpdate: "27 Jul 2026, 09.52" },
+    { id: "truck-10", platNomor: "B 9710 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-11", platNomor: "B 9711 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-12", platNomor: "B 9712 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-13", platNomor: "B 9714 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-14", platNomor: "B 9715 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-15", platNomor: "B 9716 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-16", platNomor: "B 9717 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-17", platNomor: "B 9718 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-18", platNomor: "B 9719 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-19", platNomor: "B 9720 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-20", platNomor: "B 9721 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-21", platNomor: "B 9722 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-22", platNomor: "B 9723 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-23", platNomor: "B 9724 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-24", platNomor: "B 9725 UIW", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-25", platNomor: "B 9801 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-26", platNomor: "B 9802 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-27", platNomor: "B 9803 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-28", platNomor: "B 9804 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-29", platNomor: "B 9805 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-30", platNomor: "B 9806 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-31", platNomor: "B 9807 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-32", platNomor: "B 9808 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-33", platNomor: "B 9809 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-34", platNomor: "B 9810 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-35", platNomor: "B 9811 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-36", platNomor: "B 9812 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-37", platNomor: "B 9813 UFY", driverName: "DRIVER PANCARAN 37", phone: "08123456737", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "GUDANG ANTRI MUAT", fo: "6100510811", dn: "FI00000760", noContainer: "OOLU9812340", lokasiMuat: "EXPORT PM 2", timbang1: "26 Jul 2026, 18.10", timbang2: "-", terakhirUpdate: "27 Jul 2026, 08.15" },
+    { id: "truck-38", platNomor: "B 9815 UFY", driverName: "DRIVER PANCARAN 38", phone: "08123456738", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "OTW PELABUHAN", fo: "6100510940", dn: "FI00000768", noContainer: "MSKU8829102", lokasiMuat: "EXPORT PM 3", timbang1: "26 Jul 2026, 15.10", timbang2: "26 Jul 2026, 18.00", terakhirUpdate: "27 Jul 2026, 09.45" },
+    { id: "truck-39", platNomor: "B 9816 UFY", driverName: "DRIVER PANCARAN 39", phone: "08123456739", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "OTW PELABUHAN", fo: "6100510941", dn: "FI00000768", noContainer: "MSKU8829103", lokasiMuat: "EXPORT PM 3", timbang1: "26 Jul 2026, 15.20", timbang2: "26 Jul 2026, 18.15", terakhirUpdate: "27 Jul 2026, 09.48" },
+    { id: "truck-40", platNomor: "B 9817 UFY", driverName: "DRIVER PANCARAN 40", phone: "08123456740", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "STORING / LAKA", fo: "REPAIR", dn: "REPAIR", noContainer: "REPAIR", lokasiMuat: "WORKSHOP", timbang1: "-", timbang2: "-", terakhirUpdate: "20 Jul 2026, 14.10" },
+    { id: "truck-41", platNomor: "B 9818 UFY", driverName: "DRIVER PANCARAN 41", phone: "08123456741", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TUNGGU KARTU EKSPOR", fo: "6100510780", dn: "FI00000765", noContainer: "TCNU9120491", lokasiMuat: "EXPORT PM 1", timbang1: "26 Jul 2026, 17.00", timbang2: "26 Jul 2026, 23.00", terakhirUpdate: "27 Jul 2026, 09.50" },
+    { id: "truck-42", platNomor: "B 9819 UFY", driverName: "DRIVER PANCARAN 42", phone: "08123456742", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TUNGGU KARTU EKSPOR", fo: "6100510781", dn: "FI00000765", noContainer: "TCNU9120492", lokasiMuat: "EXPORT PM 1", timbang1: "26 Jul 2026, 17.15", timbang2: "26 Jul 2026, 23.10", terakhirUpdate: "27 Jul 2026, 09.51" },
+    { id: "truck-43", platNomor: "B 9820 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-44", platNomor: "B 9821 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-45", platNomor: "B 9822 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-46", platNomor: "B 9823 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+  ];
 
-    return {
-      id: `fallback-truck-${i + 1}`,
-      platNomor: `B 9${710 + i} UIW`,
-      driverName: status === "TERSEDIA" ? "TERSEDIA (STANDBY)" : `DRIVER PANCARAN ${i + 1}`,
-      phone: status === "TERSEDIA" ? "-" : `081234567${(10 + i) % 100}`,
-      jenisMobil: "Trailer 40ft HC",
-      vendor: "Pancaran Darat",
-      status: status,
-      fo: status === "TERSEDIA" ? "-" : `FO-2026-${1000 + i}`,
-      dn: status === "TERSEDIA" ? "-" : `DN-2026-${2000 + i}`,
-      noContainer: status === "TERSEDIA" ? "-" : `TCNU${400000 + i}`,
-      jenisProduk: "PULP / PAPER",
-      terakhirUpdate: new Date().toLocaleDateString("id-ID") + ", 10:30"
-    };
-  });
+  const [viewMode, setViewMode] = useState<"SUMMARY" | "DAFTAR">("SUMMARY");
 
   const rawTrucks = (mirror.trucks && mirror.trucks.length > 0) ? mirror.trucks : fallbackTrucks;
 
@@ -184,7 +211,7 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
         {/* Card 1: TOTAL ARMADA TERDAFTAR */}
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-5 rounded-2xl shadow-md border border-blue-500/30 flex items-center justify-between relative overflow-hidden transition-all hover:shadow-lg hover:scale-[1.01]">
           <div>
-            <span className="text-3xl sm:text-4xl font-black tracking-tight leading-none block">{mirror.totalArmadaTerdaftar || 47}</span>
+            <span className="text-3xl sm:text-4xl font-black tracking-tight leading-none block">{mirror.totalArmadaTerdaftar ?? 46}</span>
             <span className="text-xs font-bold uppercase tracking-wider text-blue-100 mt-2 block">TOTAL ARMADA TERDAFTAR</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white shrink-0 shadow-inner">
@@ -195,7 +222,7 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
         {/* Card 2: DALAM TUGAS (ALOKASI) */}
         <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white p-5 rounded-2xl shadow-md border border-emerald-500/30 flex items-center justify-between relative overflow-hidden transition-all hover:shadow-lg hover:scale-[1.01]">
           <div>
-            <span className="text-3xl sm:text-4xl font-black tracking-tight leading-none block">{mirror.dalamTugasAlokasi || 38}</span>
+            <span className="text-3xl sm:text-4xl font-black tracking-tight leading-none block">{mirror.dalamTugasAlokasi ?? 10}</span>
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-100 mt-2 block">DALAM TUGAS (ALOKASI)</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white shrink-0 shadow-inner">
@@ -206,7 +233,7 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
         {/* Card 3: STANDBY (TERSEDIA) */}
         <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-5 rounded-2xl shadow-md border border-amber-500/30 flex items-center justify-between relative overflow-hidden transition-all hover:shadow-lg hover:scale-[1.01]">
           <div>
-            <span className="text-3xl sm:text-4xl font-black tracking-tight leading-none block">{mirror.standbyTersedia || 9}</span>
+            <span className="text-3xl sm:text-4xl font-black tracking-tight leading-none block">{mirror.standbyTersedia ?? 36}</span>
             <span className="text-xs font-bold uppercase tracking-wider text-amber-100 mt-2 block">STANDBY (TERSEDIA)</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white shrink-0 shadow-inner">
@@ -235,7 +262,7 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
             </div>
             <div>
               <h4 className="text-base font-black text-gray-900 dark:text-slate-100">Rincian Status Armada</h4>
-              <p className="text-xs text-gray-400 dark:text-slate-400 font-medium">Klik pada status untuk memfilter daftar armada di bawah</p>
+              <p className="text-xs text-gray-400 dark:text-slate-400 font-medium">Klik pada status untuk memfilter data armada</p>
             </div>
           </div>
 
@@ -284,17 +311,47 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h4 className="text-base font-black text-gray-900 dark:text-slate-100 flex items-center gap-2">
-              <span>Daftar Armada TikPro ({filteredTrucks.length})</span>
+              <span>{viewMode === "SUMMARY" ? "Summary Report Armada TikPro" : "Daftar Live Armada"} ({filteredTrucks.length})</span>
               {selectedStatusFilter !== "ALL" && (
                 <span className="text-xs bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold px-2.5 py-0.5 rounded-full">
                   Status: {selectedStatusFilter}
                 </span>
               )}
             </h4>
-            <p className="text-xs text-gray-400 dark:text-slate-400 font-medium">Real-time status unit, driver, FO/DN, dan kontainer</p>
+            <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400 dark:text-slate-400 font-medium">
+              <span>Mirroring dari monitoring-kontrak-export.web.app</span>
+              <span>•</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                Real-time Sync Active
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center bg-gray-100 dark:bg-slate-800 p-1 rounded-xl border border-gray-200 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode("SUMMARY")}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  viewMode === "SUMMARY"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-slate-200"
+                }`}
+              >
+                Summary Report
+              </button>
+              <button
+                onClick={() => setViewMode("DAFTAR")}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  viewMode === "DAFTAR"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-slate-200"
+                }`}
+              >
+                Daftar Armada
+              </button>
+            </div>
+
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
               <input
@@ -302,7 +359,7 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari plat, driver, FO, DN..."
-                className="pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 sm:w-64"
+                className="pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 sm:w-56"
               />
             </div>
           </div>
@@ -311,22 +368,37 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
         <div className="overflow-x-auto border border-gray-200 dark:border-slate-800 rounded-xl">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 font-bold border-b border-gray-200 dark:border-slate-700">
-                <th className="p-3 w-12 text-center">No.</th>
-                <th className="p-3">Plat Nomor</th>
-                <th className="p-3">Vendor</th>
-                <th className="p-3">Status Armada</th>
-                <th className="p-3">Driver & No. HP</th>
-                <th className="p-3">Jenis Truck</th>
-                <th className="p-3">FO / DN</th>
-                <th className="p-3">No. Container</th>
-                <th className="p-3">Terakhir Update</th>
-              </tr>
+              {viewMode === "SUMMARY" ? (
+                <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 font-bold border-b border-gray-200 dark:border-slate-700">
+                  <th className="p-3 w-10 text-center">No.</th>
+                  <th className="p-3">Plat Nomor</th>
+                  <th className="p-3">Status Terkini</th>
+                  <th className="p-3">Nomor FO</th>
+                  <th className="p-3">DN</th>
+                  <th className="p-3">No Cont</th>
+                  <th className="p-3">Lokasi Muat</th>
+                  <th className="p-3">Timbang 1</th>
+                  <th className="p-3">Timbang 2</th>
+                  <th className="p-3">Last Update</th>
+                </tr>
+              ) : (
+                <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 font-bold border-b border-gray-200 dark:border-slate-700">
+                  <th className="p-3 w-10 text-center">No.</th>
+                  <th className="p-3">Plat Nomor</th>
+                  <th className="p-3">Vendor</th>
+                  <th className="p-3">Status Armada</th>
+                  <th className="p-3">Driver & No. HP</th>
+                  <th className="p-3">Jenis Truck</th>
+                  <th className="p-3">FO / DN</th>
+                  <th className="p-3">No. Container</th>
+                  <th className="p-3">Terakhir Update</th>
+                </tr>
+              )}
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-800 dark:text-slate-200">
               {filteredTrucks.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-gray-400 dark:text-slate-500 font-semibold">
+                  <td colSpan={10} className="p-8 text-center text-gray-400 dark:text-slate-500 font-semibold">
                     Tidak ada data armada yang cocok dengan filter.
                   </td>
                 </tr>
@@ -336,39 +408,59 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
                     <td className="p-3 text-center font-bold text-gray-400 dark:text-slate-500 text-xs">
                       {idx + 1}
                     </td>
-                    <td className="p-3 font-black text-blue-600 dark:text-blue-400 text-sm">
+                    <td className="p-3 font-black text-blue-600 dark:text-blue-400 text-sm whitespace-nowrap">
                       {truck.platNomor}
                     </td>
-                    <td className="p-3 font-bold text-gray-700 dark:text-slate-300">
-                      {truck.vendor}
-                    </td>
-                    <td className="p-3">
-                      <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-black bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
-                        {truck.status}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="font-bold text-gray-900 dark:text-slate-100">{truck.driverName}</div>
-                      {truck.phone !== "-" && (
-                        <div className="text-[10px] text-gray-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Phone className="w-2.5 h-2.5" />
-                          <span>{truck.phone}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3 text-gray-600 dark:text-slate-400 font-medium">
-                      {truck.jenisMobil}
-                    </td>
-                    <td className="p-3">
-                      <div className="font-bold text-xs text-gray-800 dark:text-slate-200">FO: {truck.fo}</div>
-                      <div className="text-[10px] text-gray-500 dark:text-slate-400">DN: {truck.dn}</div>
-                    </td>
-                    <td className="p-3 font-bold text-gray-700 dark:text-slate-300">
-                      {truck.noContainer}
-                    </td>
-                    <td className="p-3 text-[11px] text-gray-500 dark:text-slate-400">
-                      {truck.terakhirUpdate}
-                    </td>
+
+                    {viewMode === "SUMMARY" ? (
+                      <>
+                        <td className="p-3">
+                          <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-black bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 whitespace-nowrap">
+                            {truck.status}
+                          </span>
+                        </td>
+                        <td className="p-3 font-bold text-gray-800 dark:text-slate-200">{truck.fo}</td>
+                        <td className="p-3 font-medium text-gray-600 dark:text-slate-400">{truck.dn}</td>
+                        <td className="p-3 font-bold text-gray-800 dark:text-slate-200">{truck.noContainer}</td>
+                        <td className="p-3 font-medium text-gray-600 dark:text-slate-400">{truck.lokasiMuat || "-"}</td>
+                        <td className="p-3 text-[11px] text-gray-500 dark:text-slate-400 whitespace-nowrap">{truck.timbang1 || "-"}</td>
+                        <td className="p-3 text-[11px] text-gray-500 dark:text-slate-400 whitespace-nowrap">{truck.timbang2 || "-"}</td>
+                        <td className="p-3 text-[11px] text-gray-500 dark:text-slate-400 whitespace-nowrap">{truck.terakhirUpdate}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="p-3 font-bold text-gray-700 dark:text-slate-300">
+                          {truck.vendor}
+                        </td>
+                        <td className="p-3">
+                          <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-black bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 whitespace-nowrap">
+                            {truck.status}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="font-bold text-gray-900 dark:text-slate-100">{truck.driverName}</div>
+                          {truck.phone !== "-" && (
+                            <div className="text-[10px] text-gray-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-2.5 h-2.5" />
+                              <span>{truck.phone}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 text-gray-600 dark:text-slate-400 font-medium">
+                          {truck.jenisMobil}
+                        </td>
+                        <td className="p-3">
+                          <div className="font-bold text-xs text-gray-800 dark:text-slate-200">FO: {truck.fo}</div>
+                          <div className="text-[10px] text-gray-500 dark:text-slate-400">DN: {truck.dn}</div>
+                        </td>
+                        <td className="p-3 font-bold text-gray-700 dark:text-slate-300">
+                          {truck.noContainer}
+                        </td>
+                        <td className="p-3 text-[11px] text-gray-500 dark:text-slate-400 whitespace-nowrap">
+                          {truck.terakhirUpdate}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))
               )}

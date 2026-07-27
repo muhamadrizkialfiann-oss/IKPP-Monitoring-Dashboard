@@ -96,7 +96,10 @@ export interface TikProTruck {
   fo: string;
   dn: string;
   noContainer: string;
-  jenisProduk: string;
+  jenisProduk?: string;
+  lokasiMuat?: string;
+  timbang1?: string;
+  timbang2?: string;
   terakhirUpdate: string;
 }
 
