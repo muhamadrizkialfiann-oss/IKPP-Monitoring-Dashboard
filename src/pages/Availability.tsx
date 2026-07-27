@@ -13,18 +13,7 @@ export default function AvailabilityPage() {
   // Map TikPro trucks to FleetUnits dynamically
   const fleetUnits = useMemo<FleetUnit[]>(() => {
     if (!tikproData || !tikproData.trucks || tikproData.trucks.length === 0) {
-      // Fallback default snapshot matching TikPro numbers (47 total: 38 utilized, 9 standby, 3 storing/downtime)
-      return Array.from({ length: 47 }, (_, i) => {
-        const isStandby = i < 9;
-        const isDowntime = i >= 44;
-        return {
-          unitId: `B ${9000 + i} UQA`,
-          unitType: "Trailer 4x2 40ft",
-          status: isDowntime ? "downtime" : isStandby ? "standby" : "utilized",
-          lastLocation: isDowntime ? "STORING / LAKA Bengkel" : isStandby ? "Depo Yard Standby" : "On Job (Alokasi)",
-          lastUpdate: new Date().toLocaleDateString("id-ID")
-        };
-      });
+      return [];
     }
 
     return tikproData.trucks.map((t) => {
