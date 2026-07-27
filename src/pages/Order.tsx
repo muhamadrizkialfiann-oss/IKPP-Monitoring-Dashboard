@@ -1,13 +1,13 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, Filter, AlertCircle, ShoppingCart, RefreshCw, X, ArrowRight, Eye, Calendar, Plus, CheckCircle2, Truck, UserCheck, ShieldCheck, FileSpreadsheet, ExternalLink, Database, Sliders, Layers } from "lucide-react";
 import StatCard from "../components/StatCard";
 import DataTable, { Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
-import SheetManagerModal from "../components/SheetManagerModal";
+import SheetManagerModal, { DEFAULT_SHEET_SOURCES } from "../components/SheetManagerModal";
 import { dummyOrders } from "../lib/dummy-data";
 import { Order, OrderType, OrderStatus, SheetSource } from "../types";
-import { useOrderContext } from "../context/OrderContext";
+import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
 
 interface OrderProps {
   initialTypeFilter?: string;
@@ -46,20 +46,49 @@ function CSStatusBadge({ status }: { status?: string }) {
 }
 
 export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: OrderProps) {
-  const {
-    orders,
-    sheetSources,
-    isSyncingSheets,
-    sheetSyncMeta,
-    syncGoogleSheets,
-    handleUpdateSheetSources,
-    handleAdvanceStatus,
-    notification,
-    setNotification
-  } = useOrderContext();
+  // Live orders state initialized with empty array (loaded live from Google Sheets)
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  // Multi-Spreadsheet Sources State
+  const [sheetSources, setSheetSources] = useState<SheetSource[]>(() => {
+    try {
+      const saved = localStorage.getItem("logistics_sheet_sources_v3");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to load sheet sources from localStorage:", e);
+    }
+    return DEFAULT_SHEET_SOURCES;
+  });
 
   const [isSheetModalOpen, setIsSheetModalOpen] = useState(false);
+
+  // Persist sheet sources changes to localStorage
+  const handleUpdateSheetSources = (newSources: SheetSource[]) => {
+    setSheetSources(newSources);
+    try {
+      localStorage.setItem("logistics_sheet_sources_v3", JSON.stringify(newSources));
+    } catch (e) {
+      console.error("Failed to save sheet sources:", e);
+    }
+  };
+
+  // Google Sheets integration state
+  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [showSheetBanner, setShowSheetBanner] = useState(false);
+  const [sheetSyncMeta, setSheetSyncMeta] = useState<{
+    connected: boolean;
+    totalRows: number;
+    fetchedAt: string | null;
+    error: string | null;
+  }>({
+    connected: false,
+    totalRows: 0,
+    fetchedAt: null,
+    error: null
+  });
   const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   // Filters State
@@ -68,16 +97,107 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
   const [customerFilter, setCustomerFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  
+  // Success Notification Banner
+  const [notification, setNotification] = useState<string | null>(null);
 
   // Selected Order Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const onAdvanceStatus = (orderId: string, nextStatus: OrderStatus) => {
-    handleAdvanceStatus(orderId, nextStatus);
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder((prev) => (prev ? { ...prev, status: nextStatus } : null));
+  // Fetch Google Sheets orders from backend proxy API (Supports Multi-Sheet sync with client fallback)
+  const syncGoogleSheets = async (showNotification = true, sourcesToSync = sheetSources) => {
+    setIsSyncingSheets(true);
+    let sheetOrders: Order[] = [];
+
+    try {
+      const activeSources = sourcesToSync.filter((s) => s.enabled && s.url);
+      
+      const res = await fetch("/api/sheets/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ sheets: activeSources })
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.orders)) {
+          sheetOrders = json.orders;
+          
+          if (Array.isArray(json.sheetResults)) {
+            setSheetSources((prevSources) => {
+              const updated = prevSources.map((source) => {
+                const resMeta = json.sheetResults.find((r: any) => r.id === source.id || r.name === source.name);
+                if (resMeta) {
+                  return {
+                    ...source,
+                    rowCount: resMeta.rowCount,
+                    status: (resMeta.status === "success" ? "success" : "error") as "success" | "error",
+                    errorMessage: resMeta.errorMessage,
+                    lastSyncedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                  };
+                }
+                return source;
+              });
+              try {
+                localStorage.setItem("logistics_sheet_sources", JSON.stringify(updated));
+              } catch (e) {}
+              return updated;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // Backend proxy API offline / static host
     }
+
+    if (sheetOrders.length === 0) {
+      sheetOrders = await fetchLiveOrdersClient();
+    }
+
+    if (sheetOrders.length > 0) {
+      setOrders((prev) => {
+        const userCreated = prev.filter((o) => (o as any).isUserCreated);
+        return [...userCreated, ...sheetOrders];
+      });
+
+      setSheetSyncMeta({
+        connected: true,
+        totalRows: sheetOrders.length,
+        fetchedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        error: null
+      });
+
+      if (showNotification) {
+        setNotification(`Berhasil menyinkronkan ${sheetOrders.length} Order dari Google Sheets!`);
+        setTimeout(() => setNotification(null), 5000);
+      }
+    } else {
+      setSheetSyncMeta({
+        connected: false,
+        totalRows: 0,
+        fetchedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        error: "Gagal menghubungkan Google Sheets"
+      });
+    }
+
+    setIsSyncingSheets(false);
   };
+
+  const sheetSourcesRef = useRef(sheetSources);
+  sheetSourcesRef.current = sheetSources;
+
+  // Auto-sync Google Sheets on mount and poll continuously in real-time
+  useEffect(() => {
+    syncGoogleSheets(false, sheetSourcesRef.current);
+
+    const interval = setInterval(() => {
+      syncGoogleSheets(false, sheetSourcesRef.current);
+    }, 12000); // Live real-time sync every 12 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Set initial filter from Overview deep-link
   useEffect(() => {
@@ -196,6 +316,18 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       return matchesSource && matchesSearch && matchesOrderId && matchesCustomer && matchesType && matchesStatus;
     });
   }, [orders, searchQuery, orderIdFilter, customerFilter, typeFilter, statusFilter, sourceFilter]);
+
+  // Handle Quick Advance Order Status
+  const handleAdvanceStatus = (orderId: string, nextStatus: OrderStatus) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o))
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder({ ...selectedOrder, status: nextStatus });
+    }
+    setNotification(`Status order ${orderId} berhasil diupdate ke ${nextStatus.toUpperCase().replace("_", " ")}!`);
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   // Column Definitions for DataTable
   const columns: Column<Order>[] = [
@@ -756,7 +888,7 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                   <span className="text-xs font-black text-[#0B2C6B] block">Update Status Order Live:</span>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => onAdvanceStatus(selectedOrder.id, "open")}
+                      onClick={() => handleAdvanceStatus(selectedOrder.id, "open")}
                       className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold border cursor-pointer ${
                         selectedOrder.status === "open" ? "bg-amber-500 text-white border-amber-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                       }`}
@@ -764,7 +896,7 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                       Open Queue
                     </button>
                     <button
-                      onClick={() => onAdvanceStatus(selectedOrder.id, "in_progress")}
+                      onClick={() => handleAdvanceStatus(selectedOrder.id, "in_progress")}
                       className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold border cursor-pointer ${
                         selectedOrder.status === "in_progress" ? "bg-blue-600 text-white border-blue-700" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                       }`}
@@ -772,7 +904,7 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                       In Progress
                     </button>
                     <button
-                      onClick={() => onAdvanceStatus(selectedOrder.id, "done")}
+                      onClick={() => handleAdvanceStatus(selectedOrder.id, "done")}
                       className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold border cursor-pointer ${
                         selectedOrder.status === "done" ? "bg-emerald-600 text-white border-emerald-700" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                       }`}
