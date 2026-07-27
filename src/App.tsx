@@ -6,7 +6,10 @@ import OrderPage from "./pages/Order";
 import AvailabilityPage from "./pages/Availability";
 import ShipmentPage from "./pages/Shipment";
 import TikProDashboardMirror from "./components/TikProDashboardMirror";
+import SheetManagerModal, { DEFAULT_SHEET_SOURCES } from "./components/SheetManagerModal";
 import { useTikProMirror } from "./hooks/useTikProMirror";
+import { SheetSource } from "./types";
+import { fetchLiveOrdersClient } from "./lib/fetchOrdersClient";
 
 export default function App() {
   // Shared TikPro Live Mirroring Hook
@@ -16,8 +19,25 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
+  // Settings & Sheet Manager Modal State
+  const [isSheetModalOpen, setIsSheetModalOpen] = useState<boolean>(false);
+  const [sheetSources, setSheetSources] = useState<SheetSource[]>(DEFAULT_SHEET_SOURCES);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
   // Filter deep-linking state from Overview cards to Order page
   const [initialOrderFilter, setInitialOrderFilter] = useState<string | undefined>(undefined);
+
+  const handleSyncAll = async () => {
+    setIsSyncing(true);
+    try {
+      await fetchLiveOrdersClient();
+      await refreshTikPro();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Deep-linking navigation handler
   const handleNavigate = (tab: TabType, filterType?: string) => {
@@ -61,6 +81,7 @@ export default function App() {
         setActiveTab={(tab) => handleNavigate(tab)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onOpenSettings={() => setIsSheetModalOpen(true)}
       />
 
       {/* Main Content Area (Now full width with fluid expansion) */}
@@ -86,6 +107,7 @@ export default function App() {
               loading={tikproLoading}
               error={tikproError}
               onRefresh={refreshTikPro}
+              onOpenSettings={() => setIsSheetModalOpen(true)}
             />
           )}
 
@@ -105,6 +127,16 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Google Sheets / Looker Studio Settings Modal */}
+      <SheetManagerModal
+        isOpen={isSheetModalOpen}
+        onClose={() => setIsSheetModalOpen(false)}
+        sources={sheetSources}
+        onUpdateSources={setSheetSources}
+        onSyncAll={handleSyncAll}
+        isSyncing={isSyncing}
+      />
     </div>
   );
 }

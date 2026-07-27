@@ -18,18 +18,21 @@ import {
   ExternalLink,
   ShieldCheck,
   Phone,
-  Package
+  Package,
+  FileSpreadsheet
 } from "lucide-react";
 import { TikProMirrorData, TikProTruck } from "../types";
+import { FALLBACK_SNAPSHOT } from "../hooks/useTikProMirror";
 
 interface TikProDashboardMirrorProps {
   data: TikProMirrorData | null;
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  onOpenSettings?: () => void;
 }
 
-export default function TikProDashboardMirror({ data, loading, error, onRefresh }: TikProDashboardMirrorProps) {
+export default function TikProDashboardMirror({ data, loading, error, onRefresh, onOpenSettings }: TikProDashboardMirrorProps) {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -95,65 +98,48 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
     { key: "TUNGGU KARTU EKSPOR", label: "TUNGGU KARTU EKSPOR", count: mirror.statusBreakdown["TUNGGU KARTU EKSPOR"] ?? 0, icon: CreditCard, borderCol: "border-l-indigo-600", textCol: "text-indigo-600 dark:text-indigo-400", bgCol: "bg-indigo-500/10" },
   ];
 
-  const [viewMode, setViewMode] = useState<"SUMMARY" | "DAFTAR">("SUMMARY");
+  const [viewMode, setViewMode] = useState<"SUMMARY" | "DAFTAR" | "RITASE">("SUMMARY");
 
-  const rawTrucks = mirror.trucks || [];
+  const rawTrucks = (mirror && mirror.trucks && mirror.trucks.length > 0) ? mirror.trucks : FALLBACK_SNAPSHOT.trucks;
 
   const filteredTrucks = rawTrucks.filter((truck) => {
-    const matchesStatus =
-      selectedStatusFilter === "ALL" ||
-      truck.status.toUpperCase().includes(selectedStatusFilter) ||
-      (selectedStatusFilter === "TERSEDIA" && truck.status.toUpperCase() === "TERSEDIA");
+    const truckStatus = (truck.status || "").toUpperCase().trim();
+    const filter = selectedStatusFilter.toUpperCase().trim();
+
+    let matchesStatus = filter === "ALL";
+    if (!matchesStatus) {
+      if (filter === "TERSEDIA") {
+        matchesStatus = truckStatus === "TERSEDIA" || truckStatus.includes("STANDBY");
+      } else {
+        matchesStatus = truckStatus.includes(filter) || filter.includes(truckStatus);
+      }
+    }
 
     const query = searchQuery.toLowerCase().trim();
     const matchesQuery =
       !query ||
-      truck.platNomor.toLowerCase().includes(query) ||
-      truck.driverName.toLowerCase().includes(query) ||
-      truck.fo.toLowerCase().includes(query) ||
-      truck.dn.toLowerCase().includes(query) ||
-      truck.noContainer.toLowerCase().includes(query) ||
-      truck.status.toLowerCase().includes(query);
+      (truck.platNomor || "").toLowerCase().includes(query) ||
+      (truck.driverName || "").toLowerCase().includes(query) ||
+      (truck.fo || "").toLowerCase().includes(query) ||
+      (truck.dn || "").toLowerCase().includes(query) ||
+      (truck.noContainer || "").toLowerCase().includes(query) ||
+      (truck.status || "").toLowerCase().includes(query) ||
+      (truck.lokasiMuat || "").toLowerCase().includes(query);
 
     return matchesStatus && matchesQuery;
   });
 
   return (
     <div className="space-y-6">
-      {/* Top Banner Mirror Status Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-5 shadow-lg border border-blue-900/50 relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                MIRRORING LIVE DATA ACTIVE
-              </span>
-              <a
-                href="https://monitoring-kontrak-export.web.app/"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-blue-300 hover:text-white underline font-medium transition-colors"
-              >
-                monitoring-kontrak-export.web.app
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2 text-white">
-              Halo, <span className="text-blue-400">{mirror.vendorName}!</span> 🚚
-            </h3>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={onRefresh}
-              disabled={loading}
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer disabled:opacity-50"
-            >
-              <RotateCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              <span>{loading ? "Syncing..." : "Sinkronkan Sekarang"}</span>
-            </button>
-          </div>
+      {/* Top Header Card matching template */}
+      <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+            Dashboard Logistik Pro IKK
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">
+            Real-time Monitoring Dashboard Logistik Pro IKK for PT Indah Kiat Pulp & Paper Tbk (IKPP).
+          </p>
         </div>
       </div>
 
@@ -262,7 +248,13 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h4 className="text-base font-black text-gray-900 dark:text-slate-100 flex items-center gap-2">
-              <span>{viewMode === "SUMMARY" ? "Summary Report Armada TikPro" : "Daftar Live Armada"} ({filteredTrucks.length})</span>
+              <span>
+                {viewMode === "SUMMARY"
+                  ? "Summary Report Armada TikPro"
+                  : viewMode === "DAFTAR"
+                  ? "Daftar Live Armada"
+                  : "Laporan Ritase Armada"} ({filteredTrucks.length})
+              </span>
               {selectedStatusFilter !== "ALL" && (
                 <span className="text-xs bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold px-2.5 py-0.5 rounded-full">
                   Status: {selectedStatusFilter}
@@ -301,6 +293,16 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
               >
                 Daftar Armada
               </button>
+              <button
+                onClick={() => setViewMode("RITASE")}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  viewMode === "RITASE"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-slate-200"
+                }`}
+              >
+                Laporan Ritase
+              </button>
             </div>
 
             <div className="relative">
@@ -313,6 +315,16 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
                 className="pl-9 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 sm:w-56"
               />
             </div>
+
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              title="Sinkronkan Data Live"
+            >
+              <RotateCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">{loading ? "Syncing..." : "Sinkronkan"}</span>
+            </button>
           </div>
         </div>
 
@@ -332,7 +344,7 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
                   <th className="p-3">Timbang 2</th>
                   <th className="p-3">Last Update</th>
                 </tr>
-              ) : (
+              ) : viewMode === "DAFTAR" ? (
                 <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 font-bold border-b border-gray-200 dark:border-slate-700">
                   <th className="p-3 w-10 text-center">No.</th>
                   <th className="p-3">Plat Nomor</th>
@@ -344,13 +356,52 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
                   <th className="p-3">No. Container</th>
                   <th className="p-3">Terakhir Update</th>
                 </tr>
+              ) : viewMode === "DAFTAR" ? (
+                <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 font-bold border-b border-gray-200 dark:border-slate-700">
+                  <th className="p-3 w-10 text-center">No.</th>
+                  <th className="p-3">Plat Nomor</th>
+                  <th className="p-3">Vendor</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Driver & No. HP</th>
+                  <th className="p-3">Jenis Truck</th>
+                  <th className="p-3">FO / DN</th>
+                  <th className="p-3">No. Container</th>
+                  <th className="p-3">Terakhir Update</th>
+                </tr>
+              ) : (
+                <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300 font-bold border-b border-gray-200 dark:border-slate-700 whitespace-nowrap">
+                  <th className="p-3 w-10 text-center">No.</th>
+                  <th className="p-3">Tgl Diselesaikan</th>
+                  <th className="p-3">Nama Vendor</th>
+                  <th className="p-3">Plat Nomor</th>
+                  <th className="p-3">Jenis Mobil</th>
+                  <th className="p-3">Nama Driver</th>
+                  <th className="p-3">Nomor FO</th>
+                  <th className="p-3">DN</th>
+                  <th className="p-3">No Container</th>
+                  <th className="p-3">Lokasi Muat</th>
+                  <th className="p-3">Tanggal Tiba Di IKK</th>
+                  <th className="p-3">Timbang 1</th>
+                  <th className="p-3">Timbang 2</th>
+                </tr>
               )}
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-800 dark:text-slate-200">
               {filteredTrucks.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-gray-400 dark:text-slate-500 font-semibold">
-                    Tidak ada data armada yang cocok dengan filter.
+                  <td colSpan={13} className="p-8 text-center text-gray-500 dark:text-slate-400 font-semibold">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <p>Tidak ada data armada yang cocok dengan filter ({selectedStatusFilter !== "ALL" ? `Status: ${selectedStatusFilter}` : searchQuery ? `Pencarian: "${searchQuery}"` : "Filter"}).</p>
+                      <button
+                        onClick={() => {
+                          setSelectedStatusFilter("ALL");
+                          setSearchQuery("");
+                        }}
+                        className="mt-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
+                      >
+                        Tampilkan Semua ({rawTrucks.length}) Armada
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -359,12 +410,12 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
                     <td className="p-3 text-center font-bold text-gray-400 dark:text-slate-500 text-xs">
                       {idx + 1}
                     </td>
-                    <td className="p-3 font-black text-blue-600 dark:text-blue-400 text-sm whitespace-nowrap">
-                      {truck.platNomor}
-                    </td>
 
                     {viewMode === "SUMMARY" ? (
                       <>
+                        <td className="p-3 font-black text-blue-600 dark:text-blue-400 text-sm whitespace-nowrap">
+                          {truck.platNomor}
+                        </td>
                         <td className="p-3">
                           <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-black bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 whitespace-nowrap">
                             {truck.status}
@@ -378,8 +429,11 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
                         <td className="p-3 text-[11px] text-gray-500 dark:text-slate-400 whitespace-nowrap">{truck.timbang2 || "-"}</td>
                         <td className="p-3 text-[11px] text-gray-500 dark:text-slate-400 whitespace-nowrap">{truck.terakhirUpdate}</td>
                       </>
-                    ) : (
+                    ) : viewMode === "DAFTAR" ? (
                       <>
+                        <td className="p-3 font-black text-blue-600 dark:text-blue-400 text-sm whitespace-nowrap">
+                          {truck.platNomor}
+                        </td>
                         <td className="p-3 font-bold text-gray-700 dark:text-slate-300">
                           {truck.vendor}
                         </td>
@@ -409,6 +463,51 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh 
                         </td>
                         <td className="p-3 text-[11px] text-gray-500 dark:text-slate-400 whitespace-nowrap">
                           {truck.terakhirUpdate}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="p-3 text-[11px] text-gray-600 dark:text-slate-300 font-mono whitespace-nowrap">
+                          {truck.status === "TERSEDIA" ? "-" : truck.timbang2 && truck.timbang2 !== "-" ? truck.timbang2 : truck.terakhirUpdate}
+                        </td>
+                        <td className="p-3 font-bold text-gray-700 dark:text-slate-300 whitespace-nowrap">
+                          {truck.vendor}
+                        </td>
+                        <td className="p-3 font-black text-blue-600 dark:text-blue-400 text-sm whitespace-nowrap">
+                          {truck.platNomor}
+                        </td>
+                        <td className="p-3 text-gray-600 dark:text-slate-300 font-medium text-xs whitespace-nowrap">
+                          {truck.jenisMobil}
+                        </td>
+                        <td className="p-3">
+                          <div className="font-bold text-gray-900 dark:text-slate-100 text-xs">{truck.driverName}</div>
+                          {truck.phone !== "-" && (
+                            <div className="text-[10px] text-gray-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-2.5 h-2.5" />
+                              <span>{truck.phone}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 font-bold text-xs text-gray-800 dark:text-slate-200 whitespace-nowrap">
+                          {truck.fo}
+                        </td>
+                        <td className="p-3 font-bold text-xs text-gray-700 dark:text-slate-300 whitespace-nowrap">
+                          {truck.dn}
+                        </td>
+                        <td className="p-3 font-bold text-xs text-gray-800 dark:text-slate-200 whitespace-nowrap">
+                          {truck.noContainer}
+                        </td>
+                        <td className="p-3 font-medium text-xs text-gray-700 dark:text-slate-300 whitespace-nowrap">
+                          {truck.lokasiMuat && truck.lokasiMuat !== "-" ? truck.lokasiMuat : "-"}
+                        </td>
+                        <td className="p-3 text-[11px] text-gray-600 dark:text-slate-300 font-mono whitespace-nowrap">
+                          {truck.status === "TERSEDIA" ? "-" : truck.timbang1 && truck.timbang1 !== "-" ? truck.timbang1 : truck.terakhirUpdate}
+                        </td>
+                        <td className="p-3 text-[11px] text-gray-600 dark:text-slate-300 font-mono whitespace-nowrap">
+                          {truck.timbang1 || "-"}
+                        </td>
+                        <td className="p-3 text-[11px] text-gray-600 dark:text-slate-300 font-mono whitespace-nowrap">
+                          {truck.timbang2 || "-"}
                         </td>
                       </>
                     )}

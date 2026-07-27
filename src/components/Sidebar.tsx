@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { LayoutDashboard, ClipboardList, Truck, Package, ChevronLeft, ShieldCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Truck, Package, ChevronLeft, ShieldCheck, LogOut, Settings } from "lucide-react";
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
 
 export type TabType = "overview" | "logistik_pro" | "order" | "availability" | "shipment";
@@ -10,9 +10,10 @@ interface SidebarProps {
   setActiveTab: (tab: TabType) => void;
   isOpen: boolean;
   onClose: () => void;
+  onOpenSettings?: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onOpenSettings }: SidebarProps) {
   const menuItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "order", label: "Order Management", icon: ClipboardList },
@@ -100,8 +101,20 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
                 })}
               </nav>
 
-              {/* Sign Out Section */}
-              <div className="px-5 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto">
+              {/* Settings & Sign Out Section */}
+              <div className="px-5 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto space-y-1">
+                {/* Setting Button (Gerigi / Gear Icon) */}
+                <button
+                  id="sidebar-settings"
+                  onClick={() => {
+                    if (onOpenSettings) onOpenSettings();
+                  }}
+                  className="w-full flex items-center gap-3.5 px-3 py-2.5 text-sm font-bold text-gray-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 rounded-xl transition-all cursor-pointer group"
+                >
+                  <Settings className="w-5 h-5 text-gray-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
+                  <span>Setting</span>
+                </button>
+
                 {/* Sign Out Button */}
                 <button
                   id="sidebar-sign-out"

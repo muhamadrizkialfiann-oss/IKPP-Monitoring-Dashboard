@@ -4,7 +4,7 @@ import { Truck, Users, Clock, AlertTriangle, ShieldCheck, Search, Filter, Refres
 import StatCard from "../components/StatCard";
 import DataTable, { Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
-import { useTikProMirror } from "../hooks/useTikProMirror";
+import { useTikProMirror, FALLBACK_SNAPSHOT } from "../hooks/useTikProMirror";
 import { FleetUnit, UnitStatus } from "../types";
 
 export default function AvailabilityPage() {
@@ -12,12 +12,12 @@ export default function AvailabilityPage() {
 
   // Map TikPro trucks to FleetUnits dynamically
   const fleetUnits = useMemo<FleetUnit[]>(() => {
-    if (!tikproData || !tikproData.trucks || tikproData.trucks.length === 0) {
-      return [];
-    }
+    const rawTrucks = (tikproData && tikproData.trucks && tikproData.trucks.length > 0)
+      ? tikproData.trucks
+      : FALLBACK_SNAPSHOT.trucks;
 
-    return tikproData.trucks.map((t) => {
-      const uStatus = t.status.toUpperCase();
+    return rawTrucks.map((t) => {
+      const uStatus = (t.status || "").toUpperCase();
       let status: UnitStatus = "utilized";
       if (uStatus === "TERSEDIA" || uStatus.includes("STANDBY")) {
         status = "standby";
@@ -25,13 +25,13 @@ export default function AvailabilityPage() {
         status = "downtime";
       }
 
-      const unitType = "Trailer 4x2 40ft";
+      const unitType = t.jenisMobil || "Trailer 4x2 40ft";
 
       return {
-        unitId: t.platNomor,
+        unitId: t.platNomor || "B 9900 XYZ",
         unitType,
         status,
-        lastLocation: `${t.status} ${t.fo !== "-" ? `(FO: ${t.fo})` : ""}`,
+        lastLocation: `${t.status} ${t.fo && t.fo !== "-" ? `(FO: ${t.fo})` : ""}`,
         lastUpdate: t.terakhirUpdate || new Date().toLocaleDateString("id-ID")
       };
     });
@@ -77,8 +77,8 @@ export default function AvailabilityPage() {
   // Dynamic Driver Stats matched to Fleet Availability
   const driverStats = useMemo(() => {
     const total = stats.total;
-    const onDuty = stats.utilized;
-    const offDuty = stats.standby + stats.downtime;
+    const onDuty = stats.utilized + stats.downtime;
+    const offDuty = stats.standby;
     return {
       total,
       onDuty,
