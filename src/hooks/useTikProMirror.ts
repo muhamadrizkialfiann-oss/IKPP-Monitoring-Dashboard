@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TikProMirrorData } from "../types";
 
-export const FALLBACK_SNAPSHOT: TikProMirrorData = {
+const FALLBACK_SNAPSHOT: TikProMirrorData = {
   lastSyncedAt: new Date().toISOString(),
   vendorName: "Pancaran Darat",
   userEmail: "pdt@ikk.com",
@@ -79,12 +79,12 @@ export const FALLBACK_SNAPSHOT: TikProMirrorData = {
     { id: "truck-34", platNomor: "B 9810 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
     { id: "truck-35", platNomor: "B 9811 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
     { id: "truck-36", platNomor: "B 9812 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
-    { id: "truck-37", platNomor: "B 9813 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-37", platNomor: "B 9813 UFY", driverName: "DRIVER PANCARAN 37", phone: "08123456737", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "GUDANG ANTRI MUAT", fo: "6100510811", dn: "FI00000760", noContainer: "OOLU9812340", lokasiMuat: "EXPORT PM 2", timbang1: "26 Jul 2026, 18.10", timbang2: "-", terakhirUpdate: "27 Jul 2026, 08.15" },
     { id: "truck-38", platNomor: "B 9815 UFY", driverName: "DRIVER PANCARAN 38", phone: "08123456738", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "OTW PELABUHAN", fo: "6100510940", dn: "FI00000768", noContainer: "MSKU8829102", lokasiMuat: "EXPORT PM 3", timbang1: "26 Jul 2026, 15.10", timbang2: "26 Jul 2026, 18.00", terakhirUpdate: "27 Jul 2026, 09.45" },
-    { id: "truck-39", platNomor: "B 9816 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-39", platNomor: "B 9816 UFY", driverName: "DRIVER PANCARAN 39", phone: "08123456739", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "OTW PELABUHAN", fo: "6100510941", dn: "FI00000768", noContainer: "MSKU8829103", lokasiMuat: "EXPORT PM 3", timbang1: "26 Jul 2026, 15.20", timbang2: "26 Jul 2026, 18.15", terakhirUpdate: "27 Jul 2026, 09.48" },
     { id: "truck-40", platNomor: "B 9817 UFY", driverName: "DRIVER PANCARAN 40", phone: "08123456740", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "STORING / LAKA", fo: "REPAIR", dn: "REPAIR", noContainer: "REPAIR", lokasiMuat: "WORKSHOP", timbang1: "-", timbang2: "-", terakhirUpdate: "20 Jul 2026, 14.10" },
-    { id: "truck-41", platNomor: "B 9818 UFY", driverName: "DRIVER PANCARAN 41", phone: "08123456741", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "STORING / LAKA", fo: "REPAIR", dn: "REPAIR", noContainer: "REPAIR", lokasiMuat: "WORKSHOP", timbang1: "-", timbang2: "-", terakhirUpdate: "21 Jul 2026, 10.15" },
-    { id: "truck-42", platNomor: "B 9819 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
+    { id: "truck-41", platNomor: "B 9818 UFY", driverName: "DRIVER PANCARAN 41", phone: "08123456741", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TUNGGU KARTU EKSPOR", fo: "6100510780", dn: "FI00000765", noContainer: "TCNU9120491", lokasiMuat: "EXPORT PM 1", timbang1: "26 Jul 2026, 17.00", timbang2: "26 Jul 2026, 23.00", terakhirUpdate: "27 Jul 2026, 09.50" },
+    { id: "truck-42", platNomor: "B 9819 UFY", driverName: "DRIVER PANCARAN 42", phone: "08123456742", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TUNGGU KARTU EKSPOR", fo: "6100510781", dn: "FI00000765", noContainer: "TCNU9120492", lokasiMuat: "EXPORT PM 1", timbang1: "26 Jul 2026, 17.15", timbang2: "26 Jul 2026, 23.10", terakhirUpdate: "27 Jul 2026, 09.51" },
     { id: "truck-43", platNomor: "B 9820 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
     { id: "truck-44", platNomor: "B 9821 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
     { id: "truck-45", platNomor: "B 9822 UFY", driverName: "TERSEDIA (STANDBY)", phone: "-", jenisMobil: "Trailer 40ft HC", vendor: "Pancaran Darat", status: "TERSEDIA", fo: "-", dn: "-", noContainer: "-", lokasiMuat: "-", timbang1: "-", timbang2: "-", terakhirUpdate: "27 Jul 2026, 10.30" },
@@ -243,7 +243,7 @@ export function useTikProMirror() {
             totalVendorMitra: 1,
             statusBreakdown: counts,
             statusItems: Object.entries(counts).map(([k, count]) => ({ key: k, label: k, count })),
-            trucks: trucksList.length > 0 ? trucksList : FALLBACK_SNAPSHOT.trucks,
+            trucks: trucksList,
           };
 
           setData(directData);

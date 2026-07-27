@@ -18,21 +18,18 @@ import {
   ExternalLink,
   ShieldCheck,
   Phone,
-  Package,
-  FileSpreadsheet
+  Package
 } from "lucide-react";
 import { TikProMirrorData, TikProTruck } from "../types";
-import { FALLBACK_SNAPSHOT } from "../hooks/useTikProMirror";
 
 interface TikProDashboardMirrorProps {
   data: TikProMirrorData | null;
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
-  onOpenSettings?: () => void;
 }
 
-export default function TikProDashboardMirror({ data, loading, error, onRefresh, onOpenSettings }: TikProDashboardMirrorProps) {
+export default function TikProDashboardMirror({ data, loading, error, onRefresh }: TikProDashboardMirrorProps) {
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -100,49 +97,29 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh,
 
   const [viewMode, setViewMode] = useState<"SUMMARY" | "DAFTAR" | "RITASE">("SUMMARY");
 
-  const rawTrucks = (mirror && mirror.trucks && mirror.trucks.length > 0) ? mirror.trucks : FALLBACK_SNAPSHOT.trucks;
+  const rawTrucks = mirror.trucks || [];
 
   const filteredTrucks = rawTrucks.filter((truck) => {
-    const truckStatus = (truck.status || "").toUpperCase().trim();
-    const filter = selectedStatusFilter.toUpperCase().trim();
-
-    let matchesStatus = filter === "ALL";
-    if (!matchesStatus) {
-      if (filter === "TERSEDIA") {
-        matchesStatus = truckStatus === "TERSEDIA" || truckStatus.includes("STANDBY");
-      } else {
-        matchesStatus = truckStatus.includes(filter) || filter.includes(truckStatus);
-      }
-    }
+    const matchesStatus =
+      selectedStatusFilter === "ALL" ||
+      truck.status.toUpperCase().includes(selectedStatusFilter) ||
+      (selectedStatusFilter === "TERSEDIA" && truck.status.toUpperCase() === "TERSEDIA");
 
     const query = searchQuery.toLowerCase().trim();
     const matchesQuery =
       !query ||
-      (truck.platNomor || "").toLowerCase().includes(query) ||
-      (truck.driverName || "").toLowerCase().includes(query) ||
-      (truck.fo || "").toLowerCase().includes(query) ||
-      (truck.dn || "").toLowerCase().includes(query) ||
-      (truck.noContainer || "").toLowerCase().includes(query) ||
-      (truck.status || "").toLowerCase().includes(query) ||
-      (truck.lokasiMuat || "").toLowerCase().includes(query);
+      truck.platNomor.toLowerCase().includes(query) ||
+      truck.driverName.toLowerCase().includes(query) ||
+      truck.fo.toLowerCase().includes(query) ||
+      truck.dn.toLowerCase().includes(query) ||
+      truck.noContainer.toLowerCase().includes(query) ||
+      truck.status.toLowerCase().includes(query);
 
     return matchesStatus && matchesQuery;
   });
 
   return (
     <div className="space-y-6">
-      {/* Top Header Card matching template */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-            Dashboard Logistik Pro IKK
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">
-            Real-time Monitoring Dashboard Logistik Pro IKK for PT Indah Kiat Pulp & Paper Tbk (IKPP).
-          </p>
-        </div>
-      </div>
-
       {/* 4 Main Stat Cards matching TikPro Screenshot 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: TOTAL ARMADA TERDAFTAR */}
@@ -389,19 +366,8 @@ export default function TikProDashboardMirror({ data, loading, error, onRefresh,
             <tbody className="divide-y divide-gray-100 dark:divide-slate-800 text-gray-800 dark:text-slate-200">
               {filteredTrucks.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="p-8 text-center text-gray-500 dark:text-slate-400 font-semibold">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <p>Tidak ada data armada yang cocok dengan filter ({selectedStatusFilter !== "ALL" ? `Status: ${selectedStatusFilter}` : searchQuery ? `Pencarian: "${searchQuery}"` : "Filter"}).</p>
-                      <button
-                        onClick={() => {
-                          setSelectedStatusFilter("ALL");
-                          setSearchQuery("");
-                        }}
-                        className="mt-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
-                      >
-                        Tampilkan Semua ({rawTrucks.length}) Armada
-                      </button>
-                    </div>
+                  <td colSpan={13} className="p-8 text-center text-gray-400 dark:text-slate-500 font-semibold">
+                    Tidak ada data armada yang cocok dengan filter.
                   </td>
                 </tr>
               ) : (
