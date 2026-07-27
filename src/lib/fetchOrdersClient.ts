@@ -45,7 +45,7 @@ export async function fetchLiveOrdersClient(): Promise<Order[]> {
             const origin = originRaw.includes("Karawang") ? "IKK Karawang" : originRaw;
             const destination = row[21] || row[23] || "NPCT 1";
             const containerTier = (row[14] || "40FT").includes("20") ? "20ft" : "40ft";
-            const unitType = containerTier === "20ft" ? "Trailer 4x2 20ft" : "Trailer 4x2 40ft";
+            const unitType = "Trailer 4x2 40ft";
             const qty = parseInt(row[15] || "1", 10) || 1;
             const statusPooling = (row[30] || "").toUpperCase();
 

@@ -19,7 +19,7 @@ export default function AvailabilityPage() {
         const isDowntime = i >= 44;
         return {
           unitId: `B ${9000 + i} UQA`,
-          unitType: i % 2 === 0 ? "Trailer 4x2 40ft" : "Trailer 4x2 20ft",
+          unitType: "Trailer 4x2 40ft",
           status: isDowntime ? "downtime" : isStandby ? "standby" : "utilized",
           lastLocation: isDowntime ? "STORING / LAKA Bengkel" : isStandby ? "Depo Yard Standby" : "On Job (Alokasi)",
           lastUpdate: new Date().toLocaleDateString("id-ID")
@@ -36,13 +36,7 @@ export default function AvailabilityPage() {
         status = "downtime";
       }
 
-      const rawJenis = (t.jenisMobil || "").toUpperCase();
-      let unitType = "Trailer 4x2 40ft";
-      if (rawJenis.includes("20")) {
-        unitType = "Trailer 4x2 20ft";
-      } else if (rawJenis.includes("40") || rawJenis.includes("TRAILER") || rawJenis.includes("HC")) {
-        unitType = "Trailer 4x2 40ft";
-      }
+      const unitType = "Trailer 4x2 40ft";
 
       return {
         unitId: t.platNomor,

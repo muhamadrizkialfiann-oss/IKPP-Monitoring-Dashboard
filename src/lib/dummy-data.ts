@@ -25,14 +25,14 @@ const seedShipments: Partial<Shipment>[] = [
 // Hand-crafted seed fleet units using Plate Numbers as unitId
 const seedFleetUnits: FleetUnit[] = [
   { unitId: "B 9124 UQA", unitType: "Trailer 4x2 40ft", status: "utilized", lastLocation: "On road to Tj. Priok Port", lastUpdate: "08 Jul 2026, 10:00" },
-  { unitId: "B 9042 PAI", unitType: "Trailer 4x2 20ft", status: "standby", lastLocation: "Depo Cikarang Yard", lastUpdate: "08 Jul 2026, 14:12" },
+  { unitId: "B 9042 PAI", unitType: "Trailer 4x2 40ft", status: "standby", lastLocation: "Depo Cikarang Yard", lastUpdate: "08 Jul 2026, 14:12" },
   { unitId: "B 9385 SFD", unitType: "Trailer 4x2 40ft", status: "utilized", lastLocation: "On road to IKK Karawang", lastUpdate: "08 Jul 2026, 15:30" },
   { unitId: "L 8092 KPA", unitType: "Trailer 4x2 40ft", status: "standby", lastLocation: "IKK Sidoarjo Depo", lastUpdate: "08 Jul 2026, 09:15" },
   { unitId: "B 9110 JKL", unitType: "Trailer 4x2 40ft", status: "utilized", lastLocation: "On road to Tj. Priok", lastUpdate: "08 Jul 2026, 16:20" },
-  { unitId: "L 8872 JK", unitType: "Trailer 4x2 20ft", status: "downtime", lastLocation: "Depo Marunda", lastUpdate: "08 Jul 2026, 11:00", downtimeCategory: "Scheduled Maintenance" },
-  { unitId: "B 9763 MNO", unitType: "Trailer 4x2 20ft", status: "standby", lastLocation: "Depo Cikarang", lastUpdate: "08 Jul 2026, 08:30" },
+  { unitId: "L 8872 JK", unitType: "Trailer 4x2 40ft", status: "downtime", lastLocation: "Depo Marunda", lastUpdate: "08 Jul 2026, 11:00", downtimeCategory: "Scheduled Maintenance" },
+  { unitId: "B 9763 MNO", unitType: "Trailer 4x2 40ft", status: "standby", lastLocation: "Depo Cikarang", lastUpdate: "08 Jul 2026, 08:30" },
   { unitId: "BM 8901 AA", unitType: "Trailer 4x2 40ft", status: "standby", lastLocation: "IKK Perawang Yard", lastUpdate: "08 Jul 2026, 13:00" },
-  { unitId: "B 9235 PQR", unitType: "Trailer 4x2 20ft", status: "utilized", lastLocation: "Kebon Jeruk Area", lastUpdate: "08 Jul 2026, 12:45" },
+  { unitId: "B 9235 PQR", unitType: "Trailer 4x2 40ft", status: "utilized", lastLocation: "Kebon Jeruk Area", lastUpdate: "08 Jul 2026, 12:45" },
   { unitId: "B 9481 STU", unitType: "Trailer 4x2 40ft", status: "downtime", lastLocation: "Depo Jakarta Yard", lastUpdate: "08 Jul 2026, 14:00", downtimeCategory: "Repair / Breakdown" }
 ];
 
