@@ -58,20 +58,10 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
         {/* Dark / Light Mode Toggle Button */}
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-2 px-2.5 py-1.5 md:px-3 md:py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer font-bold text-xs shadow-xs"
-          title={isDark ? "Switch to Light Mode (Mode Terang)" : "Switch to Dark Mode (Mode Gelap)"}
+          className="flex items-center justify-center p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-xs text-base"
+          title={isDark ? "Mode Terang" : "Mode Gelap"}
         >
-          {isDark ? (
-            <>
-              <Sun className="w-4 h-4 text-amber-400 fill-amber-400/20" />
-              <span className="hidden sm:inline text-amber-300 font-bold text-xs">Terang</span>
-            </>
-          ) : (
-            <>
-              <Moon className="w-4 h-4 text-slate-700 fill-slate-700/20" />
-              <span className="hidden sm:inline text-slate-700 font-bold text-xs">Gelap</span>
-            </>
-          )}
+          {isDark ? "☀️" : "🌙"}
         </button>
 
         {/* Language Switcher */}

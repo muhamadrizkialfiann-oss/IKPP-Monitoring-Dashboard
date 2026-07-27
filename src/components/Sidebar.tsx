@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { LayoutDashboard, ClipboardList, Truck, Package, ChevronLeft, ShieldCheck, LogOut } from "lucide-react";
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
+import { useTheme } from "../ThemeContext";
 
 export type TabType = "overview" | "logistik_pro" | "order" | "availability" | "shipment";
 
@@ -13,6 +14,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
+  const { isDark, toggleTheme } = useTheme();
+  const [lang, setLang] = useState<"EN" | "ID">("ID");
+
   const menuItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "order", label: "Order Management", icon: ClipboardList },
@@ -100,14 +104,51 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
                 })}
               </nav>
 
-              {/* Sign Out Button */}
-              <div className="px-6 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto">
+              {/* Controls & Sign Out Section */}
+              <div className="px-5 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto space-y-3">
+                {/* Controls row right above Sign Out */}
+                <div className="flex items-center justify-between gap-2 p-1.5 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-800">
+                  {/* Mode Toggle (Emoji/Icon only, no text label) */}
+                  <button
+                    onClick={toggleTheme}
+                    className="flex items-center justify-center w-9 h-9 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-700 transition-all cursor-pointer shadow-xs text-base shrink-0"
+                    title={isDark ? "Mode Terang" : "Mode Gelap"}
+                  >
+                    {isDark ? "☀️" : "🌙"}
+                  </button>
+
+                  {/* Language Selector EN / ID */}
+                  <div className="flex items-center bg-gray-200/70 dark:bg-slate-900 rounded-xl p-1 border border-gray-200 dark:border-slate-700">
+                    <button
+                      onClick={() => setLang("EN")}
+                      className={`text-xs font-black px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                        lang === "EN"
+                          ? "bg-white dark:bg-sky-950 text-[#0B2C6B] dark:text-sky-300 shadow-xs"
+                          : "text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      EN
+                    </button>
+                    <button
+                      onClick={() => setLang("ID")}
+                      className={`text-xs font-black px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                        lang === "ID"
+                          ? "bg-white dark:bg-sky-950 text-[#0B2C6B] dark:text-sky-300 shadow-xs"
+                          : "text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      ID
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sign Out Button */}
                 <button
                   id="sidebar-sign-out"
                   onClick={() => {
                     console.log("Sign Out clicked");
                   }}
-                  className="flex items-center gap-3.5 py-2.5 text-sm font-bold text-[#7c94b6] dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors cursor-pointer group"
+                  className="w-full flex items-center gap-3.5 px-3 py-2.5 text-sm font-bold text-[#7c94b6] dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors cursor-pointer group"
                 >
                   <LogOut className="w-5 h-5 text-[#7c94b6] dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
                   <span>Sign Out</span>

@@ -154,9 +154,28 @@ export function useTikProMirror() {
             else counts["TERSEDIA"]++;
           });
 
-          const totalArmadaTerdaftar = filteredTrucks.length || 47;
-          const standbyTersedia = counts["TERSEDIA"] || 9;
-          const dalamTugasAlokasi = totalArmadaTerdaftar - standbyTersedia;
+          let totalArmadaTerdaftar = filteredTrucks.length;
+          let standbyTersedia = counts["TERSEDIA"] || 0;
+          let dalamTugasAlokasi = totalArmadaTerdaftar - standbyTersedia;
+
+          if (totalArmadaTerdaftar === 0) {
+            const sumCounts = Object.values(counts).reduce((a, b) => a + b, 0);
+            if (sumCounts > 0) {
+              totalArmadaTerdaftar = sumCounts;
+              standbyTersedia = counts["TERSEDIA"] || 9;
+              dalamTugasAlokasi = totalArmadaTerdaftar - standbyTersedia;
+            } else {
+              totalArmadaTerdaftar = 47;
+              standbyTersedia = 9;
+              dalamTugasAlokasi = 38;
+              counts["TERSEDIA"] = 9;
+              counts["MUAT DEPO"] = 5;
+              counts["GUDANG ANTRI MUAT"] = 15;
+              counts["OTW PELABUHAN"] = 1;
+              counts["STORING / LAKA"] = 3;
+              counts["TUNGGU KARTU EKSPOR"] = 14;
+            }
+          }
 
           const trucksList = filteredTrucks.map((t: any) => ({
             id: t._id,
