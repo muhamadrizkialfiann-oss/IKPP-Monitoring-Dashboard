@@ -32,7 +32,7 @@ export default function App() {
       subtitle: "PT Indah Kiat Pulp & Paper Tbk (IKPP) Partner Overview Cockpit"
     },
     logistik_pro: {
-      title: "Monitoring Kontrak Export IKPP",
+      title: "Dashboard Logistik Pro IKK",
       subtitle: "Live Firestore Realtime Sync - Summary Report, Daftar Armada & Laporan Ritase"
     },
     order: {

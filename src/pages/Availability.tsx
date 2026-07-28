@@ -56,9 +56,9 @@ export default function AvailabilityPage() {
   // Dynamic KPI Stats calculated from live fleetUnits
   const stats = useMemo(() => {
     const total = fleetUnits.length;
-    const utilized = fleetUnits.filter((u) => u.status === "utilized").length;
     const standby = fleetUnits.filter((u) => u.status === "standby").length;
     const downtime = fleetUnits.filter((u) => u.status === "downtime").length;
+    const utilized = fleetUnits.filter((u) => u.status !== "standby").length;
     const available = standby;
     return {
       total,

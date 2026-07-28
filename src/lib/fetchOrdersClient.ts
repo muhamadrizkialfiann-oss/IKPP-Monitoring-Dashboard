@@ -1,4 +1,5 @@
 import { Order } from "../types";
+import { mapCSStatus } from "./statusMapper";
 
 const SPREADSHEET_ID = "1pavvP7EtzMvHiIhCP5X_aoTVP5nLkV03Vw_IV0iQkxU";
 const GID = "1444994189";
@@ -6,7 +7,7 @@ const GID = "1444994189";
 export async function fetchLiveOrdersClient(): Promise<Order[]> {
   // First attempt: Server API endpoint
   try {
-    const res = await fetch("/api/sheets/orders");
+    const res = await fetch(`/api/sheets/orders?t=${Date.now()}`);
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.orders) && json.orders.length > 0) {
@@ -41,6 +42,10 @@ export async function fetchLiveOrdersClient(): Promise<Order[]> {
             else if (rawType.includes("REPO") || segment.includes("repo")) type = "repo";
 
             const customer = row[7] || "INDAH KIAT PULP & PAPER TBK.";
+            const notesText = (row[31] || "").toUpperCase();
+            if (customer.toUpperCase().includes("JANGAN DI HAPUS") || notesText.includes("JANGAN DI HAPUS") || id.toUpperCase().includes("JANGAN DI HAPUS")) {
+              continue;
+            }
             const originRaw = row[18] || row[20] || "IKK Karawang";
             const origin = originRaw.includes("Karawang") ? "IKK Karawang" : originRaw;
             const destination = row[21] || row[23] || "NPCT 1";
@@ -143,14 +148,35 @@ function parseCSVLines(text: string): string[][] {
 
 function generateFallbackOrders(): Order[] {
   const orders: Order[] = [];
-  // 102 Ekspor + 6 Repo = 108 Total Orders
-  // Ekspor (102): 51 Done, 11 In Progress, 40 Open
-  // Repo (6): 0 Done, 6 In Progress, 0 Open
-  for (let i = 1; i <= 108; i++) {
-    const isRepo = i > 102;
-    const isDone = !isRepo && i <= 51; // 51 Ekspor Done
-    const isInProgress = isRepo ? true : (i > 51 && i <= 62); // 11 Ekspor In Progress + 6 Repo In Progress = 17 Total Transit
-    
+  // 105 Ekspor + 6 Repo = 111 Total Orders
+  // Ekspor (105): 53 Done, 7 In Progress, 39 Open, 6 Cancel
+  // Repo (6): 6 Open
+  for (let i = 1; i <= 111; i++) {
+    const isRepo = i > 105;
+    let status: "open" | "in_progress" | "done" | "cancel" = "open";
+    let lastUpdateCS = "WAITING CONFIRM";
+
+    if (isRepo) {
+      status = "open";
+      lastUpdateCS = "WAITING CONFIRM";
+    } else {
+      if (i <= 53) {
+        status = "done";
+        lastUpdateCS = "DONE";
+      } else if (i <= 60) {
+        status = "in_progress";
+        lastUpdateCS = "ON JOB";
+      } else if (i <= 99) {
+        status = "open";
+        lastUpdateCS = "WAITING CONFIRM";
+      } else {
+        status = "cancel";
+        lastUpdateCS = "CANCEL CS";
+      }
+    }
+
+    const isDriverAssigned = status === "done" || status === "in_progress";
+
     orders.push({
       id: `SM-D${String(i).padStart(6, '0')}`,
       type: isRepo ? "repo" : "ekspor",
@@ -158,14 +184,14 @@ function generateFallbackOrders(): Order[] {
       origin: isRepo ? "CAKUNG" : "IKK Karawang",
       destination: isRepo ? "DEPO PDT" : (i % 3 === 0 ? "KOJA" : i % 3 === 1 ? "BSA" : "NPCT 1"),
       unitType: "Trailer 4x2 40ft",
-      status: isDone ? "done" : isInProgress ? "in_progress" : "open",
+      status,
       eta: "24/07/2026 14:00",
       bookingDate: "24/07/2026 09:00",
       quantity: isRepo ? 1 : (i % 2 === 0 ? 2 : 1),
-      driver: isDone || isInProgress ? `208260${380 + i} - DRIVER ${i}` : "",
-      vehiclePlate: isDone || isInProgress ? `B 97${10 + (i % 80)} UIW` : "",
-      notes: "",
-      lastUpdateCS: isDone ? "DONE" : isInProgress ? "ON JOB" : "WAITING CONFIRM",
+      driver: isDriverAssigned ? `208260${380 + i} - DRIVER ${i}` : "",
+      vehiclePlate: isDriverAssigned ? `B 97${10 + (i % 80)} UIW` : "",
+      notes: status === "cancel" ? "Canceled by Customer CS" : "",
+      lastUpdateCS,
       source: "Google Sheet",
       sourceSheetName: "POOLING SINARMAS",
       sourceUrl: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=${GID}`

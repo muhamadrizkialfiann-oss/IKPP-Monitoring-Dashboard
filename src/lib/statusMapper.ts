@@ -1,0 +1,55 @@
+import { OrderStatus, TripStatus } from "../types";
+
+export interface MappedStatus {
+  orderStatus: OrderStatus;
+  shipmentStatus: TripStatus;
+}
+
+/**
+ * Maps LAST UPDATE CS value to TYPE ORDER and TYPE SHIPMENT according to lookup rules:
+ * - Empty / CANCEL CS / CANCEL OPR / CANCEL -> Order: CANCEL | Shipment: CANCEL
+ * - ON JOB -> Order: IN TRANSIT (in_progress) | Shipment: ON TRIP (on_trip)
+ * - OPR PLANNING -> Order: OPEN (open) | Shipment: PRE TRIP (pre_trip)
+ * - SHIPMENT FINISH -> Order: COMPLETED (done) | Shipment: END TRIP (end_trip)
+ * - WAITING BON MUAT -> Order: OPEN (open) | Shipment: PRE TRIP (pre_trip)
+ * - WAITING CONFIRM -> Order: OPEN (open) | Shipment: PRE TRIP (pre_trip)
+ */
+export function mapCSStatus(lastUpdateCS?: string): MappedStatus {
+  const raw = (lastUpdateCS || "").trim();
+  const cs = raw.toUpperCase();
+
+  if (!cs || cs === "CANCEL CS" || cs === "CANCEL OPR" || cs === "CANCEL" || cs.includes("CANCEL") || cs.includes("BATAL") || cs.includes("REJECT")) {
+    return { orderStatus: "cancel", shipmentStatus: "cancel" };
+  }
+
+  if (cs === "ON JOB" || cs.includes("ON JOB") || cs.includes("ON TRIP") || cs.includes("IN TRANSIT")) {
+    return { orderStatus: "in_progress", shipmentStatus: "on_trip" };
+  }
+
+  if (
+    cs === "OPR PLANNING" ||
+    cs === "WAITING BON MUAT" ||
+    cs === "WAITING CONFIRM" ||
+    cs.includes("PLANNING") ||
+    cs.includes("BON MUAT") ||
+    cs.includes("WAITING") ||
+    cs.includes("CONFIRM") ||
+    cs.includes("OPEN") ||
+    cs.includes("UNALLOCATED")
+  ) {
+    return { orderStatus: "open", shipmentStatus: "pre_trip" };
+  }
+
+  if (
+    cs === "SHIPMENT FINISH" ||
+    cs.includes("FINISH") ||
+    cs.includes("DONE") ||
+    cs.includes("COMPLETED") ||
+    cs.includes("COMPLETE")
+  ) {
+    return { orderStatus: "done", shipmentStatus: "end_trip" };
+  }
+
+  // Fallback for empty or unknown
+  return { orderStatus: "cancel", shipmentStatus: "cancel" };
+}

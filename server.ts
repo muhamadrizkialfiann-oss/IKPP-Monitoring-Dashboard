@@ -649,77 +649,88 @@ async function getExecutedLookupMap(): Promise<Map<string, any>> {
   return map;
 }
 
-// Function to enrich orders with EXECUTED lookup CS status and deduplicate by Order ID (82 unique orders)
+// Helper for CS status mapping matching exact lookup table rules
+function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_progress" | "done" | "cancel" } {
+  const cs = (lastUpdateCS || "").trim().toUpperCase();
+
+  if (
+    !cs ||
+    cs === "CANCEL CS" ||
+    cs === "CANCEL OPR" ||
+    cs === "CANCEL" ||
+    cs.includes("CANCEL") ||
+    cs.includes("BATAL") ||
+    cs.includes("REJECT")
+  ) {
+    return { status: "cancel" };
+  }
+
+  if (cs === "ON JOB" || cs.includes("ON JOB") || cs.includes("ON TRIP") || cs.includes("IN TRANSIT")) {
+    return { status: "in_progress" };
+  }
+
+  if (
+    cs === "OPR PLANNING" ||
+    cs === "WAITING BON MUAT" ||
+    cs === "WAITING CONFIRM" ||
+    cs.includes("PLANNING") ||
+    cs.includes("BON MUAT") ||
+    cs.includes("WAITING") ||
+    cs.includes("CONFIRM") ||
+    cs.includes("OPEN") ||
+    cs.includes("QUEUE")
+  ) {
+    return { status: "open" };
+  }
+
+  if (
+    cs === "SHIPMENT FINISH" ||
+    cs.includes("FINISH") ||
+    cs.includes("DONE") ||
+    cs.includes("COMPLETED") ||
+    cs.includes("COMPLETE")
+  ) {
+    return { status: "done" };
+  }
+
+  return { status: "cancel" };
+}
+
+// Function to enrich orders with EXECUTED lookup CS status and deduplicate by Order ID
 function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, any>): any[] {
+  // Strictly filter to POOLING SINARMAS orders only (ignore EXECUTED sheet rows and 'jangan di HAPUS' placeholder)
+  const poolingOrders = rawOrders.filter((ord) => {
+    const sheetName = (ord.sourceSheetName || "").toUpperCase();
+    if (sheetName.includes("EXECUTE")) return false;
+
+    const customer = (ord.customer || "").toUpperCase();
+    const notes = (ord.notes || "").toUpperCase();
+    const id = (ord.id || "").toUpperCase();
+    if (customer.includes("JANGAN DI HAPUS") || notes.includes("JANGAN DI HAPUS") || id.includes("JANGAN DI HAPUS")) {
+      return false;
+    }
+    return true;
+  });
+
   const mergedMap = new Map<string, any>();
 
-  for (const ord of rawOrders) {
+  for (const ord of poolingOrders) {
     const normKey = (ord.id || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
     if (!normKey) continue;
 
     const execInfo = executedMap.get(normKey);
+    const updated = { ...ord };
 
-    if (mergedMap.has(normKey)) {
-      const existing = mergedMap.get(normKey);
-      const csSource = ord.sourceSheetName?.toUpperCase().includes("EXECUTE") ? ord : execInfo;
-
-      if (csSource && csSource.lastUpdateCS) {
-        existing.lastUpdateCS = csSource.lastUpdateCS;
-      }
-
-      if (csSource?.driver) existing.driver = csSource.driver;
-      if (csSource?.vehiclePlate) existing.vehiclePlate = csSource.vehiclePlate;
-
-      // Determine order status from lastUpdateCS
-      const upperCS = (existing.lastUpdateCS || "").toUpperCase();
-      if (upperCS.includes("FINISH") || upperCS.includes("COMPLETE") || upperCS.includes("DONE")) {
-        existing.status = "done";
-      } else if (
-        upperCS.includes("WAITING") ||
-        upperCS.includes("CONFIRM") ||
-        upperCS.includes("UNALLOCATED") ||
-        upperCS.includes("QUEUE") ||
-        upperCS.includes("NEW") ||
-        upperCS.includes("CANCEL") ||
-        upperCS.includes("BATAL") ||
-        upperCS.includes("REJECT")
-      ) {
-        existing.status = "open";
-      } else if (upperCS.length > 0) {
-        existing.status = "in_progress";
-      }
-
-      mergedMap.set(normKey, existing);
-    } else {
-      const updated = { ...ord };
-
-      if (execInfo && execInfo.lastUpdateCS) {
-        updated.lastUpdateCS = execInfo.lastUpdateCS;
-        if (execInfo.driver) updated.driver = execInfo.driver;
-        if (execInfo.vehiclePlate) updated.vehiclePlate = execInfo.vehiclePlate;
-      }
-
-      // Determine order status from lastUpdateCS
-      const upperCS = (updated.lastUpdateCS || "").toUpperCase();
-      if (upperCS.includes("FINISH") || upperCS.includes("COMPLETE") || upperCS.includes("DONE")) {
-        updated.status = "done";
-      } else if (
-        upperCS.includes("WAITING") ||
-        upperCS.includes("CONFIRM") ||
-        upperCS.includes("UNALLOCATED") ||
-        upperCS.includes("QUEUE") ||
-        upperCS.includes("NEW") ||
-        upperCS.includes("CANCEL") ||
-        upperCS.includes("BATAL") ||
-        upperCS.includes("REJECT")
-      ) {
-        updated.status = "open";
-      } else if (upperCS.length > 0) {
-        updated.status = "in_progress";
-      }
-
-      mergedMap.set(normKey, updated);
+    if (execInfo && execInfo.lastUpdateCS) {
+      updated.lastUpdateCS = execInfo.lastUpdateCS;
+      if (execInfo.driver) updated.driver = execInfo.driver;
+      if (execInfo.vehiclePlate) updated.vehiclePlate = execInfo.vehiclePlate;
     }
+
+    // Determine order status from lastUpdateCS according to exact lookup table
+    updated.status = resolveCSStatus(updated.lastUpdateCS).status;
+
+    mergedMap.set(normKey, updated);
   }
 
   return Array.from(mergedMap.values());
@@ -728,6 +739,10 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
   // API endpoint to fetch connected Google Spreadsheet orders (Supports single or multi-sheet sync)
   app.get("/api/sheets/orders", async (req, res) => {
     try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+
       const customUrl = (req.query.url as string) || "";
       const customName = (req.query.name as string) || "POOLING SINARMAS";
 

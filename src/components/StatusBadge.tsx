@@ -42,10 +42,13 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
       classes = "bg-emerald-50 text-emerald-700 border border-emerald-200/60";
       break;
 
-    // Downtime / Maintenance -> ROSE / RED
+    // Downtime / Maintenance / Cancel -> ROSE / RED
     case "downtime":
     case "maintenance":
-      classes = "bg-rose-50 text-rose-700 border border-rose-200/60";
+    case "cancel":
+    case "canceled":
+    case "cancelled":
+      classes = "bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800";
       break;
   }
 

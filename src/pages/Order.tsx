@@ -235,14 +235,18 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
     const open = orders.filter((o) => o.status === "open").length;
     const inProgress = orders.filter((o) => o.status === "in_progress").length;
     const done = orders.filter((o) => o.status === "done").length;
+    const cancel = orders.filter((o) => o.status === "cancel").length;
+    const activeTotal = open + inProgress + done;
     return {
       total,
+      activeTotal,
+      cancel,
       open,
       inProgress,
       done,
-      openPct: total > 0 ? Math.round((open / total) * 100) : 0,
-      inProgressPct: total > 0 ? Math.round((inProgress / total) * 100) : 0,
-      donePct: total > 0 ? Math.round((done / total) * 100) : 0
+      openPct: activeTotal > 0 ? Math.round((open / activeTotal) * 100) : 0,
+      inProgressPct: activeTotal > 0 ? Math.round((inProgress / activeTotal) * 100) : 0,
+      donePct: activeTotal > 0 ? Math.round((done / activeTotal) * 100) : 0
     };
   }, [orders]);
 
@@ -601,7 +605,7 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
             value={String(stats.total)}
             icon={ShoppingCart}
             statusType="neutral"
-            description="Total active orders this month"
+            description={`Detail Cancel: ${stats.cancel} Cancel`}
           />
         </div>
         <div onClick={() => setStatusFilter("open")} className="cursor-pointer transition-transform hover:scale-[1.015]">
@@ -756,6 +760,7 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                 <option value="open">Open (Queue)</option>
                 <option value="in_progress">In Progress (Transit)</option>
                 <option value="done">Done (Completed)</option>
+                <option value="cancel">Cancel / Anomali</option>
               </select>
             </div>
 

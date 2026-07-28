@@ -27,6 +27,7 @@ export default function ShipmentPage() {
             let tripStatus: TripStatus = "on_trip";
             if (o.status === "open") tripStatus = "pre_trip";
             else if (o.status === "done") tripStatus = "end_trip";
+            else if (o.status === "cancel") tripStatus = "cancel";
 
             for (let i = 0; i < qty; i++) {
               list.push({
@@ -98,14 +99,19 @@ export default function ShipmentPage() {
     const preTrip = shipments.filter((s) => s.tripStatus === "pre_trip").length;
     const onTrip = shipments.filter((s) => s.tripStatus === "on_trip").length;
     const endTrip = shipments.filter((s) => s.tripStatus === "end_trip").length;
+    const cancel = shipments.filter((s) => s.tripStatus === "cancel").length;
+    const activeTotal = preTrip + onTrip + endTrip;
+
     return {
       total,
+      activeTotal,
+      cancel,
       preTrip,
       onTrip,
       endTrip,
-      preTripPct: total > 0 ? Math.round((preTrip / total) * 100) : 0,
-      onTripPct: total > 0 ? Math.round((onTrip / total) * 100) : 0,
-      endTripPct: total > 0 ? Math.round((endTrip / total) * 100) : 0
+      preTripPct: activeTotal > 0 ? Math.round((preTrip / activeTotal) * 100) : 0,
+      onTripPct: activeTotal > 0 ? Math.round((onTrip / activeTotal) * 100) : 0,
+      endTripPct: activeTotal > 0 ? Math.round((endTrip / activeTotal) * 100) : 0
     };
   }, [shipments]);
 
@@ -302,7 +308,7 @@ export default function ShipmentPage() {
             value={String(stats.total)}
             icon={Package}
             statusType="neutral"
-            description="Active & tracked trips"
+            description={`Detail Cancel: ${stats.cancel} Trip`}
           />
         </div>
         <div onClick={() => setTripStatusFilter("pre_trip")} className="cursor-pointer transition-transform hover:scale-[1.01]">
@@ -509,6 +515,7 @@ export default function ShipmentPage() {
                   <option value="pre_trip">Pre-Trip</option>
                   <option value="on_trip">On Trip</option>
                   <option value="end_trip">End Trip</option>
+                  <option value="cancel">Cancel / Anomali</option>
                 </select>
               </div>
 

@@ -1,6 +1,6 @@
 export type OrderType = "ekspor" | "impor" | "repo";
-export type OrderStatus = "open" | "in_progress" | "done";
-export type TripStatus = "pre_trip" | "on_trip" | "end_trip";
+export type OrderStatus = "open" | "in_progress" | "done" | "cancel";
+export type TripStatus = "pre_trip" | "on_trip" | "end_trip" | "cancel";
 export type UnitStatus = "utilized" | "standby" | "downtime";
 
 export interface Order {

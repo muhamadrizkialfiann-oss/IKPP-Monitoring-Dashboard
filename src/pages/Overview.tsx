@@ -65,10 +65,11 @@ export default function Overview({ onNavigate }: OverviewProps) {
       const uStatus = (t.status || "").toUpperCase();
       if (uStatus === "TERSEDIA" || uStatus.includes("STANDBY") || uStatus.includes("READY")) {
         standby++;
-      } else if (uStatus.includes("STORING") || uStatus.includes("LAKA") || uStatus.includes("DOWNTIME") || uStatus.includes("BENGKEL")) {
-        downtime++;
       } else {
         utilized++;
+        if (uStatus.includes("STORING") || uStatus.includes("LAKA") || uStatus.includes("DOWNTIME") || uStatus.includes("BENGKEL")) {
+          downtime++;
+        }
       }
     });
 
@@ -93,6 +94,8 @@ export default function Overview({ onNavigate }: OverviewProps) {
     const open = orders.filter((o) => o.status === "open").length;
     const inProgress = orders.filter((o) => o.status === "in_progress").length;
     const done = orders.filter((o) => o.status === "done").length;
+    const cancel = orders.filter((o) => o.status === "cancel").length;
+    const activeTotal = open + inProgress + done;
 
     const ekspor = orders.filter((o) => o.type === "ekspor");
     const impor = orders.filter((o) => o.type === "impor");
@@ -118,6 +121,8 @@ export default function Overview({ onNavigate }: OverviewProps) {
 
     return {
       total,
+      activeTotal,
+      cancel,
       open,
       inProgress,
       done,
@@ -142,13 +147,19 @@ export default function Overview({ onNavigate }: OverviewProps) {
     const endTrip = orders
       .filter((o) => o.status === "done")
       .reduce((sum, o) => sum + (o.quantity || 1), 0);
+    const cancel = orders
+      .filter((o) => o.status === "cancel")
+      .reduce((sum, o) => sum + (o.quantity || 1), 0);
+    const activeTotal = preTrip + onTrip + endTrip;
 
-    const preTripPct = total > 0 ? Math.round((preTrip / total) * 100) : 0;
-    const onTripPct = total > 0 ? Math.round((onTrip / total) * 100) : 0;
-    const endTripPct = total > 0 ? Math.round((endTrip / total) * 100) : 0;
+    const preTripPct = activeTotal > 0 ? Math.round((preTrip / activeTotal) * 100) : 0;
+    const onTripPct = activeTotal > 0 ? Math.round((onTrip / activeTotal) * 100) : 0;
+    const endTripPct = activeTotal > 0 ? Math.round((endTrip / activeTotal) * 100) : 0;
 
     return {
       total,
+      activeTotal,
+      cancel,
       preTrip,
       onTrip,
       endTrip,
@@ -204,11 +215,11 @@ export default function Overview({ onNavigate }: OverviewProps) {
         <div className="absolute -left-10 -bottom-10 w-36 h-36 bg-gray-50 dark:bg-slate-800/40 rounded-full blur-xl"></div>
       </div>
 
-      {/* Grid of 4 Widget Boxes (Bento Dashboard Grid) - now more compact and interactive */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Grid of 4 Widget Boxes (Bento Dashboard Grid) - now perfectly equal & aligned */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
         
         {/* BOX 1: FLEET AVAILABILITY SUMMARY */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-5 transition-colors duration-200">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-5 transition-colors duration-200 h-full">
           <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 bg-emerald-50 dark:bg-slate-800 rounded-lg text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-slate-700 shadow-xs">
@@ -227,47 +238,47 @@ export default function Overview({ onNavigate }: OverviewProps) {
             </button>
           </div>
 
-          <div className="space-y-4">
-            {/* 5 Stat Cards Highlighted */}
+          <div className="flex-1 flex flex-col justify-between space-y-4">
+            {/* 5 Stat Cards Highlighted - Equal height & alignment */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
               {/* Total Fleet */}
-              <div className="bg-slate-50/60 dark:bg-slate-800/60 border-l-4 border-l-slate-400 border border-slate-200/80 dark:border-slate-700 p-2.5 sm:p-3 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">{fleetStats.total}</span>
-                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1 leading-none">Total Fleet</span>
-                <span className="text-[8px] text-slate-400 dark:text-slate-500 font-bold mt-1 block leading-none">Registered Units</span>
+              <div className="bg-slate-50/60 dark:bg-slate-800/60 border-l-4 border-l-slate-400 border border-slate-200/80 dark:border-slate-700 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+                <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">{fleetStats.total}</span>
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5 leading-none block">Total Fleet</span>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1 block leading-none">Registered Units</span>
               </div>
               
               {/* Available Fleet */}
-              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-2.5 sm:p-3 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{fleetStats.available}</span>
-                <span className="text-[9px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1 leading-none">Available</span>
-                <span className="text-[8px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">Util + Stdb ({fleetStats.availablePct}%)</span>
+              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{fleetStats.available}</span>
+                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none block">Available</span>
+                <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">Util + Stdb ({fleetStats.availablePct}%)</span>
               </div>
 
               {/* Utilized Fleet */}
-              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-2.5 sm:p-3 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{fleetStats.utilized}</span>
-                <span className="text-[9px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1 leading-none">Utilized</span>
-                <span className="text-[8px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">{fleetStats.utilizedPct}% Active</span>
+              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+                <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{fleetStats.utilized}</span>
+                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">Utilized</span>
+                <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">{fleetStats.utilizedPct}% Active</span>
               </div>
 
               {/* Standby Fleet */}
-              <div className="bg-sky-50/25 dark:bg-sky-950/20 border-l-4 border-l-sky-400 border border-sky-200/60 dark:border-sky-800/40 p-2.5 sm:p-3 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-xl sm:text-2xl font-black text-sky-600 dark:text-sky-400 tracking-tight leading-none">{fleetStats.standby}</span>
-                <span className="text-[9px] font-black text-sky-800 dark:text-sky-300 uppercase tracking-wider mt-1 leading-none">Standby</span>
-                <span className="text-[8px] text-sky-500 dark:text-sky-400 font-bold mt-1 block leading-none">{fleetStats.standbyPct}% Ready</span>
+              <div className="bg-sky-50/25 dark:bg-sky-950/20 border-l-4 border-l-sky-400 border border-sky-200/60 dark:border-sky-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+                <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 tracking-tight leading-none">{fleetStats.standby}</span>
+                <span className="text-[10px] font-black text-sky-800 dark:text-sky-300 uppercase tracking-wider mt-1.5 leading-none block">Standby</span>
+                <span className="text-[9px] text-sky-500 dark:text-sky-400 font-bold mt-1 block leading-none">{fleetStats.standbyPct}% Ready</span>
               </div>
 
               {/* Downtime Fleet */}
-              <div className="bg-rose-50/25 dark:bg-rose-950/20 border-l-4 border-l-rose-500 border border-rose-200/60 dark:border-rose-800/40 p-2.5 sm:p-3 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none">{fleetStats.downtime}</span>
-                <span className="text-[9px] font-black text-rose-800 dark:text-rose-300 uppercase tracking-wider mt-1 leading-none">Downtime</span>
-                <span className="text-[8px] text-rose-500 dark:text-rose-400 font-bold mt-1 block leading-none">{fleetStats.downtimePct}% Service</span>
+              <div className="bg-rose-50/25 dark:bg-rose-950/20 border-l-4 border-l-rose-500 border border-rose-200/60 dark:border-rose-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+                <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none">{fleetStats.downtime}</span>
+                <span className="text-[10px] font-black text-rose-800 dark:text-rose-300 uppercase tracking-wider mt-1.5 leading-none block">Downtime</span>
+                <span className="text-[9px] text-rose-500 dark:text-rose-400 font-bold mt-1 block leading-none">{fleetStats.downtimePct}% Service</span>
               </div>
             </div>
 
             {/* Allocation Ratio Diagram directly underneath */}
-            <div className="bg-gray-50/40 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 p-3 rounded-xl">
+            <div className="bg-gray-50/40 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 p-3 rounded-xl flex-1 flex flex-col justify-center">
               <span className="text-[9px] text-gray-400 dark:text-slate-400 font-extrabold uppercase tracking-wider block mb-2">Fleet Allocation Ratio Diagram</span>
               <div className="min-h-0 flex items-center justify-center">
                 <BarChart
@@ -284,7 +295,7 @@ export default function Overview({ onNavigate }: OverviewProps) {
         </div>
 
         {/* BOX 2: ORDER MANAGEMENT & SERVICE STREAMS */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-5 transition-colors duration-200">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-5 transition-colors duration-200 h-full">
           <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 bg-blue-50 dark:bg-slate-800 rounded-lg text-blue-600 dark:text-sky-400 border border-blue-100 dark:border-slate-700 shadow-xs">
@@ -303,40 +314,51 @@ export default function Overview({ onNavigate }: OverviewProps) {
             </button>
           </div>
 
-          <div className="space-y-4">
-            {/* 4 Stat Cards Highlighted */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="flex-1 flex flex-col justify-between space-y-4">
+            {/* 4 Stat Cards Highlighted - Equal height & alignment */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Total Order */}
-              <div className="bg-slate-50/60 dark:bg-slate-800/60 border-l-4 border-l-slate-400 border border-slate-200/80 dark:border-slate-700 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">{orderStats.total}</span>
-                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5 leading-none">Total Order</span>
-                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1 block leading-none">Active Orders</span>
+              <div
+                onClick={() => onNavigate("order")}
+                className="bg-slate-50/60 dark:bg-slate-800/60 border-l-4 border-l-slate-500 border border-slate-200/80 dark:border-slate-700 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
+                <div>
+                  <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">
+                    {orderStats.total}
+                  </span>
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5 leading-none block">
+                    Total Order
+                  </span>
+                  <span className="text-[9px] text-rose-600 dark:text-rose-400 font-bold mt-1 block leading-none">
+                    Detail Cancel: {orderStats.cancel} Cancel
+                  </span>
+                </div>
               </div>
               
               {/* Open Queue */}
-              <div className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight leading-none">{orderStats.open}</span>
-                <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1.5 leading-none">Open Queue</span>
+                <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1.5 leading-none block">Open Queue</span>
                 <span className="text-[9px] text-amber-500 dark:text-amber-400 font-bold mt-1 block leading-none">Awaiting Dispatch</span>
               </div>
 
               {/* In Progress */}
-              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{orderStats.inProgress}</span>
-                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none">In Transit</span>
+                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">In Transit</span>
                 <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">On the Road</span>
               </div>
 
               {/* Completed */}
-              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{orderStats.done}</span>
-                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none">Completed</span>
+                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none block">Completed</span>
                 <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">Arrived Safely</span>
               </div>
             </div>
 
             {/* Service Streams Progress Breakdown */}
-            <div className="bg-gray-50/40 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 p-3 rounded-xl">
+            <div className="bg-gray-50/40 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 p-3 rounded-xl flex-1 flex flex-col justify-center">
               <span className="text-[9px] text-gray-400 dark:text-slate-400 font-extrabold uppercase tracking-wider block mb-2.5">
                 Service Streams Progress Breakdown
               </span>
@@ -367,7 +389,7 @@ export default function Overview({ onNavigate }: OverviewProps) {
         </div>
 
         {/* BOX 3: SHIPMENT TRACKING & PIPELINE */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-5 transition-colors duration-200">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-5 transition-colors duration-200 h-full">
           <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 bg-blue-50 dark:bg-slate-800 rounded-lg text-[#0B2C6B] dark:text-sky-400 border border-blue-100 dark:border-slate-700 shadow-xs">
@@ -386,40 +408,51 @@ export default function Overview({ onNavigate }: OverviewProps) {
             </button>
           </div>
 
-          <div className="space-y-4">
-            {/* 4 Stat Cards Highlighted */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="flex-1 flex flex-col justify-between space-y-4">
+            {/* 4 Stat Cards Highlighted - Equal height & alignment */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Total Shipment */}
-              <div className="bg-slate-50/60 dark:bg-slate-800/60 border-l-4 border-l-slate-400 border border-slate-200/80 dark:border-slate-700 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">{shipmentStats.total}</span>
-                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5 leading-none">Total Shipment</span>
-                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold mt-1 block leading-none">Sum Quantity</span>
+              <div
+                onClick={() => onNavigate("shipment")}
+                className="bg-slate-50/60 dark:bg-slate-800/60 border-l-4 border-l-slate-500 border border-slate-200/80 dark:border-slate-700 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
+                <div>
+                  <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">
+                    {shipmentStats.total}
+                  </span>
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5 leading-none block">
+                    Total Shipment
+                  </span>
+                  <span className="text-[9px] text-rose-600 dark:text-rose-400 font-bold mt-1 block leading-none">
+                    Detail Cancel: {shipmentStats.cancel} Trip
+                  </span>
+                </div>
               </div>
               
               {/* Pre-Trip */}
-              <div className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight leading-none">{shipmentStats.preTrip}</span>
-                <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1.5 leading-none">Pre-Trip</span>
+                <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1.5 leading-none block">Pre-Trip</span>
                 <span className="text-[9px] text-amber-500 dark:text-amber-400 font-bold mt-1 block leading-none">Preparation ({shipmentStats.preTripPct}%)</span>
               </div>
 
               {/* On Trip */}
-              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{shipmentStats.onTrip}</span>
-                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none">On Trip</span>
+                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">On Trip</span>
                 <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">On Road ({shipmentStats.onTripPct}%)</span>
               </div>
 
               {/* End Trip */}
-              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{shipmentStats.endTrip}</span>
-                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none">End Trip</span>
+                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none block">End Trip</span>
                 <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">Unloaded ({shipmentStats.endTripPct}%)</span>
               </div>
             </div>
 
             {/* Shipment Pipeline Status Stepper underneath */}
-            <div className="bg-gray-50/40 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 p-3 rounded-xl">
+            <div className="bg-gray-50/40 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 p-3 rounded-xl flex-1 flex flex-col justify-center">
               <div className="flex justify-between items-center mb-2 px-1">
                 <span className="text-[9px] text-gray-400 dark:text-slate-400 font-extrabold uppercase tracking-wider">
                   Shipment Pipeline Status Stepper
@@ -441,7 +474,7 @@ export default function Overview({ onNavigate }: OverviewProps) {
         </div>
 
         {/* BOX 4: ORDER ALLOCATION RATIO */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-5 transition-colors duration-200">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between space-y-5 transition-colors duration-200 h-full">
           <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 bg-blue-50 dark:bg-slate-800 rounded-lg text-blue-600 dark:text-sky-400 border border-blue-100 dark:border-slate-700 shadow-xs">
@@ -457,33 +490,33 @@ export default function Overview({ onNavigate }: OverviewProps) {
             </div>
           </div>
 
-          <div className="space-y-4">
-            {/* 3 Stat Cards Highlighted */}
-            <div className="grid grid-cols-3 gap-3">
+          <div className="flex-1 flex flex-col justify-between space-y-4">
+            {/* 3 Stat Cards Highlighted - Equal height & alignment */}
+            <div className="grid grid-cols-3 gap-2.5">
               {/* Ekspor */}
-              <div className="bg-sky-50/25 dark:bg-sky-950/20 border-l-4 border-l-sky-400 border border-sky-200/60 dark:border-sky-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-sky-50/25 dark:bg-sky-950/20 border-l-4 border-l-sky-400 border border-sky-200/60 dark:border-sky-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 tracking-tight leading-none">{orderStats.eksporCount}</span>
-                <span className="text-[10px] font-black text-sky-800 dark:text-sky-300 uppercase tracking-wider mt-1.5 leading-none">Ekspor</span>
+                <span className="text-[10px] font-black text-sky-800 dark:text-sky-300 uppercase tracking-wider mt-1.5 leading-none block">Ekspor</span>
                 <span className="text-[9px] text-sky-500 dark:text-sky-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.eksporCount / totalOrders) * 100) : 0}% Share</span>
               </div>
 
               {/* Impor */}
-              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{orderStats.imporCount}</span>
-                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none">Impor</span>
+                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">Impor</span>
                 <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.imporCount / totalOrders) * 100) : 0}% Share</span>
               </div>
 
               {/* Repo */}
-              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 sm:p-3.5 rounded-xl flex flex-col justify-center transition-all hover:shadow-md hover:scale-[1.015]">
+              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{orderStats.repoCount}</span>
-                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none">Repo</span>
+                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none block">Repo</span>
                 <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.repoCount / totalOrders) * 100) : 0}% Share</span>
               </div>
             </div>
 
             {/* Recharts Diagrams placed underneath */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
               {/* Interactive BarChart Diagram */}
               <div className="bg-gray-50/40 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 p-3 rounded-xl flex flex-col justify-center">
                 <span className="text-[9px] text-gray-400 dark:text-slate-400 font-extrabold uppercase tracking-wider block mb-2">Order Allocation Diagram</span>
