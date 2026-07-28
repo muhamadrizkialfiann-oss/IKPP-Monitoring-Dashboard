@@ -5,15 +5,11 @@ import Overview from "./pages/Overview";
 import OrderPage from "./pages/Order";
 import AvailabilityPage from "./pages/Availability";
 import ShipmentPage from "./pages/Shipment";
-import TikProDashboardMirror from "./components/TikProDashboardMirror";
-import { useTikProMirror } from "./hooks/useTikProMirror";
+import TikProLiveDashboard from "./components/TikProLiveDashboard";
 
 export default function App() {
-  // Shared TikPro Live Mirroring Hook
-  const { data: tikproData, loading: tikproLoading, error: tikproError, refresh: refreshTikPro } = useTikProMirror();
-
   // Navigation State
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [activeTab, setActiveTab] = useState<TabType>("logistik_pro");
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   // Filter deep-linking state from Overview cards to Order page
@@ -36,8 +32,8 @@ export default function App() {
       subtitle: "PT Indah Kiat Pulp & Paper Tbk (IKPP) Partner Overview Cockpit"
     },
     logistik_pro: {
-      title: "Dashboard Logistik Pro IKK",
-      subtitle: "Live Data Mirroring TikPro IKPP - Live Armada & Status Tracker"
+      title: "Monitoring Kontrak Export IKPP",
+      subtitle: "Live Firestore Realtime Sync - Summary Report, Daftar Armada & Laporan Ritase"
     },
     order: {
       title: "Order Management System",
@@ -63,30 +59,25 @@ export default function App() {
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      {/* Main Content Area (Now full width with fluid expansion) */}
+      {/* Main Content Area */}
       <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full ${isSidebarOpen ? "md:pl-72" : "pl-0"}`}>
-        {/* Shared top header with explicit back button if not on Overview */}
+        {/* Shared top header */}
         <Header
           title={headerDetails.title}
           subtitle={headerDetails.subtitle}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          showBackButton={activeTab !== "overview"}
-          onBackClick={() => setActiveTab("overview")}
+          showBackButton={activeTab !== "logistik_pro"}
+          onBackClick={() => setActiveTab("logistik_pro")}
         />
 
         {/* Scrollable page body */}
-        <main className="p-6 md:p-8 flex-1 overflow-y-auto max-w-none w-full mx-auto">
-          {activeTab === "overview" && (
-            <Overview onNavigate={handleNavigate} />
+        <main className="p-4 md:p-6 flex-1 overflow-y-auto max-w-none w-full mx-auto space-y-6">
+          {activeTab === "logistik_pro" && (
+            <TikProLiveDashboard />
           )}
 
-          {activeTab === "logistik_pro" && (
-            <TikProDashboardMirror
-              data={tikproData}
-              loading={tikproLoading}
-              error={tikproError}
-              onRefresh={refreshTikPro}
-            />
+          {activeTab === "overview" && (
+            <Overview onNavigate={handleNavigate} />
           )}
 
           {activeTab === "order" && (
@@ -108,3 +99,4 @@ export default function App() {
     </div>
   );
 }
+
