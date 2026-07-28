@@ -9,6 +9,7 @@ import { useFirebaseRealtime } from "../hooks/useFirebaseRealtime";
 import { TabType } from "../components/Sidebar";
 import { Order } from "../types";
 import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
+import { mapCSStatus } from "../lib/statusMapper";
 
 interface OverviewProps {
   onNavigate: (tab: TabType, filterType?: string) => void;
@@ -135,21 +136,30 @@ export default function Overview({ onNavigate }: OverviewProps) {
     };
   }, [orders]);
 
-  // Compute Live Shipment Stats derived from the QUANTITY column of each order row
+  // Compute Live Shipment Stats derived from LAST UPDATE CS (EXECUTED sheet mapping) & QUANTITY of each order
   const shipmentStats = useMemo(() => {
-    const total = orders.reduce((sum, o) => sum + (o.quantity || 1), 0);
-    const preTrip = orders
-      .filter((o) => o.status === "open")
-      .reduce((sum, o) => sum + (o.quantity || 1), 0);
-    const onTrip = orders
-      .filter((o) => o.status === "in_progress")
-      .reduce((sum, o) => sum + (o.quantity || 1), 0);
-    const endTrip = orders
-      .filter((o) => o.status === "done")
-      .reduce((sum, o) => sum + (o.quantity || 1), 0);
-    const cancel = orders
-      .filter((o) => o.status === "cancel")
-      .reduce((sum, o) => sum + (o.quantity || 1), 0);
+    let total = 0;
+    let preTrip = 0;
+    let onTrip = 0;
+    let endTrip = 0;
+    let cancel = 0;
+
+    orders.forEach((o) => {
+      const qty = o.quantity || 1;
+      const { shipmentStatus } = mapCSStatus(o.lastUpdateCS);
+
+      total += qty;
+      if (shipmentStatus === "pre_trip") {
+        preTrip += qty;
+      } else if (shipmentStatus === "on_trip") {
+        onTrip += qty;
+      } else if (shipmentStatus === "end_trip") {
+        endTrip += qty;
+      } else if (shipmentStatus === "cancel") {
+        cancel += qty;
+      }
+    });
+
     const activeTotal = preTrip + onTrip + endTrip;
 
     const preTripPct = activeTotal > 0 ? Math.round((preTrip / activeTotal) * 100) : 0;

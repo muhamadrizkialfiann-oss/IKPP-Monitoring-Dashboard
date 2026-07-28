@@ -9,6 +9,7 @@ import GpsMap from "../components/GpsMap";
 import { dummyShipments } from "../lib/dummy-data";
 import { Shipment, TripStatus } from "../types";
 import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
+import { mapCSStatus } from "../lib/statusMapper";
 
 export default function ShipmentPage() {
   // Live Shipments state initialized to 0
@@ -24,10 +25,8 @@ export default function ShipmentPage() {
           const list: Shipment[] = [];
           orders.forEach((o: any) => {
             const qty = o.quantity || 1;
-            let tripStatus: TripStatus = "on_trip";
-            if (o.status === "open") tripStatus = "pre_trip";
-            else if (o.status === "done") tripStatus = "end_trip";
-            else if (o.status === "cancel") tripStatus = "cancel";
+            const { shipmentStatus } = mapCSStatus(o.lastUpdateCS);
+            const tripStatus: TripStatus = shipmentStatus;
 
             for (let i = 0; i < qty; i++) {
               list.push({
