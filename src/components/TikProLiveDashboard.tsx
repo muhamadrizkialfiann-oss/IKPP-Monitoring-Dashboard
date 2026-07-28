@@ -32,6 +32,7 @@ export default function TikProLiveDashboard() {
     nextSchedule,
     scheduledNotice,
     scheduledHours,
+    triggerManualRefresh,
     login,
     updateTruckStatus,
     finishTruckDelivery,
@@ -49,6 +50,7 @@ export default function TikProLiveDashboard() {
   // Manual trigger simulation refresh
   const handleManualRefresh = () => {
     setSyncing(true);
+    triggerManualRefresh();
     setTimeout(() => {
       setSyncing(false);
     }, 600);

@@ -677,10 +677,12 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
       } else if (
         upperCS.includes("WAITING") ||
         upperCS.includes("CONFIRM") ||
-        upperCS.includes("CANCEL") ||
         upperCS.includes("UNALLOCATED") ||
         upperCS.includes("QUEUE") ||
-        upperCS.includes("NEW")
+        upperCS.includes("NEW") ||
+        upperCS.includes("CANCEL") ||
+        upperCS.includes("BATAL") ||
+        upperCS.includes("REJECT")
       ) {
         existing.status = "open";
       } else if (upperCS.length > 0) {
@@ -704,10 +706,12 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
       } else if (
         upperCS.includes("WAITING") ||
         upperCS.includes("CONFIRM") ||
-        upperCS.includes("CANCEL") ||
         upperCS.includes("UNALLOCATED") ||
         upperCS.includes("QUEUE") ||
-        upperCS.includes("NEW")
+        upperCS.includes("NEW") ||
+        upperCS.includes("CANCEL") ||
+        upperCS.includes("BATAL") ||
+        upperCS.includes("REJECT")
       ) {
         updated.status = "open";
       } else if (upperCS.length > 0) {

@@ -118,7 +118,6 @@ export default function SummaryReportView({
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               LIVE FIRESTORE REALTIME SYNC (EXPORT-IKK)
             </span>
-            <span className="text-xs text-blue-300 font-medium">Update: {lastSyncTime}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
             Summary Report <span className="text-blue-400">IKPP Kontrak Export</span> 🚛

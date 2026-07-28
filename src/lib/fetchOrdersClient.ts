@@ -53,8 +53,7 @@ export async function fetchLiveOrdersClient(): Promise<Order[]> {
             let lastUpdateCS = "WAITING CONFIRM";
 
             if (statusPooling.includes("CANCEL")) {
-              status = "open";
-              lastUpdateCS = "CANCEL CS";
+              continue; // Skip canceled orders
             } else if (statusPooling.includes("CONFIRM")) {
               if (i <= 20) {
                 status = "done";
@@ -144,11 +143,13 @@ function parseCSVLines(text: string): string[][] {
 
 function generateFallbackOrders(): Order[] {
   const orders: Order[] = [];
-  // 85 Ekspor + 6 Repo = 91 Total Orders
-  for (let i = 1; i <= 91; i++) {
-    const isRepo = i > 85;
-    const isDone = i <= 28;
-    const isInProgress = i > 28 && i <= 48;
+  // 102 Ekspor + 6 Repo = 108 Total Orders
+  // Ekspor (102): 51 Done, 11 In Progress, 40 Open
+  // Repo (6): 0 Done, 6 In Progress, 0 Open
+  for (let i = 1; i <= 108; i++) {
+    const isRepo = i > 102;
+    const isDone = !isRepo && i <= 51; // 51 Ekspor Done
+    const isInProgress = isRepo ? true : (i > 51 && i <= 62); // 11 Ekspor In Progress + 6 Repo In Progress = 17 Total Transit
     
     orders.push({
       id: `SM-D${String(i).padStart(6, '0')}`,
@@ -160,7 +161,7 @@ function generateFallbackOrders(): Order[] {
       status: isDone ? "done" : isInProgress ? "in_progress" : "open",
       eta: "24/07/2026 14:00",
       bookingDate: "24/07/2026 09:00",
-      quantity: isRepo ? 19 : Math.floor(Math.random() * 5) + 1,
+      quantity: isRepo ? 1 : (i % 2 === 0 ? 2 : 1),
       driver: isDone || isInProgress ? `208260${380 + i} - DRIVER ${i}` : "",
       vehiclePlate: isDone || isInProgress ? `B 97${10 + (i % 80)} UIW` : "",
       notes: "",

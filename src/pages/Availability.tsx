@@ -47,12 +47,6 @@ export default function AvailabilityPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  // Selected Unit Modal Drawer State
-  const [selectedUnit, setSelectedUnit] = useState<FleetUnit | null>(null);
-
-  // Notification Toast
-  const [notification, setNotification] = useState<string | null>(null);
-
   const handleResetFilters = () => {
     setSearchQuery("");
     setStatusFilter("all");
@@ -143,26 +137,6 @@ export default function AvailabilityPage() {
       return matchesSearch && matchesStatus && matchesType;
     });
   }, [fleetUnits, searchQuery, statusFilter, typeFilter]);
-
-  // Handler: Change Unit Status Live
-  const handleChangeStatus = (unitId: string, nextStatus: UnitStatus, downtimeCategory?: string) => {
-    if (selectedUnit && selectedUnit.unitId === unitId) {
-      setSelectedUnit({
-        ...selectedUnit,
-        status: nextStatus,
-        downtimeCategory: nextStatus === "downtime" ? downtimeCategory || "Scheduled Maintenance" : undefined,
-        lastUpdate: "Baru Saja"
-      });
-    }
-
-    setNotification(`Status unit ${unitId} berhasil diupdate ke ${nextStatus.toUpperCase()}!`);
-    setTimeout(() => setNotification(null), 4000);
-    const targetTruck = trucks.find((t) => t.plat_nomor === unitId);
-    if (targetTruck) {
-      const statusString = nextStatus === "standby" ? "Tersedia" : nextStatus === "downtime" ? "Storing / Maintenance" : "Dalam Tugas Alokasi";
-      updateTruckStatus(targetTruck.id, statusString);
-    }
-  };
 
   // Columns for Fleet Unit List (Unit ID replaced with Plat Nomor)
   const columns: Column<FleetUnit>[] = [
@@ -259,26 +233,6 @@ export default function AvailabilityPage() {
           </div>
         </div>
       )}
-
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {notification && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-emerald-600 text-white p-3.5 rounded-xl shadow-lg flex items-center justify-between font-bold text-xs sm:text-sm"
-          >
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-200" />
-              <span>{notification}</span>
-            </div>
-            <button onClick={() => setNotification(null)} className="text-white/80 hover:text-white cursor-pointer">
-              <X className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Header Bar */}
       <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -480,8 +434,8 @@ export default function AvailabilityPage() {
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h3 className="text-base font-extrabold text-gray-900">Monitoring List Unit (Klik Row untuk Action/Update Status)</h3>
-            <p className="text-xs text-gray-400 font-semibold mt-0.5">Real-time status tracking & maintenance controls for individual plate units</p>
+            <h3 className="text-base font-extrabold text-gray-900">Monitoring List Unit</h3>
+            <p className="text-xs text-gray-400 font-semibold mt-0.5">Real-time status tracking updated based on scheduled auto refresh times</p>
           </div>
 
           {/* Inline filters */}
@@ -543,164 +497,9 @@ export default function AvailabilityPage() {
         <DataTable
           columns={columns}
           data={filteredFleet}
-          onRowClick={(unit) => setSelectedUnit(unit)}
           itemsPerPage={10}
         />
       </div>
-
-      {/* Unit Status Switcher Drawer */}
-      <AnimatePresence>
-        {selectedUnit && (
-          <div className="fixed inset-0 z-50 flex justify-end">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedUnit(null)}
-              className="absolute inset-0 bg-gray-900"
-            />
-
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="bg-white w-full max-w-lg h-full relative z-10 shadow-2xl flex flex-col justify-between"
-            >
-              {/* Header */}
-              <div className="bg-[#0B2C6B] text-white p-6 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-cyan-300">
-                    Fleet Unit Status Control
-                  </span>
-                  <h3 className="text-2xl font-black font-mono tracking-tight mt-1">
-                    {selectedUnit.unitId}
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setSelectedUnit(null)}
-                  className="p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                
-                {/* Current Unit Badge Card */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Tipe Trailer</span>
-                    <span className="text-sm font-black text-gray-900 mt-0.5 block">{selectedUnit.unitType}</span>
-                  </div>
-                  <StatusBadge status={selectedUnit.status} />
-                </div>
-
-                {/* Quick Status Control Panel */}
-                <div className="bg-blue-50/60 border border-blue-200 p-5 rounded-2xl space-y-3">
-                  <span className="text-xs font-black text-[#0B2C6B] block">Ubah Status Unit Live:</span>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      onClick={() => handleChangeStatus(selectedUnit.unitId, "standby")}
-                      className={`py-2 px-3 rounded-xl text-xs font-black border cursor-pointer transition-all ${
-                        selectedUnit.status === "standby" ? "bg-sky-500 text-white border-sky-600 shadow" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      Standby
-                    </button>
-                    <button
-                      onClick={() => handleChangeStatus(selectedUnit.unitId, "utilized")}
-                      className={`py-2 px-3 rounded-xl text-xs font-black border cursor-pointer transition-all ${
-                        selectedUnit.status === "utilized" ? "bg-blue-600 text-white border-blue-700 shadow" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      Utilized
-                    </button>
-                    <button
-                      onClick={() => handleChangeStatus(selectedUnit.unitId, "downtime", "Scheduled Maintenance")}
-                      className={`py-2 px-3 rounded-xl text-xs font-black border cursor-pointer transition-all ${
-                        selectedUnit.status === "downtime" ? "bg-rose-600 text-white border-rose-700 shadow" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      Downtime
-                    </button>
-                  </div>
-
-                  {/* Downtime reason sub-selector */}
-                  {selectedUnit.status === "downtime" && (
-                    <div className="pt-2 border-t border-blue-200/60">
-                      <label className="text-[10px] font-black text-rose-700 uppercase block mb-1">Kategori Service Downtime:</label>
-                      <select
-                        value={selectedUnit.downtimeCategory || "Scheduled Maintenance"}
-                        onChange={(e) => handleChangeStatus(selectedUnit.unitId, "downtime", e.target.value)}
-                        className="w-full bg-white border border-rose-200 text-xs font-bold rounded-lg p-2 text-rose-800"
-                      >
-                        <option value="Scheduled Maintenance">Scheduled Maintenance</option>
-                        <option value="Repair / Breakdown">Repair / Breakdown</option>
-                        <option value="Document Renewal / KIR">Document Renewal / KIR</option>
-                        <option value="Tyre Replacement">Tyre Replacement</option>
-                        <option value="No Driver Available">No Driver Available</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {/* Location & Update Specs */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest border-b pb-1.5">
-                    Location & Telematics
-                  </h4>
-                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-800">
-                      <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
-                      <span>{selectedUnit.lastLocation}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500 pt-1">
-                      <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Update GPS Terakhir: {selectedUnit.lastUpdate}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Health & Maintenance Checklist */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest border-b pb-1.5">
-                    Document & Maintenance Health
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-emerald-50/60 border border-emerald-100 p-3 rounded-xl flex items-center gap-2.5">
-                      <Shield className="w-5 h-5 text-emerald-600 shrink-0" />
-                      <div>
-                        <span className="text-[10px] font-extrabold text-emerald-800 block uppercase">KIR Pass</span>
-                        <span className="text-xs font-black text-emerald-950">Valid Nov 2026</span>
-                      </div>
-                    </div>
-                    <div className="bg-blue-50/60 border border-blue-100 p-3 rounded-xl flex items-center gap-2.5">
-                      <Wrench className="w-5 h-5 text-blue-600 shrink-0" />
-                      <div>
-                        <span className="text-[10px] font-extrabold text-blue-800 block uppercase">Service Interval</span>
-                        <span className="text-xs font-black text-blue-950">Good Condition</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Actions Footer */}
-              <div className="p-6 border-t border-gray-100 bg-gray-50">
-                <button
-                  onClick={() => setSelectedUnit(null)}
-                  className="w-full text-center py-2.5 rounded-xl bg-[#0B2C6B] hover:bg-blue-900 text-white text-xs font-black cursor-pointer shadow"
-                >
-                  Selesai Update Unit
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }

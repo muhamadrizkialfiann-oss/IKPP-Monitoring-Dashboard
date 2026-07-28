@@ -160,7 +160,6 @@ export function useFirebaseRealtime() {
         return orderA - orderB;
       });
       setMasterStatuses(raw);
-      setLastSyncTime(new Date().toLocaleTimeString("id-ID"));
     });
 
     // B. Master Jenis Truck
@@ -189,7 +188,6 @@ export function useFirebaseRealtime() {
     const unsubTrucks = onSnapshot(qTrucks, (snap: any) => {
       const raw = snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as TruckDoc));
       setTrucks(raw);
-      setLastSyncTime(new Date().toLocaleTimeString("id-ID"));
     });
 
     // F. Ritase (Limit 1000)
@@ -406,6 +404,13 @@ export function useFirebaseRealtime() {
     await deleteDoc(doc(db, "repo", repoId));
   }, []);
 
+  const triggerManualRefresh = useCallback(() => {
+    const now = new Date();
+    const syncTimeString = now.toLocaleTimeString("id-ID");
+    setLastSyncTime(syncTimeString);
+    setNextSchedule(getNextScheduledRefresh());
+  }, [getNextScheduledRefresh]);
+
   return {
     currentUser,
     userRole,
@@ -423,6 +428,7 @@ export function useFirebaseRealtime() {
     nextSchedule,
     scheduledNotice,
     scheduledHours: SCHEDULED_HOURS,
+    triggerManualRefresh,
     login: loginWithCredentials,
     logout: logoutUser,
     updateTruckStatus,

@@ -40,27 +40,39 @@ export default function Overview({ onNavigate }: OverviewProps) {
     };
   }, []);
 
-  // Fleet stats derived directly from Firestore live data
+  // Fleet stats derived directly from Firestore live data (mirroring Availability page)
   const fleetStats = useMemo(() => {
     if (!trucks || trucks.length === 0) {
       return {
-        total: 152,
-        available: 35,
-        utilized: 110,
-        standby: 35,
-        downtime: 7,
-        availablePct: 23,
-        utilizedPct: 72,
-        standbyPct: 23,
-        downtimePct: 5
+        total: 46,
+        available: 36,
+        utilized: 8,
+        standby: 36,
+        downtime: 2,
+        availablePct: 78,
+        utilizedPct: 17,
+        standbyPct: 78,
+        downtimePct: 4
       };
     }
 
     const total = trucks.length;
-    const available = trucks.filter((t) => t.status === "Tersedia").length;
-    const downtime = trucks.filter((t) => (t.status || "").toLowerCase().includes("storing") || (t.status || "").toLowerCase().includes("laka")).length;
-    const utilized = total - available - downtime;
-    const standby = available;
+    let standby = 0;
+    let downtime = 0;
+    let utilized = 0;
+
+    trucks.forEach((t) => {
+      const uStatus = (t.status || "").toUpperCase();
+      if (uStatus === "TERSEDIA" || uStatus.includes("STANDBY") || uStatus.includes("READY")) {
+        standby++;
+      } else if (uStatus.includes("STORING") || uStatus.includes("LAKA") || uStatus.includes("DOWNTIME") || uStatus.includes("BENGKEL")) {
+        downtime++;
+      } else {
+        utilized++;
+      }
+    });
+
+    const available = standby;
 
     return {
       total,
