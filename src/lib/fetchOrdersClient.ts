@@ -16,7 +16,10 @@ export async function fetchLiveOrdersClient(): Promise<Order[]> {
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.orders) && json.orders.length > 0) {
-        return json.orders;
+        const hasActiveStatuses = json.orders.some((o: Order) => o.status === "in_progress" || o.status === "done");
+        if (hasActiveStatuses) {
+          return json.orders;
+        }
       }
     }
   } catch (e) {
@@ -36,7 +39,10 @@ export async function fetchLiveOrdersClient(): Promise<Order[]> {
     if (poolingResult && Array.isArray(poolingResult.orders) && poolingResult.orders.length > 0) {
       const enriched = enrichAndDeduplicateOrders(poolingResult.orders as Order[], executedMap);
       if (enriched.length > 0) {
-        return enriched;
+        const hasActiveStatuses = enriched.some((o) => o.status === "in_progress" || o.status === "done");
+        if (hasActiveStatuses) {
+          return enriched;
+        }
       }
     }
   } catch (err) {

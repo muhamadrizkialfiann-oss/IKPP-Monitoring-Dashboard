@@ -124,6 +124,10 @@ export function parseCSV(csvText: string, customHeaderRowIndex?: number) {
       const val = values[idx] || "";
       rowObj[h] = val;
     });
+    // Store raw positional index helpers (__col_0, __col_1, etc.)
+    values.forEach((val, idx) => {
+      rowObj[`__col_${idx}`] = val;
+    });
     rows.push(rowObj);
   }
 
@@ -138,13 +142,16 @@ export function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_p
     cs === "CANCEL CS" ||
     cs === "CANCEL OPR" ||
     cs === "CANCEL" ||
-    cs.includes("CANCEL")
+    cs.includes("CANCEL") ||
+    cs.includes("BATAL") ||
+    cs.includes("REJECT")
   ) {
     return { status: "cancel" };
   }
 
   if (
     cs === "ON JOB" ||
+    cs.includes("ON JOB") ||
     cs.includes("JOB") ||
     cs.includes("IN TRANSIT") ||
     cs.includes("TRANSIT") ||
@@ -159,10 +166,12 @@ export function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_p
     cs === "WAITING BON MUAT" ||
     cs === "WAITING CONFIRM" ||
     cs.includes("PLANNING") ||
+    cs.includes("BON MUAT") ||
     cs.includes("WAITING") ||
     cs.includes("CONFIRM") ||
     cs.includes("OPEN") ||
-    cs.includes("QUEUE")
+    cs.includes("QUEUE") ||
+    cs.includes("UNALLOCATED")
   ) {
     return { status: "open" };
   }
@@ -188,53 +197,67 @@ export function mapSpreadsheetRowToOrder(
 ): Order {
   const keys = Object.keys(row);
 
-  const getVal = (exactOrMappedField?: string, ...possibleKeys: string[]) => {
+  const getVal = (exactOrMappedField?: string, colIndexFallback?: number[], ...possibleKeys: string[]) => {
+    // 1. Check mapped field
     if (exactOrMappedField && exactOrMappedField.trim()) {
       const fieldTarget = exactOrMappedField.trim().toLowerCase();
-      const directMatch = keys.find((k) => k.toLowerCase().trim() === fieldTarget);
+      const directMatch = keys.find((k) => !k.startsWith("__col_") && k.toLowerCase().trim() === fieldTarget);
       if (directMatch && row[directMatch] !== undefined && row[directMatch].trim() !== "") {
         return row[directMatch].trim();
       }
-      const partialMatch = keys.find((k) => k.toLowerCase().includes(fieldTarget));
+      const partialMatch = keys.find((k) => !k.startsWith("__col_") && k.toLowerCase().includes(fieldTarget));
       if (partialMatch && row[partialMatch] !== undefined && row[partialMatch].trim() !== "") {
         return row[partialMatch].trim();
       }
     }
 
+    // 2. Exact match on named headers
     for (const pk of possibleKeys) {
       const target = pk.toLowerCase().trim();
-      const exactMatch = keys.find((k) => k.toLowerCase().trim() === target);
+      const exactMatch = keys.find((k) => !k.startsWith("__col_") && k.toLowerCase().trim() === target);
       if (exactMatch && row[exactMatch] !== undefined && row[exactMatch].trim() !== "") {
         return row[exactMatch].trim();
       }
     }
 
+    // 3. Partial match on named headers
     for (const pk of possibleKeys) {
       const target = pk.toLowerCase().trim();
       if (target.length < 3) continue;
-      const subMatch = keys.find((k) => k.toLowerCase().includes(target));
+      const subMatch = keys.find((k) => !k.startsWith("__col_") && k.toLowerCase().includes(target));
       if (subMatch && row[subMatch] !== undefined && row[subMatch].trim() !== "") {
         return row[subMatch].trim();
       }
     }
+
+    // 4. Fallback to column index position
+    if (colIndexFallback && colIndexFallback.length > 0) {
+      for (const idx of colIndexFallback) {
+        const rawColVal = row[`__col_${idx}`];
+        if (rawColVal !== undefined && rawColVal.trim() !== "") {
+          return rawColVal.trim();
+        }
+      }
+    }
+
     return "";
   };
 
   const id =
     getVal(
       mapping?.idField,
+      [1, 0, 2],
       "id pooling order",
       "id_pooling_order",
       "id order execute",
       "id order",
-      "no order",
       "order_id",
-      "id",
-      "order"
+      "id"
     ) || `ORD-GS-${String(index + 1).padStart(3, "0")}`;
 
   const rawType = getVal(
     mapping?.typeField,
+    [16, 17, 15],
     "freight type",
     "freight_type",
     "tipe",
@@ -251,6 +274,7 @@ export function mapSpreadsheetRowToOrder(
   const customer =
     getVal(
       mapping?.customerField,
+      [7, 6, 8],
       "customer",
       "pelanggan",
       "client",
@@ -260,16 +284,18 @@ export function mapSpreadsheetRowToOrder(
 
   const rawPickUp = getVal(
     "pick up location",
+    [18],
     "address loading point",
     "lokasi asal"
   );
   const rawDrop = getVal(
     "drop of location",
+    [21],
     "address unloading point",
     "lokasi tujuan"
   );
-  const rawCsvOrigin = getVal("origin", "asal");
-  const rawCsvDest = getVal("destination", "tujuan");
+  const rawCsvOrigin = getVal("origin", [18, 19], "asal");
+  const rawCsvDest = getVal("destination", [21, 23], "tujuan");
 
   let origin = "";
   if (rawCsvOrigin && rawCsvOrigin.trim() && rawCsvOrigin.trim().toUpperCase() !== "ORIGIN") {
@@ -313,6 +339,7 @@ export function mapSpreadsheetRowToOrder(
   const unitType =
     getVal(
       mapping?.unitTypeField,
+      [14, 15],
       "unit type",
       "tipe unit",
       "unit",
@@ -323,25 +350,30 @@ export function mapSpreadsheetRowToOrder(
   const lastUpdateCS =
     getVal(
       mapping?.lastUpdateCSField,
+      [30, 29, 31, 28],
+      "bg last update cs",
       "last update cs",
       "last_update_cs",
-      "bg last update cs",
       "update cs",
       "cs update",
       "status cdo",
-      "status_cdo"
+      "status_cdo",
+      "status cs",
+      "last update",
+      "status"
     ) || "WAITING CONFIRM";
 
   const { status } = resolveCSStatus(lastUpdateCS);
 
   const eta =
-    getVal(mapping?.etaField, "eta", "estimasi", "tanggal", "date", "jadwal") ||
+    getVal(mapping?.etaField, [], "eta", "estimasi", "tanggal", "date", "jadwal") ||
     "25 Jul 2026";
   const bookingDate =
-    getVal("booking date", "tgl booking", "tgl order", "date") || "22 Jul 2026";
+    getVal("booking date", [], "tgl booking", "tgl order", "date") || "22 Jul 2026";
 
   const rawQty = getVal(
     mapping?.quantityField,
+    [15, 14, 16],
     "quantity",
     "qty",
     "jumlah",
@@ -352,6 +384,7 @@ export function mapSpreadsheetRowToOrder(
 
   const driver = getVal(
     mapping?.driverField,
+    [12, 11, 13],
     "driver name",
     "driver_name",
     "driver",
@@ -360,13 +393,14 @@ export function mapSpreadsheetRowToOrder(
   );
   const vehiclePlate = getVal(
     mapping?.vehiclePlateField,
+    [13, 14, 12],
     "nopol",
     "plat",
     "vehicle",
     "unit id"
   );
 
-  let notes = getVal("notes", "catatan", "keterangan");
+  let notes = getVal("notes", [32, 31], "catatan", "keterangan");
 
   return {
     id,
@@ -544,8 +578,13 @@ export function enrichAndDeduplicateOrders(rawOrders: Order[], executedMap: Map<
     const execInfo = executedMap.get(normKey);
     const updated = { ...ord };
 
-    if (execInfo && execInfo.lastUpdateCS) {
-      updated.lastUpdateCS = execInfo.lastUpdateCS;
+    if (execInfo) {
+      const execCS = (execInfo.lastUpdateCS || "").trim();
+      if (execCS && execCS !== "WAITING CONFIRM") {
+        updated.lastUpdateCS = execCS;
+      } else if (execCS && updated.lastUpdateCS === "WAITING CONFIRM") {
+        updated.lastUpdateCS = execCS;
+      }
       if (execInfo.driver) updated.driver = execInfo.driver;
       if (execInfo.vehiclePlate) updated.vehiclePlate = execInfo.vehiclePlate;
     }

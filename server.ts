@@ -103,6 +103,9 @@ function parseCSV(csvText: string, customHeaderRowIndex?: number) {
       const val = values[idx] || "";
       rowObj[h] = val;
     });
+    values.forEach((val, idx) => {
+      rowObj[`__col_${idx}`] = val;
+    });
     rows.push(rowObj);
   }
 
@@ -133,6 +136,62 @@ interface ColumnMapping {
   vehiclePlateField?: string;
 }
 
+// Helper for CS status mapping matching exact lookup table rules
+function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_progress" | "done" | "cancel" } {
+  const cs = (lastUpdateCS || "").trim().toUpperCase();
+
+  if (
+    !cs ||
+    cs === "CANCEL CS" ||
+    cs === "CANCEL OPR" ||
+    cs === "CANCEL" ||
+    cs.includes("CANCEL") ||
+    cs.includes("BATAL") ||
+    cs.includes("REJECT")
+  ) {
+    return { status: "cancel" };
+  }
+
+  if (
+    cs === "ON JOB" ||
+    cs.includes("ON JOB") ||
+    cs.includes("JOB") ||
+    cs.includes("IN TRANSIT") ||
+    cs.includes("TRANSIT") ||
+    cs.includes("ON TRIP") ||
+    cs.includes("TRIP")
+  ) {
+    return { status: "in_progress" };
+  }
+
+  if (
+    cs === "OPR PLANNING" ||
+    cs === "WAITING BON MUAT" ||
+    cs === "WAITING CONFIRM" ||
+    cs.includes("PLANNING") ||
+    cs.includes("BON MUAT") ||
+    cs.includes("WAITING") ||
+    cs.includes("CONFIRM") ||
+    cs.includes("OPEN") ||
+    cs.includes("QUEUE") ||
+    cs.includes("UNALLOCATED")
+  ) {
+    return { status: "open" };
+  }
+
+  if (
+    cs === "SHIPMENT FINISH" ||
+    cs.includes("FINISH") ||
+    cs.includes("DONE") ||
+    cs.includes("COMPLETED") ||
+    cs.includes("COMPLETE")
+  ) {
+    return { status: "done" };
+  }
+
+  return { status: "cancel" };
+}
+
 // Map raw spreadsheet row object to standard Order interface
 function mapSpreadsheetRowToOrder(
   row: Record<string, string>,
@@ -143,14 +202,14 @@ function mapSpreadsheetRowToOrder(
   const keys = Object.keys(row);
 
   // Clean value getter
-  const getVal = (exactOrMappedField?: string, ...possibleKeys: string[]) => {
+  const getVal = (exactOrMappedField?: string, colIndexFallback?: number[], ...possibleKeys: string[]) => {
     if (exactOrMappedField && exactOrMappedField.trim()) {
       const fieldTarget = exactOrMappedField.trim().toLowerCase();
-      const directMatch = keys.find((k) => k.toLowerCase().trim() === fieldTarget);
+      const directMatch = keys.find((k) => !k.startsWith("__col_") && k.toLowerCase().trim() === fieldTarget);
       if (directMatch && row[directMatch] !== undefined && row[directMatch].trim() !== "") {
         return row[directMatch].trim();
       }
-      const partialMatch = keys.find((k) => k.toLowerCase().includes(fieldTarget));
+      const partialMatch = keys.find((k) => !k.startsWith("__col_") && k.toLowerCase().includes(fieldTarget));
       if (partialMatch && row[partialMatch] !== undefined && row[partialMatch].trim() !== "") {
         return row[partialMatch].trim();
       }
@@ -158,7 +217,7 @@ function mapSpreadsheetRowToOrder(
 
     for (const pk of possibleKeys) {
       const target = pk.toLowerCase().trim();
-      const exactMatch = keys.find((k) => k.toLowerCase().trim() === target);
+      const exactMatch = keys.find((k) => !k.startsWith("__col_") && k.toLowerCase().trim() === target);
       if (exactMatch && row[exactMatch] !== undefined && row[exactMatch].trim() !== "") {
         return row[exactMatch].trim();
       }
@@ -167,29 +226,39 @@ function mapSpreadsheetRowToOrder(
     for (const pk of possibleKeys) {
       const target = pk.toLowerCase().trim();
       if (target.length < 3) continue; // Avoid single letter/digit accidental substring match
-      const subMatch = keys.find((k) => k.toLowerCase().includes(target));
+      const subMatch = keys.find((k) => !k.startsWith("__col_") && k.toLowerCase().includes(target));
       if (subMatch && row[subMatch] !== undefined && row[subMatch].trim() !== "") {
         return row[subMatch].trim();
       }
     }
+
+    if (colIndexFallback && colIndexFallback.length > 0) {
+      for (const idx of colIndexFallback) {
+        const rawColVal = row[`__col_${idx}`];
+        if (rawColVal !== undefined && rawColVal.trim() !== "") {
+          return rawColVal.trim();
+        }
+      }
+    }
+
     return "";
   };
 
   const id =
     getVal(
       mapping?.idField,
+      [1, 0, 2],
       "id pooling order",
       "id_pooling_order",
       "id order execute",
       "id order",
-      "no order",
       "order_id",
-      "id",
-      "order"
+      "id"
     ) || `ORD-GS-${String(index + 1).padStart(3, "0")}`;
 
   const rawType = getVal(
     mapping?.typeField,
+    [16, 17, 15],
     "freight type",
     "freight_type",
     "tipe",
@@ -206,6 +275,7 @@ function mapSpreadsheetRowToOrder(
   const customer =
     getVal(
       mapping?.customerField,
+      [7, 6, 8],
       "customer",
       "pelanggan",
       "client",
@@ -215,16 +285,18 @@ function mapSpreadsheetRowToOrder(
 
   const rawPickUp = getVal(
     "pick up location",
+    [18],
     "address loading point",
     "lokasi asal"
   );
   const rawDrop = getVal(
     "drop of location",
+    [21],
     "address unloading point",
     "lokasi tujuan"
   );
-  const rawCsvOrigin = getVal("origin", "asal");
-  const rawCsvDest = getVal("destination", "tujuan");
+  const rawCsvOrigin = getVal("origin", [18, 19], "asal");
+  const rawCsvDest = getVal("destination", [21, 23], "tujuan");
 
   // Determine Origin
   let origin = "";
@@ -290,6 +362,7 @@ function mapSpreadsheetRowToOrder(
   const unitType =
     getVal(
       mapping?.unitTypeField,
+      [14, 15],
       "unit type",
       "tipe unit",
       "unit",
@@ -298,74 +371,38 @@ function mapSpreadsheetRowToOrder(
     ) || "Trailer 4x2 40ft";
 
   let containerTier: "20ft" | "40ft" | "45ft" = "40ft";
-  if (unitType.includes("20") || getVal("tier", "container").includes("20"))
+  if (unitType.includes("20") || getVal("tier", [], "container").includes("20"))
     containerTier = "20ft";
-  else if (unitType.includes("45") || getVal("tier", "container").includes("45"))
+  else if (unitType.includes("45") || getVal("tier", [], "container").includes("45"))
     containerTier = "45ft";
 
   const lastUpdateCS =
     getVal(
       mapping?.lastUpdateCSField,
+      [30, 29, 31, 28],
+      "bg last update cs",
       "last update cs",
       "last_update_cs",
-      "bg last update cs",
       "update cs",
       "cs update",
       "status cdo",
-      "status_cdo"
+      "status_cdo",
+      "status cs",
+      "last update",
+      "status"
     ) || "WAITING CONFIRM";
 
-  const rawStatus = getVal(
-    mapping?.statusField,
-    "status",
-    "state",
-    "keterangan"
-  ).toLowerCase();
-
-  let status: "open" | "in_progress" | "done" = "in_progress";
-  const upperCS = lastUpdateCS.toUpperCase();
-  const upperRawStatus = rawStatus.toUpperCase();
-
-  if (
-    upperRawStatus.includes("DONE") ||
-    upperRawStatus.includes("COMPLETE") ||
-    upperRawStatus.includes("SELESAI") ||
-    upperCS.includes("FINISH") ||
-    upperCS.includes("COMPLETE")
-  ) {
-    status = "done";
-  } else if (
-    upperRawStatus.includes("OPEN") ||
-    upperRawStatus.includes("ANTRIAN") ||
-    upperRawStatus.includes("PENDING") ||
-    upperRawStatus.includes("QUEUE") ||
-    upperCS.includes("WAITING") ||
-    upperCS.includes("CONFIRM") ||
-    upperCS.includes("UNALLOCATED") ||
-    upperCS.includes("QUEUE") ||
-    upperCS.includes("NEW")
-  ) {
-    status = "open";
-  } else if (
-    upperRawStatus.includes("PROGRESS") ||
-    upperRawStatus.includes("TRANSIT") ||
-    upperRawStatus.includes("JALAN") ||
-    upperRawStatus.includes("PROSES") ||
-    upperCS.includes("JOB") ||
-    upperCS.includes("TRIP") ||
-    upperCS.includes("TRANSIT")
-  ) {
-    status = "in_progress";
-  }
+  let { status } = resolveCSStatus(lastUpdateCS);
 
   const eta =
-    getVal(mapping?.etaField, "eta", "estimasi", "tanggal", "date", "jadwal") ||
+    getVal(mapping?.etaField, [], "eta", "estimasi", "tanggal", "date", "jadwal") ||
     "25 Jul 2026";
   const bookingDate =
-    getVal("booking date", "tgl booking", "tgl order", "date") || "22 Jul 2026";
+    getVal("booking date", [], "tgl booking", "tgl order", "date") || "22 Jul 2026";
 
   const rawQty = getVal(
     mapping?.quantityField,
+    [15, 14, 16],
     "quantity",
     "qty",
     "jumlah",
@@ -376,6 +413,7 @@ function mapSpreadsheetRowToOrder(
 
   const driver = getVal(
     mapping?.driverField,
+    [12, 11, 13],
     "driver name",
     "driver_name",
     "driver",
@@ -384,13 +422,14 @@ function mapSpreadsheetRowToOrder(
   );
   const vehiclePlate = getVal(
     mapping?.vehiclePlateField,
+    [13, 14, 12],
     "nopol",
     "plat",
     "vehicle",
     "unit id"
   );
 
-  let notes = getVal("notes", "catatan", "keterangan");
+  let notes = getVal("notes", [32, 31], "catatan", "keterangan");
 
   // Execute Looker Studio Formula Rules
   if (Array.isArray(formulaRules) && formulaRules.length > 0) {
@@ -649,53 +688,6 @@ async function getExecutedLookupMap(): Promise<Map<string, any>> {
   return map;
 }
 
-// Helper for CS status mapping matching exact lookup table rules
-function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_progress" | "done" | "cancel" } {
-  const cs = (lastUpdateCS || "").trim().toUpperCase();
-
-  if (
-    !cs ||
-    cs === "CANCEL CS" ||
-    cs === "CANCEL OPR" ||
-    cs === "CANCEL" ||
-    cs.includes("CANCEL") ||
-    cs.includes("BATAL") ||
-    cs.includes("REJECT")
-  ) {
-    return { status: "cancel" };
-  }
-
-  if (cs === "ON JOB" || cs.includes("ON JOB") || cs.includes("ON TRIP") || cs.includes("IN TRANSIT")) {
-    return { status: "in_progress" };
-  }
-
-  if (
-    cs === "OPR PLANNING" ||
-    cs === "WAITING BON MUAT" ||
-    cs === "WAITING CONFIRM" ||
-    cs.includes("PLANNING") ||
-    cs.includes("BON MUAT") ||
-    cs.includes("WAITING") ||
-    cs.includes("CONFIRM") ||
-    cs.includes("OPEN") ||
-    cs.includes("QUEUE")
-  ) {
-    return { status: "open" };
-  }
-
-  if (
-    cs === "SHIPMENT FINISH" ||
-    cs.includes("FINISH") ||
-    cs.includes("DONE") ||
-    cs.includes("COMPLETED") ||
-    cs.includes("COMPLETE")
-  ) {
-    return { status: "done" };
-  }
-
-  return { status: "cancel" };
-}
-
 // Function to enrich orders with EXECUTED lookup CS status and deduplicate by Order ID
 function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, any>): any[] {
   // Strictly filter to POOLING SINARMAS orders only (ignore EXECUTED sheet rows and 'jangan di HAPUS' placeholder)
@@ -721,8 +713,13 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
     const execInfo = executedMap.get(normKey);
     const updated = { ...ord };
 
-    if (execInfo && execInfo.lastUpdateCS) {
-      updated.lastUpdateCS = execInfo.lastUpdateCS;
+    if (execInfo) {
+      const execCS = (execInfo.lastUpdateCS || "").trim();
+      if (execCS && execCS !== "WAITING CONFIRM") {
+        updated.lastUpdateCS = execCS;
+      } else if (execCS && updated.lastUpdateCS === "WAITING CONFIRM") {
+        updated.lastUpdateCS = execCS;
+      }
       if (execInfo.driver) updated.driver = execInfo.driver;
       if (execInfo.vehiclePlate) updated.vehiclePlate = execInfo.vehiclePlate;
     }
