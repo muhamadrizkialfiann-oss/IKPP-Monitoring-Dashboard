@@ -1,0 +1,558 @@
+import { Order } from "../types";
+import { mapCSStatus } from "./statusMapper";
+
+export const SPREADSHEET_ID = "1pavvP7EtzMvHiIhCP5X_aoTVP5nLkV03Vw_IV0iQkxU";
+export const GID_POOLING = "1444994189";
+export const GID_EXECUTED = "714297382";
+
+export interface ColumnMapping {
+  headerRowIndex?: number;
+  idField?: string;
+  typeField?: string;
+  statusField?: string;
+  customerField?: string;
+  originField?: string;
+  destinationField?: string;
+  unitTypeField?: string;
+  quantityField?: string;
+  etaField?: string;
+  lastUpdateCSField?: string;
+  driverField?: string;
+  vehiclePlateField?: string;
+}
+
+export interface FormulaRule {
+  id: string;
+  targetField: "status" | "type" | "lastUpdateCS" | "customNote";
+  conditionType: "contains" | "equals" | "starts_with" | "is_not_empty" | "always";
+  conditionValue: string;
+  resultValue: string;
+}
+
+export function parseCSVRecords(csvText: string): string[][] {
+  const records: string[][] = [];
+  let currentRecord: string[] = [];
+  let currentCell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentCell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      currentRecord.push(currentCell.trim());
+      currentCell = "";
+    } else if ((char === "\r" || char === "\n") && !inQuotes) {
+      if (char === "\r" && nextChar === "\n") {
+        i++;
+      }
+      currentRecord.push(currentCell.trim());
+      if (currentRecord.some((cell) => cell.length > 0)) {
+        records.push(currentRecord);
+      }
+      currentRecord = [];
+      currentCell = "";
+    } else {
+      currentCell += char;
+    }
+  }
+
+  if (currentCell.length > 0 || currentRecord.length > 0) {
+    currentRecord.push(currentCell.trim());
+    if (currentRecord.some((cell) => cell.length > 0)) {
+      records.push(currentRecord);
+    }
+  }
+
+  return records;
+}
+
+export function parseCSV(csvText: string, customHeaderRowIndex?: number) {
+  const records = parseCSVRecords(csvText);
+  if (records.length === 0) return { headers: [], rows: [] };
+
+  let dataStartIndex = 1;
+  if (typeof customHeaderRowIndex === "number" && customHeaderRowIndex >= 0) {
+    dataStartIndex = customHeaderRowIndex + 1;
+  } else {
+    for (let i = 0; i < Math.min(records.length, 10); i++) {
+      const row = records[i];
+      if (
+        row &&
+        row.some(
+          (cell) =>
+            /^sm-d\d+/i.test(cell) ||
+            /^ord-\d+/i.test(cell) ||
+            (cell.length > 3 && /^\d+$/.test(row[0]) && i > 0)
+        )
+      ) {
+        dataStartIndex = i;
+        break;
+      }
+    }
+  }
+
+  const maxCols = Math.max(...records.slice(0, dataStartIndex).map((r) => r.length));
+  const combinedHeaders: string[] = [];
+
+  for (let col = 0; col < maxCols; col++) {
+    const parts: string[] = [];
+    for (let r = 0; r < dataStartIndex; r++) {
+      const val = records[r]?.[col];
+      if (val && !parts.map((p) => p.toLowerCase()).includes(val.toLowerCase())) {
+        parts.push(val.replace(/[\r\n]+/g, " ").trim());
+      }
+    }
+    const headerName = parts.join(" ").trim() || `Kolom ${col + 1}`;
+    combinedHeaders.push(headerName);
+  }
+
+  const rows: Record<string, string>[] = [];
+  for (let i = dataStartIndex; i < records.length; i++) {
+    const values = records[i].map((v) => v.replace(/^"|"$/g, "").trim());
+    if (values.length === 0 || values.every((v) => !v)) continue;
+
+    const rowObj: Record<string, string> = {};
+    combinedHeaders.forEach((h, idx) => {
+      const val = values[idx] || "";
+      rowObj[h] = val;
+    });
+    rows.push(rowObj);
+  }
+
+  return { headers: combinedHeaders, rows };
+}
+
+export function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_progress" | "done" | "cancel" } {
+  const cs = (lastUpdateCS || "").trim().toUpperCase();
+
+  if (
+    !cs ||
+    cs === "CANCEL CS" ||
+    cs === "CANCEL OPR" ||
+    cs === "CANCEL" ||
+    cs.includes("CANCEL")
+  ) {
+    return { status: "cancel" };
+  }
+
+  if (
+    cs === "ON JOB" ||
+    cs.includes("JOB") ||
+    cs.includes("IN TRANSIT") ||
+    cs.includes("TRANSIT") ||
+    cs.includes("ON TRIP") ||
+    cs.includes("TRIP")
+  ) {
+    return { status: "in_progress" };
+  }
+
+  if (
+    cs === "OPR PLANNING" ||
+    cs === "WAITING BON MUAT" ||
+    cs === "WAITING CONFIRM" ||
+    cs.includes("PLANNING") ||
+    cs.includes("WAITING") ||
+    cs.includes("CONFIRM") ||
+    cs.includes("OPEN") ||
+    cs.includes("QUEUE")
+  ) {
+    return { status: "open" };
+  }
+
+  if (
+    cs === "SHIPMENT FINISH" ||
+    cs.includes("FINISH") ||
+    cs.includes("DONE") ||
+    cs.includes("COMPLETED") ||
+    cs.includes("COMPLETE")
+  ) {
+    return { status: "done" };
+  }
+
+  return { status: "cancel" };
+}
+
+export function mapSpreadsheetRowToOrder(
+  row: Record<string, string>,
+  index: number,
+  mapping?: ColumnMapping,
+  formulaRules?: FormulaRule[]
+): Order {
+  const keys = Object.keys(row);
+
+  const getVal = (exactOrMappedField?: string, ...possibleKeys: string[]) => {
+    if (exactOrMappedField && exactOrMappedField.trim()) {
+      const fieldTarget = exactOrMappedField.trim().toLowerCase();
+      const directMatch = keys.find((k) => k.toLowerCase().trim() === fieldTarget);
+      if (directMatch && row[directMatch] !== undefined && row[directMatch].trim() !== "") {
+        return row[directMatch].trim();
+      }
+      const partialMatch = keys.find((k) => k.toLowerCase().includes(fieldTarget));
+      if (partialMatch && row[partialMatch] !== undefined && row[partialMatch].trim() !== "") {
+        return row[partialMatch].trim();
+      }
+    }
+
+    for (const pk of possibleKeys) {
+      const target = pk.toLowerCase().trim();
+      const exactMatch = keys.find((k) => k.toLowerCase().trim() === target);
+      if (exactMatch && row[exactMatch] !== undefined && row[exactMatch].trim() !== "") {
+        return row[exactMatch].trim();
+      }
+    }
+
+    for (const pk of possibleKeys) {
+      const target = pk.toLowerCase().trim();
+      if (target.length < 3) continue;
+      const subMatch = keys.find((k) => k.toLowerCase().includes(target));
+      if (subMatch && row[subMatch] !== undefined && row[subMatch].trim() !== "") {
+        return row[subMatch].trim();
+      }
+    }
+    return "";
+  };
+
+  const id =
+    getVal(
+      mapping?.idField,
+      "id pooling order",
+      "id_pooling_order",
+      "id order execute",
+      "id order",
+      "no order",
+      "order_id",
+      "id",
+      "order"
+    ) || `ORD-GS-${String(index + 1).padStart(3, "0")}`;
+
+  const rawType = getVal(
+    mapping?.typeField,
+    "freight type",
+    "freight_type",
+    "tipe",
+    "type",
+    "order type",
+    "jenis"
+  ).toLowerCase();
+
+  let type: "ekspor" | "impor" | "repo" = "ekspor";
+  if (rawType.includes("impor") || rawType.includes("import")) type = "impor";
+  else if (rawType.includes("repo") || rawType.includes("relokasi")) type = "repo";
+  else if (rawType.includes("ekspor") || rawType.includes("export")) type = "ekspor";
+
+  const customer =
+    getVal(
+      mapping?.customerField,
+      "customer",
+      "pelanggan",
+      "client",
+      "pt",
+      "nama pelanggan"
+    ) || "PT Indah Kiat Pulp & Paper";
+
+  const rawPickUp = getVal(
+    "pick up location",
+    "address loading point",
+    "lokasi asal"
+  );
+  const rawDrop = getVal(
+    "drop of location",
+    "address unloading point",
+    "lokasi tujuan"
+  );
+  const rawCsvOrigin = getVal("origin", "asal");
+  const rawCsvDest = getVal("destination", "tujuan");
+
+  let origin = "";
+  if (rawCsvOrigin && rawCsvOrigin.trim() && rawCsvOrigin.trim().toUpperCase() !== "ORIGIN") {
+    const oUpper = rawCsvOrigin.trim().toUpperCase();
+    if (oUpper.includes("KARAWANG") || oUpper.includes("IKK")) origin = "IKK Karawang";
+    else if (oUpper.includes("CAKUNG")) origin = "CAKUNG";
+    else if (oUpper.includes("PRIOK") || oUpper.includes("TANJUNG")) origin = "TANJUNG PRIOK";
+    else origin = rawCsvOrigin.trim();
+  }
+
+  if (!origin && rawPickUp) {
+    const pUpper = rawPickUp.trim().toUpperCase();
+    if (pUpper.includes("INDAH KIAT") || pUpper.includes("KARAWANG") || pUpper.includes("IKK")) {
+      origin = "IKK Karawang";
+    } else if (pUpper.includes("BSA") || pUpper.includes("GFC") || pUpper.includes("BPL") || pUpper.includes("GL")) {
+      origin = "CAKUNG";
+    } else {
+      origin = rawPickUp.trim();
+    }
+  }
+
+  if (!origin) origin = "IKK Karawang";
+
+  let destination = "";
+  if (rawCsvDest && rawCsvDest.trim() && rawCsvDest.trim().toUpperCase() !== "DESTINATION") {
+    destination = rawCsvDest.trim();
+  }
+
+  if (!destination && rawDrop) {
+    const dUpper = rawDrop.trim().toUpperCase();
+    if (dUpper.includes("UTC")) destination = "UTC";
+    else if (dUpper.includes("BSA")) destination = "BSA";
+    else if (dUpper.includes("NPCT 1") || dUpper.includes("NPCT1")) destination = "NPCT 1";
+    else if (dUpper.includes("KOJA")) destination = "KOJA";
+    else if (dUpper.includes("PDT")) destination = "DEPO PDT";
+    else destination = rawDrop.trim();
+  }
+
+  if (!destination) destination = "Tj. Priok Port";
+
+  const unitType =
+    getVal(
+      mapping?.unitTypeField,
+      "unit type",
+      "tipe unit",
+      "unit",
+      "trailer",
+      "armada"
+    ) || "Trailer 4x2 40ft";
+
+  const lastUpdateCS =
+    getVal(
+      mapping?.lastUpdateCSField,
+      "last update cs",
+      "last_update_cs",
+      "bg last update cs",
+      "update cs",
+      "cs update",
+      "status cdo",
+      "status_cdo"
+    ) || "WAITING CONFIRM";
+
+  const { status } = resolveCSStatus(lastUpdateCS);
+
+  const eta =
+    getVal(mapping?.etaField, "eta", "estimasi", "tanggal", "date", "jadwal") ||
+    "25 Jul 2026";
+  const bookingDate =
+    getVal("booking date", "tgl booking", "tgl order", "date") || "22 Jul 2026";
+
+  const rawQty = getVal(
+    mapping?.quantityField,
+    "quantity",
+    "qty",
+    "jumlah",
+    "total quantity"
+  );
+  const parsedQty = parseInt(rawQty, 10);
+  const quantity = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+
+  const driver = getVal(
+    mapping?.driverField,
+    "driver name",
+    "driver_name",
+    "driver",
+    "supir",
+    "pengemudi"
+  );
+  const vehiclePlate = getVal(
+    mapping?.vehiclePlateField,
+    "nopol",
+    "plat",
+    "vehicle",
+    "unit id"
+  );
+
+  let notes = getVal("notes", "catatan", "keterangan");
+
+  return {
+    id,
+    type,
+    customer,
+    origin,
+    destination,
+    unitType,
+    status,
+    eta,
+    bookingDate,
+    quantity,
+    driver,
+    vehiclePlate,
+    notes,
+    lastUpdateCS,
+    source: "Google Sheet"
+  };
+}
+
+export function parseSpreadsheetInfo(inputUrlOrId: string, defaultGid = GID_POOLING): { spreadsheetId: string; gid: string } {
+  let spreadsheetId = SPREADSHEET_ID;
+  let gid = defaultGid;
+
+  if (!inputUrlOrId) return { spreadsheetId, gid };
+
+  const docMatch = inputUrlOrId.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (docMatch && docMatch[1]) {
+    spreadsheetId = docMatch[1];
+  } else if (!inputUrlOrId.includes("/") && inputUrlOrId.length > 20) {
+    spreadsheetId = inputUrlOrId.trim();
+  }
+
+  const gidParamMatch = inputUrlOrId.match(/[?&]gid=([0-9]+)/) || inputUrlOrId.match(/#gid=([0-9]+)/);
+  if (gidParamMatch && gidParamMatch[1]) {
+    gid = gidParamMatch[1];
+  }
+
+  return { spreadsheetId, gid };
+}
+
+export async function fetchSheetData(source: {
+  url: string;
+  name: string;
+  id?: string;
+  gid?: string;
+  headerRowIndex?: number;
+  columnMapping?: ColumnMapping;
+  formulaRules?: FormulaRule[];
+}) {
+  const { spreadsheetId, gid } = parseSpreadsheetInfo(
+    source.url || source.id || "",
+    source.gid || GID_EXECUTED
+  );
+
+  const csvUrls = [
+    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`,
+    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
+    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`
+  ];
+
+  let csvContent = "";
+  let lastErr = null;
+
+  for (const csvUrl of csvUrls) {
+    try {
+      const response = await fetch(csvUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+      });
+      if (response.ok) {
+        const text = await response.text();
+        if (text && text.length > 10 && !text.includes("<!DOCTYPE html>")) {
+          csvContent = text;
+          break;
+        }
+      }
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  if (!csvContent) {
+    throw new Error(
+      `Gagal mengunduh CSV dari sheet "${
+        source.name || "Spreadsheet"
+      }". Pastikan spreadsheet bersifat Publik ("Siapa saja yang memiliki link").`
+    );
+  }
+
+  const { headers, rows } = parseCSV(
+    csvContent,
+    source.headerRowIndex ?? source.columnMapping?.headerRowIndex
+  );
+
+  const orders = rows.map((row, idx) => {
+    const order = mapSpreadsheetRowToOrder(
+      row,
+      idx,
+      source.columnMapping,
+      source.formulaRules
+    );
+    return {
+      ...order,
+      sourceSheetName: source.name || "Google Sheet",
+      sourceUrl:
+        source.url ||
+        `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${gid}`
+    };
+  });
+
+  return {
+    sheetId: source.id || spreadsheetId,
+    sheetName: source.name || "Google Sheet",
+    spreadsheetId,
+    gid,
+    headers,
+    rowCount: orders.length,
+    orders
+  };
+}
+
+export async function getExecutedLookupMap(): Promise<Map<string, any>> {
+  const map = new Map<string, any>();
+  try {
+    const executedSheet = await fetchSheetData({
+      name: "EXECUTED SINARMAS",
+      url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${GID_EXECUTED}`
+    });
+
+    for (const ord of executedSheet.orders) {
+      if (ord.id) {
+        const normKey = ord.id.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+        if (normKey) {
+          const existing = map.get(normKey);
+          if (!existing) {
+            map.set(normKey, ord);
+          } else {
+            const curCS = (ord.lastUpdateCS || "").trim();
+            const exCS = (existing.lastUpdateCS || "").trim();
+            if ((exCS === "" || exCS === "WAITING CONFIRM") && curCS !== "" && curCS !== "WAITING CONFIRM") {
+              map.set(normKey, ord);
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Executed Sinarmas lookup fetch warning:", err);
+  }
+  return map;
+}
+
+export function enrichAndDeduplicateOrders(rawOrders: Order[], executedMap: Map<string, any>): Order[] {
+  const poolingOrders = rawOrders.filter((ord) => {
+    const sheetName = (ord.sourceSheetName || "").toUpperCase();
+    if (sheetName.includes("EXECUTE")) return false;
+
+    const customer = (ord.customer || "").toUpperCase();
+    const notes = (ord.notes || "").toUpperCase();
+    const id = (ord.id || "").toUpperCase();
+    if (customer.includes("JANGAN DI HAPUS") || notes.includes("JANGAN DI HAPUS") || id.includes("JANGAN DI HAPUS")) {
+      return false;
+    }
+    return true;
+  });
+
+  const mergedMap = new Map<string, Order>();
+
+  for (const ord of poolingOrders) {
+    const normKey = (ord.id || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    if (!normKey) continue;
+
+    const execInfo = executedMap.get(normKey);
+    const updated = { ...ord };
+
+    if (execInfo && execInfo.lastUpdateCS) {
+      updated.lastUpdateCS = execInfo.lastUpdateCS;
+      if (execInfo.driver) updated.driver = execInfo.driver;
+      if (execInfo.vehiclePlate) updated.vehiclePlate = execInfo.vehiclePlate;
+    }
+
+    updated.status = resolveCSStatus(updated.lastUpdateCS).status;
+    mergedMap.set(normKey, updated);
+  }
+
+  return Array.from(mergedMap.values());
+}
