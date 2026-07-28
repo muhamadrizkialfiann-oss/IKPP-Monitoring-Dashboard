@@ -5,7 +5,7 @@ import TripStepper from "../components/TripStepper";
 import StackedBarChart from "../components/StackedBarChart";
 import BarChart from "../components/BarChart";
 import ServiceStreamCard from "../components/ServiceStreamCard";
-import { useTikProMirror } from "../hooks/useTikProMirror";
+import { useFirebaseRealtime } from "../hooks/useFirebaseRealtime";
 import { TabType } from "../components/Sidebar";
 import { Order } from "../types";
 import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
@@ -16,7 +16,7 @@ interface OverviewProps {
 
 export default function Overview({ onNavigate }: OverviewProps) {
   const [orders, setOrders] = useState<Order[]>([]);
-  const { data: tikproData } = useTikProMirror();
+  const { trucks } = useFirebaseRealtime();
 
   // Real-time live auto-connection to Google Sheets with Vercel client fallback support
   useEffect(() => {
@@ -40,27 +40,27 @@ export default function Overview({ onNavigate }: OverviewProps) {
     };
   }, []);
 
-  // Fleet stats derived directly from TikPro live mirror data
+  // Fleet stats derived directly from Firestore live data
   const fleetStats = useMemo(() => {
-    if (!tikproData) {
+    if (!trucks || trucks.length === 0) {
       return {
-        total: 47,
-        available: 9,
-        utilized: 38,
-        standby: 9,
-        downtime: 3,
-        availablePct: 19,
-        utilizedPct: 81,
-        standbyPct: 19,
-        downtimePct: 6
+        total: 152,
+        available: 35,
+        utilized: 110,
+        standby: 35,
+        downtime: 7,
+        availablePct: 23,
+        utilizedPct: 72,
+        standbyPct: 23,
+        downtimePct: 5
       };
     }
 
-    const total = tikproData.totalArmadaTerdaftar || 47;
-    const available = tikproData.standbyTersedia || 9;
-    const utilized = tikproData.dalamTugasAlokasi || 38;
-    const standby = tikproData.standbyTersedia || 9;
-    const downtime = tikproData.statusBreakdown["STORING / LAKA"] || 3;
+    const total = trucks.length;
+    const available = trucks.filter((t) => t.status === "Tersedia").length;
+    const downtime = trucks.filter((t) => (t.status || "").toLowerCase().includes("storing") || (t.status || "").toLowerCase().includes("laka")).length;
+    const utilized = total - available - downtime;
+    const standby = available;
 
     return {
       total,
@@ -73,7 +73,7 @@ export default function Overview({ onNavigate }: OverviewProps) {
       standbyPct: total > 0 ? Math.round((standby / total) * 100) : 0,
       downtimePct: total > 0 ? Math.round((downtime / total) * 100) : 0
     };
-  }, [tikproData]);
+  }, [trucks]);
 
   // Compute live Order Metrics from spreadsheet
   const orderStats = useMemo(() => {

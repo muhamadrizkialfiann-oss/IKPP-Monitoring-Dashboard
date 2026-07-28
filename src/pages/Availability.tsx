@@ -1,41 +1,46 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Truck, Users, Clock, AlertTriangle, ShieldCheck, Search, Filter, RefreshCw, MapPin, Plus, CheckCircle2, X, Wrench, Shield, Activity, UserCheck, RotateCw } from "lucide-react";
+import { Truck, Users, Clock, ShieldCheck, Search, MapPin, CheckCircle2, X, CalendarDays, Filter, RefreshCw, Shield, Wrench } from "lucide-react";
 import StatCard from "../components/StatCard";
 import DataTable, { Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
-import { useTikProMirror } from "../hooks/useTikProMirror";
+import { useFirebaseRealtime } from "../hooks/useFirebaseRealtime";
 import { FleetUnit, UnitStatus } from "../types";
 
 export default function AvailabilityPage() {
-  const { data: tikproData, loading: tikproLoading, refresh: refreshTikPro } = useTikProMirror();
+  const {
+    trucks,
+    nextSchedule,
+    scheduledNotice,
+    updateTruckStatus
+  } = useFirebaseRealtime();
 
-  // Map TikPro trucks to FleetUnits dynamically
+  // Map Firestore live trucks to FleetUnits dynamically
   const fleetUnits = useMemo<FleetUnit[]>(() => {
-    if (!tikproData || !tikproData.trucks || tikproData.trucks.length === 0) {
+    if (!trucks || trucks.length === 0) {
       return [];
     }
 
-    return tikproData.trucks.map((t) => {
-      const uStatus = t.status.toUpperCase();
+    return trucks.map((t) => {
+      const uStatus = (t.status || "").toUpperCase();
       let status: UnitStatus = "utilized";
-      if (uStatus === "TERSEDIA" || uStatus.includes("STANDBY")) {
+      if (uStatus === "TERSEDIA" || uStatus.includes("STANDBY") || uStatus.includes("READY")) {
         status = "standby";
-      } else if (uStatus.includes("STORING") || uStatus.includes("LAKA") || uStatus.includes("DOWNTIME")) {
+      } else if (uStatus.includes("STORING") || uStatus.includes("LAKA") || uStatus.includes("DOWNTIME") || uStatus.includes("BENGKEL")) {
         status = "downtime";
       }
 
-      const unitType = "Trailer 4x2 40ft";
+      const unitType = t.jenis_mobil || "Trailer 4x2 40ft";
 
       return {
-        unitId: t.platNomor,
+        unitId: t.plat_nomor || t.id,
         unitType,
         status,
-        lastLocation: `${t.status} ${t.fo !== "-" ? `(FO: ${t.fo})` : ""}`,
+        lastLocation: `${t.status} ${t.vendor ? `(${t.vendor})` : ""}`,
         lastUpdate: t.terakhirUpdate || new Date().toLocaleDateString("id-ID")
       };
     });
-  }, [tikproData]);
+  }, [trucks]);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -152,7 +157,11 @@ export default function AvailabilityPage() {
 
     setNotification(`Status unit ${unitId} berhasil diupdate ke ${nextStatus.toUpperCase()}!`);
     setTimeout(() => setNotification(null), 4000);
-    refreshTikPro();
+    const targetTruck = trucks.find((t) => t.plat_nomor === unitId);
+    if (targetTruck) {
+      const statusString = nextStatus === "standby" ? "Tersedia" : nextStatus === "downtime" ? "Storing / Maintenance" : "Dalam Tugas Alokasi";
+      updateTruckStatus(targetTruck.id, statusString);
+    }
   };
 
   // Columns for Fleet Unit List (Unit ID replaced with Plat Nomor)
@@ -210,6 +219,47 @@ export default function AvailabilityPage() {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
+      {/* Schedule Auto Refresh Indicator Bar */}
+      <div className="bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-3.5 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-blue-500/20 text-blue-300 rounded-xl border border-blue-400/30">
+            <Clock className="w-4 h-4 animate-pulse text-blue-400" />
+          </div>
+          <div>
+            <div className="font-black flex items-center gap-2">
+              <span>Jadwal Refresh Otomatis Rutin Data Logistik Pro IKK</span>
+              <span className="text-[10px] bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded-full border border-blue-400/30 font-bold">
+                6x Sehari
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5">
+              <CalendarDays className="w-3 h-3 text-indigo-300" />
+              <span>Jam Refresh: <b>09:00</b> • <b>13:00</b> • <b>15:00</b> • <b>17:00</b> • <b>19:00</b> • <b>23:00</b> WIB</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 self-end md:self-auto bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10">
+          <div className="text-right">
+            <div className="text-[10px] text-slate-300 uppercase tracking-wider font-bold">Refresh Berikutnya</div>
+            <div className="font-black text-amber-300 text-xs flex items-center gap-1">
+              <span>{nextSchedule.label}</span>
+              <span className="text-[10px] font-medium text-slate-300">({nextSchedule.countdownText})</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Auto Refresh Event Toast Notice */}
+      {scheduledNotice && (
+        <div className="bg-emerald-600 text-white p-3 rounded-xl text-xs font-bold flex items-center justify-between shadow-md animate-bounce">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+            <span>{scheduledNotice}</span>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       <AnimatePresence>
         {notification && (
