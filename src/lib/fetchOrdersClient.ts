@@ -6,19 +6,54 @@ import {
   fetchSheetData,
   getExecutedLookupMap,
   enrichAndDeduplicateOrders,
-  resolveCSStatus
+  resolveCSStatus,
+  parseCSVRecords
 } from "./sheetsEngine";
+
+async function fetchSinarmasLookupMap(): Promise<Map<string, { unit: string; driver: string; location: string; eta: string }>> {
+  const sinarmasMap = new Map<string, { unit: string; driver: string; location: string; eta: string }>();
+  try {
+    const lookupUrl = "https://docs.google.com/spreadsheets/d/1UFHKYi9YaRsUbz5f87IH3TySGYC2vVdkJgZDXAR666I/export?format=csv&gid=449456534";
+    const lookupRes = await fetch(lookupUrl);
+    if (lookupRes.ok) {
+      const csvText = await lookupRes.text();
+      const records = parseCSVRecords(csvText);
+      for (const r of records) {
+        const idKey = (r[0] || "").trim().toUpperCase();
+        if (!idKey || idKey.includes("ID ORDER EXECUTE") || idKey.includes("JANGAN DI HAPUS")) continue;
+
+        const unitVal = (r[29] || r[24] || r[59] || "").trim();
+        const driverVal = (r[30] || r[25] || r[58] || "").trim();
+        const locVal = (r[31] || r[13] || r[10] || "").trim();
+        const etaVal = (r[49] || r[50] || r[7] || "").trim();
+
+        sinarmasMap.set(idKey, {
+          unit: unitVal ? unitVal : "#N/A",
+          driver: driverVal ? driverVal : "#N/A",
+          location: locVal ? locVal : "#N/A",
+          eta: etaVal ? etaVal : "#N/A"
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Sinarmas lookup fetch error on client:", err);
+  }
+  return sinarmasMap;
+}
 
 export async function fetchLiveOrdersClient(): Promise<Order[]> {
   // 1st Attempt: Server API endpoint (Express backend in dev / Cloud Run OR Vercel Serverless Function)
   try {
     const res = await fetch(`/api/sheets/orders?t=${Date.now()}`);
     if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.orders) && json.orders.length > 0) {
-        const hasActiveStatuses = json.orders.some((o: Order) => o.status === "in_progress" || o.status === "done");
-        if (hasActiveStatuses) {
-          return json.orders;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.orders) && json.orders.length > 0) {
+          const hasActiveStatuses = json.orders.some((o: Order) => o.status === "in_progress" || o.status === "done");
+          if (hasActiveStatuses) {
+            return json.orders;
+          }
         }
       }
     }
@@ -58,41 +93,69 @@ export async function fetchExecutedShipmentsClient(): Promise<Order[]> {
   try {
     const res = await fetch(`/api/sheets/executed?t=${Date.now()}`);
     if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.orders) && json.orders.length > 0) {
-        return json.orders;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.orders) && json.orders.length > 0) {
+          return json.orders;
+        }
       }
     }
   } catch (e) {
     // API endpoint unreachable
   }
 
-  // 2nd Attempt: Client-side direct Google Sheets CSV fetch for EXECUTED SINARMAS
+  // 2nd Attempt: Client-side direct Google Sheets CSV fetch for EXECUTED SINARMAS with VLOOKUP
   try {
-    const executedSheet = await fetchSheetData({
-      name: "EXECUTED SINARMAS",
-      url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${GID_EXECUTED}`
-    });
+    const [mainCsvRes, sinarmasMap] = await Promise.all([
+      fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID_EXECUTED}`),
+      fetchSinarmasLookupMap()
+    ]);
 
-    if (executedSheet && Array.isArray(executedSheet.orders) && executedSheet.orders.length > 0) {
-      const validExecuted = (executedSheet.orders as Order[])
-        .map((ord) => {
-          let cleanId = (ord.id || "").trim();
-          if (!cleanId || cleanId.toUpperCase().includes("JANGAN DI HAPUS")) {
-            cleanId = "SM-D000001.01";
-          }
-          let cleanCustomer = ord.customer || "";
-          if (cleanCustomer.toUpperCase().includes("JANGAN DI HAPUS") || !cleanCustomer) {
-            cleanCustomer = "INDAH KIAT PULP & PAPER TBK.";
-          }
-          return {
-            ...ord,
-            id: cleanId,
-            customer: cleanCustomer,
-            quantity: 1,
-            status: resolveCSStatus(ord.lastUpdateCS).status
-          };
+    if (mainCsvRes.ok) {
+      const csvText = await mainCsvRes.text();
+      const records = parseCSVRecords(csvText);
+
+      const headerIdx = records.findIndex(r => r.some(c => c.toUpperCase().includes("ID ORDER EXECUTE")));
+      const startIdx = headerIdx >= 0 ? headerIdx + 1 : 1;
+
+      const validExecuted: Order[] = [];
+      for (let i = startIdx; i < records.length; i++) {
+        const r = records[i];
+        let cleanId = (r[1] || r[0] || "").trim();
+        if (!cleanId || cleanId.toUpperCase().includes("JANGAN DI HAPUS") || cleanId.toUpperCase().includes("ID ORDER EXECUTE")) {
+          continue;
+        }
+
+        let cleanCustomer = r[9] || "";
+        if (!cleanCustomer || cleanCustomer.toUpperCase().includes("JANGAN DI HAPUS") || cleanCustomer.toUpperCase().includes("SHIFT")) {
+          cleanCustomer = "INDAH KIAT PULP & PAPER TBK.";
+        }
+
+        const lastUpdateCS = r[58] || r[57] || r[30] || "WAITING CONFIRM";
+        const lookup = sinarmasMap.get(cleanId.toUpperCase());
+
+        validExecuted.push({
+          id: cleanId,
+          poolingId: r[2] || cleanId.split(".")[0],
+          type: (r[16] || "").toLowerCase().includes("impor") ? "impor" : (r[16] || "").toLowerCase().includes("repo") ? "repo" : "ekspor",
+          customer: cleanCustomer,
+          origin: lookup ? lookup.location : "#N/A",
+          destination: r[21] || "PTR.SQ.1001288",
+          unitType: r[14] || "Trailer 4x2 40ft",
+          status: resolveCSStatus(lastUpdateCS).status,
+          eta: lookup ? lookup.eta : "#N/A",
+          bookingDate: r[2] || "29/06/2026 9:00",
+          quantity: 1,
+          driver: lookup ? lookup.driver : "#N/A",
+          vehiclePlate: lookup ? lookup.unit : "#N/A",
+          notes: r[32] || "",
+          lastUpdateCS: lastUpdateCS,
+          source: "Google Sheet",
+          sourceSheetName: "EXECUTED SINARMAS",
+          sourceUrl: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${GID_EXECUTED}`
         });
+      }
 
       if (validExecuted.length > 0) {
         return validExecuted;
