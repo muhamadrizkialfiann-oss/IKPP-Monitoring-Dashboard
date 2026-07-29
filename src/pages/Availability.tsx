@@ -58,8 +58,8 @@ export default function AvailabilityPage() {
     const total = fleetUnits.length;
     const standby = fleetUnits.filter((u) => u.status === "standby").length;
     const downtime = fleetUnits.filter((u) => u.status === "downtime").length;
-    const utilized = fleetUnits.filter((u) => u.status !== "standby").length;
-    const available = standby;
+    const utilized = fleetUnits.filter((u) => u.status === "utilized").length;
+    const available = utilized + standby;
     return {
       total,
       available,
@@ -102,7 +102,7 @@ export default function AvailabilityPage() {
       const utilized = units.filter((u) => u.status === "utilized").length;
       const standby = units.filter((u) => u.status === "standby").length;
       const downtime = units.filter((u) => u.status === "downtime").length;
-      const available = standby;
+      const available = utilized + standby;
       return {
         type,
         total,
@@ -129,7 +129,7 @@ export default function AvailabilityPage() {
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "available"
-          ? unit.status === "standby"
+          ? (unit.status === "standby" || unit.status === "utilized")
           : unit.status === statusFilter);
 
       const matchesType = typeFilter === "all" || unit.unitType === typeFilter;
@@ -267,7 +267,7 @@ export default function AvailabilityPage() {
             title="Available"
             value={String(stats.available)}
             statusType="success"
-            description={`Ready / Standby (${stats.availablePct}%)`}
+            description={`Util + Stdb (${stats.availablePct}%)`}
           />
         </div>
         <div onClick={() => setStatusFilter("utilized")} className="cursor-pointer transition-transform hover:scale-[1.01]">

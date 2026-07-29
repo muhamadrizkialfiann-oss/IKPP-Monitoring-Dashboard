@@ -21,6 +21,7 @@ export interface Order {
   vehiclePlate?: string;
   sourceSheetName?: string;
   sourceUrl?: string;
+  poolingId?: string;
 }
 
 export interface FormulaRule {

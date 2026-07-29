@@ -8,7 +8,7 @@ import ServiceStreamCard from "../components/ServiceStreamCard";
 import { useFirebaseRealtime } from "../hooks/useFirebaseRealtime";
 import { TabType } from "../components/Sidebar";
 import { Order } from "../types";
-import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
+import { fetchLiveOrdersClient, fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
 import { mapCSStatus } from "../lib/statusMapper";
 
 interface OverviewProps {
@@ -17,6 +17,7 @@ interface OverviewProps {
 
 export default function Overview({ onNavigate }: OverviewProps) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [executedShipments, setExecutedShipments] = useState<Order[]>([]);
   const { trucks } = useFirebaseRealtime();
 
   // Real-time live auto-connection to Google Sheets with Vercel client fallback support
@@ -24,9 +25,17 @@ export default function Overview({ onNavigate }: OverviewProps) {
     let isMounted = true;
     const fetchOrders = async () => {
       try {
-        const liveOrders = await fetchLiveOrdersClient();
-        if (isMounted && Array.isArray(liveOrders) && liveOrders.length > 0) {
-          setOrders(liveOrders);
+        const [liveOrders, liveExecuted] = await Promise.all([
+          fetchLiveOrdersClient(),
+          fetchExecutedShipmentsClient()
+        ]);
+        if (isMounted) {
+          if (Array.isArray(liveOrders) && liveOrders.length > 0) {
+            setOrders(liveOrders);
+          }
+          if (Array.isArray(liveExecuted) && liveExecuted.length > 0) {
+            setExecutedShipments(liveExecuted);
+          }
         }
       } catch (err) {
         // Silent catch during background syncs
@@ -44,16 +53,21 @@ export default function Overview({ onNavigate }: OverviewProps) {
   // Fleet stats derived directly from Firestore live data (mirroring Availability page)
   const fleetStats = useMemo(() => {
     if (!trucks || trucks.length === 0) {
+      const total = 54;
+      const standby = 36;
+      const downtime = 2;
+      const utilized = 16;
+      const available = utilized + standby; // 52
       return {
-        total: 46,
-        available: 36,
-        utilized: 8,
-        standby: 36,
-        downtime: 2,
-        availablePct: 78,
-        utilizedPct: 17,
-        standbyPct: 78,
-        downtimePct: 4
+        total,
+        available,
+        utilized,
+        standby,
+        downtime,
+        availablePct: Math.round((available / total) * 100),
+        utilizedPct: Math.round((utilized / total) * 100),
+        standbyPct: Math.round((standby / total) * 100),
+        downtimePct: Math.round((downtime / total) * 100)
       };
     }
 
@@ -66,15 +80,14 @@ export default function Overview({ onNavigate }: OverviewProps) {
       const uStatus = (t.status || "").toUpperCase();
       if (uStatus === "TERSEDIA" || uStatus.includes("STANDBY") || uStatus.includes("READY")) {
         standby++;
+      } else if (uStatus.includes("STORING") || uStatus.includes("LAKA") || uStatus.includes("DOWNTIME") || uStatus.includes("BENGKEL")) {
+        downtime++;
       } else {
         utilized++;
-        if (uStatus.includes("STORING") || uStatus.includes("LAKA") || uStatus.includes("DOWNTIME") || uStatus.includes("BENGKEL")) {
-          downtime++;
-        }
       }
     });
 
-    const available = standby;
+    const available = utilized + standby;
 
     return {
       total,
@@ -136,7 +149,7 @@ export default function Overview({ onNavigate }: OverviewProps) {
     };
   }, [orders]);
 
-  // Compute Live Shipment Stats derived from LAST UPDATE CS (EXECUTED sheet mapping) & QUANTITY of each order
+  // Compute Live Shipment Stats directly from EXECUTED SINARMAS sheet rows (694 rows)
   const shipmentStats = useMemo(() => {
     let total = 0;
     let preTrip = 0;
@@ -144,8 +157,10 @@ export default function Overview({ onNavigate }: OverviewProps) {
     let endTrip = 0;
     let cancel = 0;
 
-    orders.forEach((o) => {
-      const qty = o.quantity || 1;
+    const dataset = executedShipments.length > 0 ? executedShipments : orders;
+
+    dataset.forEach((o) => {
+      const qty = executedShipments.length > 0 ? 1 : (o.quantity || 1);
       const { shipmentStatus } = mapCSStatus(o.lastUpdateCS);
 
       total += qty;
@@ -177,7 +192,7 @@ export default function Overview({ onNavigate }: OverviewProps) {
       onTripPct,
       endTripPct
     };
-  }, [orders]);
+  }, [executedShipments, orders]);
 
   const totalOrders = orderStats.total;
 

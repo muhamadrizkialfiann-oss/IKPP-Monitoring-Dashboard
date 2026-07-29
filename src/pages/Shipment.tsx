@@ -8,7 +8,7 @@ import TripStepper from "../components/TripStepper";
 import GpsMap from "../components/GpsMap";
 import { dummyShipments } from "../lib/dummy-data";
 import { Shipment, TripStatus } from "../types";
-import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
+import { fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
 import { mapCSStatus } from "../lib/statusMapper";
 
 export default function ShipmentPage() {
@@ -20,28 +20,23 @@ export default function ShipmentPage() {
     let isMounted = true;
     const fetchShipments = async () => {
       try {
-        const orders = await fetchLiveOrdersClient();
-        if (isMounted && Array.isArray(orders) && orders.length > 0) {
-          const list: Shipment[] = [];
-          orders.forEach((o: any) => {
-            const qty = o.quantity || 1;
+        const executed = await fetchExecutedShipmentsClient();
+        if (isMounted && Array.isArray(executed) && executed.length > 0) {
+          const list: Shipment[] = executed.map((o: any, idx: number) => {
             const { shipmentStatus } = mapCSStatus(o.lastUpdateCS);
             const tripStatus: TripStatus = shipmentStatus;
-
-            for (let i = 0; i < qty; i++) {
-              list.push({
-                id: qty === 1 ? `SHP-${o.id}` : `SHP-${o.id}-${String(i + 1).padStart(2, "0")}`,
-                orderRef: o.id,
-                type: o.type,
-                tripStatus,
-                unit: o.vehiclePlate || "B 9481 UIK",
-                driver: o.driver || "Ahmad Supriyadi",
-                currentLocation: o.origin || "IKK Karawang Yard",
-                eta: o.eta || "25 Jul 2026",
-                customer: o.customer || "PT IKPP",
-                quantity: 1
-              });
-            }
+            return {
+              id: o.id || `SHP-${String(idx + 1).padStart(4, "0")}`,
+              orderRef: o.poolingId || o.id || "SM-D000001",
+              type: o.type || "ekspor",
+              tripStatus,
+              unit: o.vehiclePlate || "B 9481 UIK",
+              driver: o.driver || "Ahmad Supriyadi",
+              currentLocation: o.origin || "IKK Karawang Yard",
+              eta: o.eta || "25 Jul 2026",
+              customer: o.customer || "INDAH KIAT PULP & PAPER TBK.",
+              quantity: 1
+            };
           });
           setShipments(list);
         }

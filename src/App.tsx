@@ -9,7 +9,7 @@ import TikProLiveDashboard from "./components/TikProLiveDashboard";
 
 export default function App() {
   // Navigation State
-  const [activeTab, setActiveTab] = useState<TabType>("logistik_pro");
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   // Filter deep-linking state from Overview cards to Order page

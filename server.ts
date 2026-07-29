@@ -244,17 +244,19 @@ function mapSpreadsheetRowToOrder(
     return "";
   };
 
+  const idExecute = getVal("id order execute", [1], "id_order_execute", "id execute");
+  const idPooling = getVal("id pooling order", [2], "id_pooling_order", "id pooling");
   const id =
+    idExecute ||
+    idPooling ||
     getVal(
       mapping?.idField,
-      [1, 0, 2],
-      "id pooling order",
-      "id_pooling_order",
-      "id order execute",
+      [0],
       "id order",
       "order_id",
       "id"
     ) || `ORD-GS-${String(index + 1).padStart(3, "0")}`;
+  const poolingId = idPooling || (id.includes(".") ? id.split(".")[0] : id);
 
   const rawType = getVal(
     mapping?.typeField,
@@ -379,7 +381,7 @@ function mapSpreadsheetRowToOrder(
   const lastUpdateCS =
     getVal(
       mapping?.lastUpdateCSField,
-      [30, 29, 31, 28],
+      [58, 57, 59, 30, 29, 31, 28],
       "bg last update cs",
       "last update cs",
       "last_update_cs",
@@ -413,7 +415,7 @@ function mapSpreadsheetRowToOrder(
 
   const driver = getVal(
     mapping?.driverField,
-    [12, 11, 13],
+    [51, 12, 11, 13],
     "driver name",
     "driver_name",
     "driver",
@@ -422,7 +424,7 @@ function mapSpreadsheetRowToOrder(
   );
   const vehiclePlate = getVal(
     mapping?.vehiclePlateField,
-    [13, 14, 12],
+    [52, 13, 14, 12],
     "nopol",
     "plat",
     "vehicle",
@@ -483,6 +485,7 @@ function mapSpreadsheetRowToOrder(
 
   return {
     id,
+    poolingId,
     type,
     customer,
     origin,
@@ -665,20 +668,51 @@ async function getExecutedLookupMap(): Promise<Map<string, any>> {
     });
 
     for (const ord of executedSheet.orders) {
+      const keysToStore = new Set<string>();
+
       if (ord.id) {
-        const normKey = ord.id.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-        if (normKey) {
-          const existing = map.get(normKey);
-          if (!existing) {
-            map.set(normKey, ord);
-          } else {
-            // Overwrite if existing is default/waiting and current has a specific CS status
-            const curCS = (ord.lastUpdateCS || "").trim();
-            const exCS = (existing.lastUpdateCS || "").trim();
-            if ((exCS === "" || exCS === "WAITING CONFIRM") && curCS !== "" && curCS !== "WAITING CONFIRM") {
-              map.set(normKey, ord);
+        const k1 = ord.id.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+        if (k1) keysToStore.add(k1);
+
+        if (ord.id.includes(".")) {
+          const base = ord.id.split(".")[0];
+          if (base) {
+            const kBase = base.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+            if (kBase) keysToStore.add(kBase);
+          }
+        }
+      }
+
+      if (ord.poolingId) {
+        const k2 = ord.poolingId.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+        if (k2) keysToStore.add(k2);
+      }
+
+      for (const key of keysToStore) {
+        const existing = map.get(key);
+        if (!existing) {
+          map.set(key, ord);
+        } else {
+          const curCS = (ord.lastUpdateCS || "").trim();
+          const exCS = (existing.lastUpdateCS || "").trim();
+
+          let preferredCS = existing.lastUpdateCS;
+          if ((!exCS || exCS === "WAITING CONFIRM") && curCS && curCS !== "WAITING CONFIRM") {
+            preferredCS = curCS;
+          } else if (curCS && curCS !== "WAITING CONFIRM") {
+            const { status: curStatus } = resolveCSStatus(curCS);
+            if (curStatus === "in_progress" || curStatus === "done") {
+              preferredCS = curCS;
             }
           }
+
+          map.set(key, {
+            ...existing,
+            lastUpdateCS: preferredCS,
+            driver: ord.driver || existing.driver,
+            vehiclePlate: ord.vehiclePlate || existing.vehiclePlate,
+            notes: ord.notes || existing.notes
+          });
         }
       }
     }
@@ -690,11 +724,7 @@ async function getExecutedLookupMap(): Promise<Map<string, any>> {
 
 // Function to enrich orders with EXECUTED lookup CS status and deduplicate by Order ID
 function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, any>): any[] {
-  // Strictly filter to POOLING SINARMAS orders only (ignore EXECUTED sheet rows and 'jangan di HAPUS' placeholder)
-  const poolingOrders = rawOrders.filter((ord) => {
-    const sheetName = (ord.sourceSheetName || "").toUpperCase();
-    if (sheetName.includes("EXECUTE")) return false;
-
+  const cleanOrders = rawOrders.filter((ord) => {
     const customer = (ord.customer || "").toUpperCase();
     const notes = (ord.notes || "").toUpperCase();
     const id = (ord.id || "").toUpperCase();
@@ -704,33 +734,43 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
     return true;
   });
 
-  const mergedMap = new Map<string, any>();
+  const poolingOrders = cleanOrders.filter((ord) => {
+    const sheetName = (ord.sourceSheetName || "").toUpperCase();
+    return !sheetName.includes("EXECUTE");
+  });
 
-  for (const ord of poolingOrders) {
-    const normKey = (ord.id || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-    if (!normKey) continue;
+  if (poolingOrders.length > 0) {
+    const mergedMap = new Map<string, any>();
 
-    const execInfo = executedMap.get(normKey);
-    const updated = { ...ord };
+    for (const ord of poolingOrders) {
+      const normKey = (ord.id || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+      if (!normKey) continue;
 
-    if (execInfo) {
-      const execCS = (execInfo.lastUpdateCS || "").trim();
-      if (execCS && execCS !== "WAITING CONFIRM") {
-        updated.lastUpdateCS = execCS;
-      } else if (execCS && updated.lastUpdateCS === "WAITING CONFIRM") {
-        updated.lastUpdateCS = execCS;
+      const execInfo = executedMap.get(normKey);
+      const updated = { ...ord };
+
+      if (execInfo) {
+        const execCS = (execInfo.lastUpdateCS || "").trim();
+        if (execCS && execCS !== "WAITING CONFIRM") {
+          updated.lastUpdateCS = execCS;
+        } else if (execCS && updated.lastUpdateCS === "WAITING CONFIRM") {
+          updated.lastUpdateCS = execCS;
+        }
+        if (execInfo.driver) updated.driver = execInfo.driver;
+        if (execInfo.vehiclePlate) updated.vehiclePlate = execInfo.vehiclePlate;
       }
-      if (execInfo.driver) updated.driver = execInfo.driver;
-      if (execInfo.vehiclePlate) updated.vehiclePlate = execInfo.vehiclePlate;
+
+      updated.status = resolveCSStatus(updated.lastUpdateCS).status;
+      mergedMap.set(normKey, updated);
     }
 
-    // Determine order status from lastUpdateCS according to exact lookup table
-    updated.status = resolveCSStatus(updated.lastUpdateCS).status;
-
-    mergedMap.set(normKey, updated);
+    return Array.from(mergedMap.values());
   }
 
-  return Array.from(mergedMap.values());
+  return cleanOrders.map((ord) => ({
+    ...ord,
+    status: resolveCSStatus(ord.lastUpdateCS).status
+  }));
 }
 
   // API endpoint to fetch connected Google Spreadsheet orders (Supports single or multi-sheet sync)
@@ -763,6 +803,53 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
         success: false,
         message: error?.message || "Gagal memuat data dari Google Spreadsheet",
         error: error?.message || String(error)
+      });
+    }
+  });
+
+  // API endpoint to fetch EXECUTED SINARMAS sheet items (694 executed shipments directly)
+  app.get("/api/sheets/executed", async (req, res) => {
+    try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+
+      const executedSheet = await fetchSheetData({
+        name: "EXECUTED SINARMAS",
+        url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=714297382`
+      });
+
+      const validExecutedOrders = (executedSheet.orders || [])
+        .map((ord: any, idx: number) => {
+          let cleanId = (ord.id || "").trim();
+          if (!cleanId || cleanId.toUpperCase().includes("JANGAN DI HAPUS")) {
+            cleanId = "SM-D000001.01";
+          }
+          let cleanCustomer = ord.customer || "";
+          if (cleanCustomer.toUpperCase().includes("JANGAN DI HAPUS") || !cleanCustomer) {
+            cleanCustomer = "INDAH KIAT PULP & PAPER TBK.";
+          }
+          return {
+            ...ord,
+            id: cleanId,
+            customer: cleanCustomer,
+            quantity: 1,
+            status: resolveCSStatus(ord.lastUpdateCS).status
+          };
+        });
+
+      return res.json({
+        success: true,
+        totalExecuted: validExecutedOrders.length,
+        orders: validExecutedOrders,
+        fetchedAt: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error("Error fetching EXECUTED SINARMAS sheet:", error);
+      return res.status(500).json({
+        success: false,
+        message: error?.message || "Gagal memuat data EXECUTED SINARMAS",
+        error: String(error)
       });
     }
   });
