@@ -228,16 +228,6 @@ export default function ShipmentPage() {
       render: (item) => <span className="text-xs sm:text-sm font-bold text-gray-800 bg-gray-100 border px-2.5 py-1 rounded">{item.unit}</span>
     },
     {
-      key: "quantity",
-      header: "Qty",
-      sortable: true,
-      render: (item) => (
-        <span className="text-xs sm:text-sm font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-center min-w-[32px] inline-block">
-          {item.quantity || 1}
-        </span>
-      )
-    },
-    {
       key: "driver",
       header: "Driver",
       sortable: true,
