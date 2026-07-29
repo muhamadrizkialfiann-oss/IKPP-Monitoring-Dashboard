@@ -807,7 +807,7 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
     }
   });
 
-  // API endpoint to fetch EXECUTED SINARMAS sheet items (694 executed shipments directly)
+  // API endpoint to fetch EXECUTED SINARMAS sheet items with VLOOKUP fields from Sinarmas sheet
   app.get("/api/sheets/executed", async (req, res) => {
     try {
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -819,8 +819,39 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
         url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=714297382`
       });
 
+      // VLOOKUP dictionary from Sinarmas spreadsheet (https://docs.google.com/spreadsheets/d/1UFHKYi9YaRsUbz5f87IH3TySGYC2vVdkJgZDXAR666I/edit?gid=449456534)
+      const sinarmasMap = new Map<string, { unit: string; driver: string; location: string; eta: string }>();
+      try {
+        const lookupUrl = "https://docs.google.com/spreadsheets/d/1UFHKYi9YaRsUbz5f87IH3TySGYC2vVdkJgZDXAR666I/export?format=csv&gid=449456534";
+        const lookupRes = await fetch(lookupUrl, {
+          headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
+        });
+        if (lookupRes.ok) {
+          const csvText = await lookupRes.text();
+          const records = parseCSVRecords(csvText);
+          for (const r of records) {
+            const idKey = (r[0] || "").trim().toUpperCase();
+            if (!idKey || idKey.includes("ID ORDER EXECUTE") || idKey.includes("JANGAN DI HAPUS")) continue;
+
+            const unitVal = (r[29] || r[24] || r[59] || "").trim();
+            const driverVal = (r[30] || r[25] || r[58] || "").trim();
+            const locVal = (r[31] || r[13] || r[10] || "").trim();
+            const etaVal = (r[49] || r[50] || r[7] || "").trim();
+
+            sinarmasMap.set(idKey, {
+              unit: unitVal ? unitVal : "#N/A",
+              driver: driverVal ? driverVal : "#N/A",
+              location: locVal ? locVal : "#N/A",
+              eta: etaVal ? etaVal : "#N/A"
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Error fetching Sinarmas VLOOKUP sheet:", err);
+      }
+
       const validExecutedOrders = (executedSheet.orders || [])
-        .map((ord: any, idx: number) => {
+        .map((ord: any) => {
           let cleanId = (ord.id || "").trim();
           if (!cleanId || cleanId.toUpperCase().includes("JANGAN DI HAPUS")) {
             cleanId = "SM-D000001.01";
@@ -829,12 +860,20 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
           if (cleanCustomer.toUpperCase().includes("JANGAN DI HAPUS") || !cleanCustomer) {
             cleanCustomer = "INDAH KIAT PULP & PAPER TBK.";
           }
+
+          const lookup = sinarmasMap.get(cleanId.toUpperCase());
+
           return {
             ...ord,
             id: cleanId,
             customer: cleanCustomer,
             quantity: 1,
-            status: resolveCSStatus(ord.lastUpdateCS).status
+            status: resolveCSStatus(ord.lastUpdateCS).status,
+            // VLOOKUP result fields (UNIT / PLAT NO, DRIVER, LOKASI TERKINI, ETA):
+            vehiclePlate: lookup ? lookup.unit : "#N/A",
+            driver: lookup ? lookup.driver : "#N/A",
+            origin: lookup ? lookup.location : "#N/A",
+            eta: lookup ? lookup.eta : "#N/A"
           };
         });
 

@@ -21,27 +21,31 @@ export default function ShipmentPage() {
     const fetchShipments = async () => {
       try {
         const executed = await fetchExecutedShipmentsClient();
-        if (isMounted && Array.isArray(executed) && executed.length > 0) {
-          const list: Shipment[] = executed.map((o: any, idx: number) => {
-            const { shipmentStatus } = mapCSStatus(o.lastUpdateCS);
-            const tripStatus: TripStatus = shipmentStatus;
-            return {
-              id: o.id || `SHP-${String(idx + 1).padStart(4, "0")}`,
-              orderRef: o.poolingId || o.id || "SM-D000001",
-              type: o.type || "ekspor",
-              tripStatus,
-              unit: o.vehiclePlate || "B 9481 UIK",
-              driver: o.driver || "Ahmad Supriyadi",
-              currentLocation: o.origin || "IKK Karawang Yard",
-              eta: o.eta || "25 Jul 2026",
-              customer: o.customer || "INDAH KIAT PULP & PAPER TBK.",
-              quantity: 1
-            };
-          });
-          setShipments(list);
+        if (isMounted) {
+          if (Array.isArray(executed) && executed.length > 0) {
+            const list: Shipment[] = executed.map((o: any, idx: number) => {
+              const { shipmentStatus } = mapCSStatus(o.lastUpdateCS);
+              const tripStatus: TripStatus = shipmentStatus;
+              return {
+                id: o.id || `SHP-${String(idx + 1).padStart(4, "0")}`,
+                orderRef: o.poolingId || o.id || "SM-D000001",
+                type: o.type || "ekspor",
+                tripStatus,
+                unit: o.vehiclePlate ? o.vehiclePlate : "#N/A",
+                driver: o.driver ? o.driver : "#N/A",
+                currentLocation: o.origin ? o.origin : "#N/A",
+                eta: o.eta ? o.eta : "#N/A",
+                customer: o.customer || "INDAH KIAT PULP & PAPER TBK.",
+                quantity: 1
+              };
+            });
+            setShipments(list);
+          } else {
+            setShipments([]);
+          }
         }
       } catch (err) {
-        // Silent catch during background sync
+        if (isMounted) setShipments([]);
       }
     };
 
@@ -225,20 +229,28 @@ export default function ShipmentPage() {
       key: "unit",
       header: "Unit / Plat No",
       sortable: true,
-      render: (item) => <span className="text-xs sm:text-sm font-bold text-gray-800 bg-gray-100 border px-2.5 py-1 rounded">{item.unit}</span>
+      render: (item) => (
+        <span className={`text-xs sm:text-sm font-bold px-2.5 py-1 rounded border ${item.unit === "#N/A" ? "bg-red-50 text-red-600 border-red-200" : "bg-gray-100 text-gray-800"}`}>
+          {item.unit}
+        </span>
+      )
     },
     {
       key: "driver",
       header: "Driver",
       sortable: true,
-      render: (item) => <span className="font-semibold text-xs sm:text-sm text-gray-800">{item.driver}</span>
+      render: (item) => (
+        <span className={`font-semibold text-xs sm:text-sm ${item.driver === "#N/A" ? "text-red-500 italic font-normal" : "text-gray-800"}`}>
+          {item.driver}
+        </span>
+      )
     },
     {
       key: "currentLocation",
       header: "Lokasi Terkini",
       sortable: true,
       render: (item) => (
-        <span className="text-xs sm:text-sm text-gray-700 flex items-center gap-1.5 font-medium">
+        <span className={`text-xs sm:text-sm flex items-center gap-1.5 font-medium ${item.currentLocation === "#N/A" ? "text-red-500 italic" : "text-gray-700"}`}>
           <MapPin className="w-4 h-4 text-sky-500 shrink-0" />
           {item.currentLocation}
         </span>
@@ -249,7 +261,7 @@ export default function ShipmentPage() {
       header: "ETA",
       sortable: true,
       render: (item) => (
-        <span className={`text-xs sm:text-sm font-bold ${item.eta === "Completed" ? "text-emerald-600" : "text-gray-600"}`}>
+        <span className={`text-xs sm:text-sm font-bold ${item.eta === "#N/A" ? "text-red-500 italic font-normal" : item.eta === "Completed" ? "text-emerald-600" : "text-gray-600"}`}>
           {item.eta}
         </span>
       )

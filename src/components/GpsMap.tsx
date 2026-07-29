@@ -1112,18 +1112,6 @@ export default function GpsMap() {
           [-6.0963, 106.2167], // Serang Mill
           [-5.9322, 105.9926]  // Merak Port
         ],
-        ROUTE_PERAWANG_TO_PRIOK: [
-          [0.6754, 101.6214],   // Perawang Mill
-          [0.5073, 101.4478],   // Pekanbaru City
-          [-1.6111, 103.6131],  // Jambi City
-          [-2.9167, 104.7500],  // Palembang City
-          [-5.3800, 105.2900],  // Bandar Lampung
-          [-5.8710, 105.7490],  // Bakauheni Port
-          [-5.9322, 105.9926],  // Merak Port
-          [-6.0963, 106.2167],  // Serang Mill
-          [-6.2140, 106.6300],  // Tangerang Mill
-          [-6.1023, 106.8928]   // Tanjung Priok
-        ],
         ROUTE_PRIOK_TO_SURABAYA: [
           [-6.1023, 106.8928],  // Tanjung Priok
           [-6.4022, 107.4435],  // Cikampek
@@ -1181,7 +1169,7 @@ export default function GpsMap() {
             }
           }
         } catch (err) {
-          console.error(`Failed to fetch high density path for ${key}:`, err);
+          console.warn(`Failed to fetch high density path for ${key}, using built-in static route:`, err);
         }
       }
     };

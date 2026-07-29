@@ -165,7 +165,7 @@ export default function DataTable<T extends { id?: string; unitId?: string }>({
             ) : (
               <tr>
                 <td colSpan={columns.length + 1} className="py-12 text-center text-gray-400 dark:text-slate-500 font-medium">
-                  No records match your filters.
+                  Belum ada data / Data kosong.
                 </td>
               </tr>
             )}
