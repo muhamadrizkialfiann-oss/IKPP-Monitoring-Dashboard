@@ -833,16 +833,22 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
             const idKey = (r[0] || "").trim().toUpperCase();
             if (!idKey || idKey.includes("ID ORDER EXECUTE") || idKey.includes("JANGAN DI HAPUS")) continue;
 
-            const unitVal = (r[29] || r[24] || r[59] || "").trim();
-            const driverVal = (r[30] || r[25] || r[58] || "").trim();
-            const locVal = (r[31] || r[13] || r[10] || "").trim();
-            const etaVal = (r[49] || r[50] || r[7] || "").trim();
+            const sanitize = (val: string) => {
+              const trimmed = (val || "").trim();
+              if (!trimmed || trimmed.toUpperCase() === "#N/A" || trimmed.toUpperCase() === "N/A") return "";
+              return trimmed;
+            };
+
+            const unitVal = sanitize(r[29] || r[24] || r[59] || "");
+            const driverVal = sanitize(r[30] || r[25] || r[58] || "");
+            const locVal = sanitize(r[31] || r[13] || r[10] || "");
+            const etaVal = sanitize(r[49] || r[50] || r[7] || "");
 
             sinarmasMap.set(idKey, {
-              unit: unitVal ? unitVal : "#N/A",
-              driver: driverVal ? driverVal : "#N/A",
-              location: locVal ? locVal : "#N/A",
-              eta: etaVal ? etaVal : "#N/A"
+              unit: unitVal,
+              driver: driverVal,
+              location: locVal,
+              eta: etaVal
             });
           }
         }
@@ -870,10 +876,10 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
             quantity: 1,
             status: resolveCSStatus(ord.lastUpdateCS).status,
             // VLOOKUP result fields (UNIT / PLAT NO, DRIVER, LOKASI TERKINI, ETA):
-            vehiclePlate: lookup ? lookup.unit : "#N/A",
-            driver: lookup ? lookup.driver : "#N/A",
-            origin: lookup ? lookup.location : "#N/A",
-            eta: lookup ? lookup.eta : "#N/A"
+            vehiclePlate: lookup ? lookup.unit : "",
+            driver: lookup ? lookup.driver : "",
+            origin: lookup ? lookup.location : "",
+            eta: lookup ? lookup.eta : ""
           };
         });
 

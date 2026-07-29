@@ -31,10 +31,10 @@ export default function ShipmentPage() {
                 orderRef: o.poolingId || o.id || "SM-D000001",
                 type: o.type || "ekspor",
                 tripStatus,
-                unit: o.vehiclePlate ? o.vehiclePlate : "#N/A",
-                driver: o.driver ? o.driver : "#N/A",
-                currentLocation: o.origin ? o.origin : "#N/A",
-                eta: o.eta ? o.eta : "#N/A",
+                unit: o.vehiclePlate && o.vehiclePlate !== "#N/A" && o.vehiclePlate !== "N/A" ? o.vehiclePlate : "",
+                driver: o.driver && o.driver !== "#N/A" && o.driver !== "N/A" ? o.driver : "",
+                currentLocation: o.origin && o.origin !== "#N/A" && o.origin !== "N/A" ? o.origin : "",
+                eta: o.eta && o.eta !== "#N/A" && o.eta !== "N/A" ? o.eta : "",
                 customer: o.customer || "INDAH KIAT PULP & PAPER TBK.",
                 quantity: 1
               };
@@ -230,9 +230,11 @@ export default function ShipmentPage() {
       header: "Unit / Plat No",
       sortable: true,
       render: (item) => (
-        <span className={`text-xs sm:text-sm font-bold px-2.5 py-1 rounded border ${item.unit === "#N/A" ? "bg-red-50 text-red-600 border-red-200" : "bg-gray-100 text-gray-800"}`}>
-          {item.unit}
-        </span>
+        item.unit && item.unit !== "#N/A" && item.unit !== "N/A" ? (
+          <span className="text-xs sm:text-sm font-bold px-2.5 py-1 rounded border bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 border-gray-200 dark:border-slate-700">
+            {item.unit}
+          </span>
+        ) : null
       )
     },
     {
@@ -240,9 +242,11 @@ export default function ShipmentPage() {
       header: "Driver",
       sortable: true,
       render: (item) => (
-        <span className={`font-semibold text-xs sm:text-sm ${item.driver === "#N/A" ? "text-red-500 italic font-normal" : "text-gray-800"}`}>
-          {item.driver}
-        </span>
+        item.driver && item.driver !== "#N/A" && item.driver !== "N/A" ? (
+          <span className="font-semibold text-xs sm:text-sm text-gray-800 dark:text-slate-200">
+            {item.driver}
+          </span>
+        ) : null
       )
     },
     {
@@ -250,10 +254,12 @@ export default function ShipmentPage() {
       header: "Lokasi Terkini",
       sortable: true,
       render: (item) => (
-        <span className={`text-xs sm:text-sm flex items-center gap-1.5 font-medium ${item.currentLocation === "#N/A" ? "text-red-500 italic" : "text-gray-700"}`}>
-          <MapPin className="w-4 h-4 text-sky-500 shrink-0" />
-          {item.currentLocation}
-        </span>
+        item.currentLocation && item.currentLocation !== "#N/A" && item.currentLocation !== "N/A" ? (
+          <span className="text-xs sm:text-sm flex items-center gap-1.5 font-medium text-gray-700 dark:text-slate-300">
+            <MapPin className="w-4 h-4 text-sky-500 shrink-0" />
+            {item.currentLocation}
+          </span>
+        ) : null
       )
     },
     {
@@ -261,9 +267,11 @@ export default function ShipmentPage() {
       header: "ETA",
       sortable: true,
       render: (item) => (
-        <span className={`text-xs sm:text-sm font-bold ${item.eta === "#N/A" ? "text-red-500 italic font-normal" : item.eta === "Completed" ? "text-emerald-600" : "text-gray-600"}`}>
-          {item.eta}
-        </span>
+        item.eta && item.eta !== "#N/A" && item.eta !== "N/A" ? (
+          <span className={`text-xs sm:text-sm font-bold ${item.eta === "Completed" ? "text-emerald-600" : "text-gray-600 dark:text-slate-400"}`}>
+            {item.eta}
+          </span>
+        ) : null
       )
     }
   ];
