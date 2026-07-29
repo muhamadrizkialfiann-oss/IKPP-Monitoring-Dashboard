@@ -8,6 +8,7 @@ interface TripStepperProps {
   endTripCount: number;
   activeStage?: "pre_trip" | "on_trip" | "end_trip";
   hideCard?: boolean;
+  onStepClick?: (stage: "pre_trip" | "on_trip" | "end_trip") => void;
 }
 
 export default function TripStepper({
@@ -15,7 +16,8 @@ export default function TripStepper({
   onTripCount,
   endTripCount,
   activeStage,
-  hideCard = false
+  hideCard = false,
+  onStepClick
 }: TripStepperProps) {
   const total = preTripCount + onTripCount + endTripCount || 1;
 
@@ -138,7 +140,11 @@ export default function TripStepper({
           const isSelected = activeStage === step.id;
 
           return (
-            <div key={step.id} className="flex flex-col items-center z-10 relative">
+            <div
+              key={step.id}
+              onClick={() => onStepClick?.(step.id as any)}
+              className="flex flex-col items-center z-10 relative cursor-pointer group transition-transform hover:scale-105"
+            >
               {/* Count bubble above */}
               <motion.div
                 initial={{ scale: 0.9 }}
@@ -146,7 +152,7 @@ export default function TripStepper({
                 className={`mb-3 flex flex-col items-center justify-center w-12 h-12 rounded-full border shadow-sm transition-all duration-300 ${
                   isSelected
                     ? "bg-[#0B2C6B] text-white border-amber-300 ring-4 ring-blue-100 scale-105"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-blue-300"
+                    : "bg-white text-gray-700 border-gray-200 group-hover:border-blue-400 group-hover:shadow-md"
                 }`}
               >
                 <span className="text-sm font-black tabular-nums leading-none">
@@ -158,7 +164,7 @@ export default function TripStepper({
               </motion.div>
 
               {/* Progress Bullet Node */}
-              <div className={`p-2 rounded-full shadow-inner ${step.bgColor} border border-white`}>
+              <div className={`p-2 rounded-full shadow-inner ${step.bgColor} border border-white group-hover:ring-2 group-hover:ring-blue-300 transition-all`}>
                 <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${step.color} text-white flex items-center justify-center shadow-md`}>
                   <StepIcon className="w-3.5 h-3.5" />
                 </div>
@@ -166,7 +172,7 @@ export default function TripStepper({
 
               {/* Step Label below */}
               <div className="mt-2 text-center">
-                <span className={`text-[10px] font-black tracking-widest ${step.textColor} uppercase block`}>
+                <span className={`text-[10px] font-black tracking-widest ${step.textColor} uppercase block group-hover:underline`}>
                   {step.label}
                 </span>
               </div>

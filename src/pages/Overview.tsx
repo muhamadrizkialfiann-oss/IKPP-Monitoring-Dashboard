@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { motion } from "motion/react";
-import { Truck, ClipboardList, ShieldCheck, BarChart3, FileSpreadsheet } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Truck, ClipboardList, ShieldCheck, BarChart3, FileSpreadsheet, Search, X, ExternalLink, Filter, Eye, CircleDot } from "lucide-react";
 import TripStepper from "../components/TripStepper";
 import StackedBarChart from "../components/StackedBarChart";
 import BarChart from "../components/BarChart";
