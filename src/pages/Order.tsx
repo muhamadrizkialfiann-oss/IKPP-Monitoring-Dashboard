@@ -455,23 +455,20 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
             Real-time container logistics orders, allocation queue, and status tracking
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setIsSheetModalOpen(true)}
-            className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100/80 dark:hover:bg-emerald-900 px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer shrink-0 shadow-xs"
-            title="Kelola & Tambah Link Google Spreadsheet"
-          >
-            <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Kelola Link Sheets ({sheetSources.filter((s) => s.enabled).length} Aktif)</span>
-          </button>
+        <div className="flex items-center">
           <button
             onClick={() => setShowSheetBanner(!showSheetBanner)}
-            className="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-slate-300 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer shrink-0"
-            title="Google Sheet Live Realtime Status"
+            className={`p-2.5 rounded-full border transition-all cursor-pointer shrink-0 flex items-center justify-center ${
+              showSheetBanner
+                ? "bg-emerald-100 dark:bg-emerald-900/80 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-400/30 scale-105"
+                : "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900 hover:scale-110"
+            }`}
+            title="Info Sync & Kelola Sheets - Klik untuk melihat / mengelola link Google Sheets"
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Info Sync</span>
+            <span className="relative flex h-3.5 w-3.5 items-center justify-center">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
           </button>
         </div>
       </div>
