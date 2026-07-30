@@ -113,55 +113,39 @@ export async function fetchExecutedShipmentsClient(): Promise<Order[]> {
 
   // 2nd Attempt: Client-side direct Google Sheets CSV fetch for EXECUTED SINARMAS with VLOOKUP
   try {
-    const [mainCsvRes, sinarmasMap] = await Promise.all([
-      fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID_EXECUTED}`),
+    const [executedSheet, sinarmasMap] = await Promise.all([
+      fetchSheetData({
+        name: "EXECUTED SINARMAS",
+        url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${GID_EXECUTED}`
+      }),
       fetchSinarmasLookupMap()
     ]);
 
-    if (mainCsvRes.ok) {
-      const csvText = await mainCsvRes.text();
-      const records = parseCSVRecords(csvText);
-
-      const headerIdx = records.findIndex(r => r.some(c => c.toUpperCase().includes("ID ORDER EXECUTE")));
-      const startIdx = headerIdx >= 0 ? headerIdx + 1 : 1;
-
-      const validExecuted: Order[] = [];
-      for (let i = startIdx; i < records.length; i++) {
-        const r = records[i];
-        let cleanId = (r[1] || r[0] || "").trim();
-        if (!cleanId || cleanId.toUpperCase().includes("JANGAN DI HAPUS") || cleanId.toUpperCase().includes("ID ORDER EXECUTE")) {
-          continue;
+    if (executedSheet && Array.isArray(executedSheet.orders) && executedSheet.orders.length > 0) {
+      const validExecuted = (executedSheet.orders as Order[]).map((ord: any) => {
+        let cleanId = (ord.id || "").trim();
+        if (!cleanId || cleanId.toUpperCase().includes("JANGAN DI HAPUS")) {
+          cleanId = "SM-D000001.01";
         }
-
-        let cleanCustomer = r[9] || "";
-        if (!cleanCustomer || cleanCustomer.toUpperCase().includes("JANGAN DI HAPUS") || cleanCustomer.toUpperCase().includes("SHIFT")) {
+        let cleanCustomer = ord.customer || "";
+        if (cleanCustomer.toUpperCase().includes("JANGAN DI HAPUS") || !cleanCustomer || cleanCustomer.toUpperCase().includes("SHIFT")) {
           cleanCustomer = "INDAH KIAT PULP & PAPER TBK.";
         }
 
-        const lastUpdateCS = r[58] || r[57] || r[30] || "WAITING CONFIRM";
         const lookup = sinarmasMap.get(cleanId.toUpperCase());
 
-        validExecuted.push({
+        return {
+          ...ord,
           id: cleanId,
-          poolingId: r[2] || cleanId.split(".")[0],
-          type: (r[16] || "").toLowerCase().includes("impor") ? "impor" : (r[16] || "").toLowerCase().includes("repo") ? "repo" : "ekspor",
           customer: cleanCustomer,
-          origin: lookup ? lookup.location : "",
-          destination: r[21] || "PTR.SQ.1001288",
-          unitType: r[14] || "Trailer 4x2 40ft",
-          status: resolveCSStatus(lastUpdateCS).status,
-          eta: lookup ? lookup.eta : "",
-          bookingDate: r[2] || "29/06/2026 9:00",
           quantity: 1,
-          driver: lookup ? lookup.driver : "",
+          status: resolveCSStatus(ord.lastUpdateCS).status,
           vehiclePlate: lookup ? lookup.unit : "",
-          notes: r[32] || "",
-          lastUpdateCS: lastUpdateCS,
-          source: "Google Sheet",
-          sourceSheetName: "EXECUTED SINARMAS",
-          sourceUrl: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit?gid=${GID_EXECUTED}`
-        });
-      }
+          driver: lookup ? lookup.driver : "",
+          origin: lookup ? lookup.location : "",
+          eta: lookup ? lookup.eta : ""
+        };
+      });
 
       if (validExecuted.length > 0) {
         return validExecuted;
