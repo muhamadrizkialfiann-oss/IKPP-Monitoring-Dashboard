@@ -287,37 +287,30 @@ export function mapSpreadsheetRowToOrder(
 
   const rawPickUp = getVal(
     "pick up location",
-    [18],
+    [10, 13, 18, 19, 20],
+    "pick up location",
+    "pickup location",
+    "pick up",
     "address loading point",
-    "lokasi asal"
+    "lokasi asal",
+    "lokasi muat"
   );
   const rawDrop = getVal(
     "drop of location",
-    [21],
+    [21, 22, 23],
+    "drop of location",
+    "drop location",
     "address unloading point",
     "lokasi tujuan"
   );
-  const rawCsvOrigin = getVal("origin", [18, 19], "asal");
-  const rawCsvDest = getVal("destination", [21, 23], "tujuan");
+  const rawCsvOrigin = getVal("origin", [10, 13, 18, 19], "origin", "asal");
+  const rawCsvDest = getVal("destination", [21, 23], "destination", "tujuan");
 
   let origin = "";
-  if (rawCsvOrigin && rawCsvOrigin.trim() && rawCsvOrigin.trim().toUpperCase() !== "ORIGIN") {
-    const oUpper = rawCsvOrigin.trim().toUpperCase();
-    if (oUpper.includes("KARAWANG") || oUpper.includes("IKK")) origin = "IKK Karawang";
-    else if (oUpper.includes("CAKUNG")) origin = "CAKUNG";
-    else if (oUpper.includes("PRIOK") || oUpper.includes("TANJUNG")) origin = "TANJUNG PRIOK";
-    else origin = rawCsvOrigin.trim();
-  }
-
-  if (!origin && rawPickUp) {
-    const pUpper = rawPickUp.trim().toUpperCase();
-    if (pUpper.includes("INDAH KIAT") || pUpper.includes("KARAWANG") || pUpper.includes("IKK")) {
-      origin = "IKK Karawang";
-    } else if (pUpper.includes("BSA") || pUpper.includes("GFC") || pUpper.includes("BPL") || pUpper.includes("GL")) {
-      origin = "CAKUNG";
-    } else {
-      origin = rawPickUp.trim();
-    }
+  if (rawPickUp && rawPickUp.trim()) {
+    origin = rawPickUp.trim();
+  } else if (rawCsvOrigin && rawCsvOrigin.trim() && rawCsvOrigin.trim().toUpperCase() !== "ORIGIN") {
+    origin = rawCsvOrigin.trim();
   }
 
   if (!origin) origin = "IKK Karawang";
@@ -433,7 +426,7 @@ export function mapSpreadsheetRowToOrder(
     statusPooling,
     type,
     customer,
-    origin: statusRealtime || origin || "IKK Karawang",
+    origin: origin || "IKK Karawang",
     destination,
     unitType,
     status,
@@ -442,7 +435,7 @@ export function mapSpreadsheetRowToOrder(
     quantity,
     driver,
     vehiclePlate,
-    statusRealtime: statusRealtime || origin || "",
+    statusRealtime: statusRealtime || "",
     notes,
     lastUpdateCS,
     source: "Google Sheet"

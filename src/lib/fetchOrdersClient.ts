@@ -157,8 +157,8 @@ export async function fetchExecutedShipmentsClient(): Promise<Order[]> {
           status: resolveCSStatus(ord.lastUpdateCS).status,
           vehiclePlate: lookup && lookup.unit ? lookup.unit : (ord.vehiclePlate || ""),
           driver: lookup && lookup.driver ? lookup.driver : (ord.driver || ""),
-          origin: lookup && lookup.location ? lookup.location : (ord.origin || ""),
-          statusRealtime: lookup && lookup.location ? lookup.location : (ord.statusRealtime || ord.origin || ""),
+          origin: ord.origin || "IKK Karawang",
+          statusRealtime: lookup && lookup.location ? lookup.location : (ord.statusRealtime || ""),
           eta: lookup && lookup.eta ? lookup.eta : (ord.eta || "")
         };
       });
