@@ -45,6 +45,34 @@ function CSStatusBadge({ status }: { status?: string }) {
   );
 }
 
+function PoolingStatusBadge({ status }: { status?: string }) {
+  const val = (status || "CONFIRM").toUpperCase().trim();
+
+  let badgeStyle = "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
+  let dotStyle = "bg-emerald-500";
+
+  if (val.includes("CANCEL") || val.includes("BATAL") || val.includes("REJECT") || val.includes("MISSED")) {
+    badgeStyle = "bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800";
+    dotStyle = "bg-rose-500";
+  } else if (val.includes("PENDING") || val.includes("WAIT") || val.includes("PROCESS") || val.includes("HOLD")) {
+    badgeStyle = "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800";
+    dotStyle = "bg-amber-500";
+  } else if (val.includes("CONFIRM") || val.includes("DONE") || val.includes("OK")) {
+    badgeStyle = "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
+    dotStyle = "bg-emerald-500";
+  } else {
+    badgeStyle = "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+    dotStyle = "bg-slate-400";
+  }
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold px-2.5 py-1 rounded-lg border shrink-0 shadow-2xs ${badgeStyle}`}>
+      <span className={`w-2 h-2 rounded-full shrink-0 ${dotStyle}`} />
+      <span>{val}</span>
+    </span>
+  );
+}
+
 export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: OrderProps) {
   // Live orders state initialized with empty array (loaded live from Google Sheets)
   const [orders, setOrders] = useState<Order[]>([]);
@@ -371,6 +399,12 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       header: "LAST UPDATE CS",
       sortable: true,
       render: (item) => <CSStatusBadge status={item.lastUpdateCS} />
+    },
+    {
+      key: "statusPooling" as keyof Order,
+      header: "STATUS POOLING",
+      sortable: true,
+      render: (item) => <PoolingStatusBadge status={item.statusPooling} />
     },
     {
       key: "customer",
@@ -883,6 +917,10 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                     <span className="text-[10px] text-gray-400 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Last Update CS</span>
                     <CSStatusBadge status={selectedOrder.lastUpdateCS} />
                   </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-400 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Status Pooling (AE)</span>
+                    <PoolingStatusBadge status={selectedOrder.statusPooling} />
+                  </div>
                 </div>
 
                 {/* Status Advancement Quick Control */}
@@ -939,18 +977,22 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                   <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest border-b pb-1.5">
                     Client & Equipment
                   </h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase block">Assigned Customer</span>
-                      <span className="text-xs font-black text-gray-700 block mt-1 truncate">{selectedOrder.customer}</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-gray-50/80 dark:bg-slate-800/80 p-3 rounded-lg border border-gray-100 dark:border-slate-700">
+                      <span className="text-[10px] text-gray-400 dark:text-slate-400 font-bold uppercase block">Assigned Customer</span>
+                      <span className="text-xs font-black text-gray-700 dark:text-slate-200 block mt-1 truncate">{selectedOrder.customer}</span>
                     </div>
-                    <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase block">Required Container</span>
-                      <span className="text-xs font-black text-gray-700 block mt-1">{selectedOrder.unitType}</span>
+                    <div className="bg-gray-50/80 dark:bg-slate-800/80 p-3 rounded-lg border border-gray-100 dark:border-slate-700">
+                      <span className="text-[10px] text-gray-400 dark:text-slate-400 font-bold uppercase block">Required Container</span>
+                      <span className="text-xs font-black text-gray-700 dark:text-slate-200 block mt-1">{selectedOrder.unitType}</span>
                     </div>
-                    <div className="bg-blue-50/80 p-3 rounded-lg border border-blue-100">
-                      <span className="text-[10px] text-blue-600 font-bold uppercase block">Quantity</span>
-                      <span className="text-xs font-black text-blue-800 block mt-1">{selectedOrder.quantity || 1} Container</span>
+                    <div className="bg-blue-50/80 dark:bg-blue-950/40 p-3 rounded-lg border border-blue-100 dark:border-blue-900/50">
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase block">Quantity</span>
+                      <span className="text-xs font-black text-blue-800 dark:text-blue-200 block mt-1">{selectedOrder.quantity || 1} Container</span>
+                    </div>
+                    <div className="bg-emerald-50/80 dark:bg-emerald-950/40 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/50">
+                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase block">Status Pooling (AE)</span>
+                      <span className="text-xs font-black text-emerald-900 dark:text-emerald-200 block mt-1">{selectedOrder.statusPooling || "CONFIRM"}</span>
                     </div>
                   </div>
                 </div>

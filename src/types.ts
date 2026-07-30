@@ -22,6 +22,8 @@ export interface Order {
   sourceSheetName?: string;
   sourceUrl?: string;
   poolingId?: string;
+  statusPooling?: string;
+  statusRealtime?: string;
 }
 
 export interface FormulaRule {
@@ -46,6 +48,7 @@ export interface ColumnMapping {
   lastUpdateCSField?: string;
   driverField?: string;
   vehiclePlateField?: string;
+  statusRealtimeField?: string;
 }
 
 export interface SheetSource {

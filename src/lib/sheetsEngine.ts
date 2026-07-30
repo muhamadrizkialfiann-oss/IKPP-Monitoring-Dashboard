@@ -19,6 +19,7 @@ export interface ColumnMapping {
   lastUpdateCSField?: string;
   driverField?: string;
   vehiclePlateField?: string;
+  statusRealtimeField?: string;
 }
 
 export interface FormulaRule {
@@ -386,7 +387,8 @@ export function mapSpreadsheetRowToOrder(
 
   const driver = getVal(
     mapping?.driverField,
-    [51, 12, 11, 13],
+    [30, 59, 25, 51, 12, 11, 13],
+    "id - driver name",
     "driver name",
     "driver_name",
     "driver",
@@ -395,21 +397,43 @@ export function mapSpreadsheetRowToOrder(
   );
   const vehiclePlate = getVal(
     mapping?.vehiclePlateField,
-    [52, 13, 14, 12],
+    [29, 28, 40, 60, 24, 52, 13, 14, 12],
     "nopol",
     "plat",
+    "nopol dedicated",
+    "mirror nopol",
     "vehicle",
     "unit id"
+  );
+  const statusRealtime = getVal(
+    mapping?.statusRealtimeField,
+    [31, 55, 13, 10],
+    "status realtime",
+    "status_realtime",
+    "realtime status",
+    "lokasi muat",
+    "origin"
   );
 
   let notes = getVal("notes", [32, 31], "catatan", "keterangan");
 
+  const statusPooling =
+    getVal(
+      "status pooling",
+      [30],
+      "status pooling",
+      "status_pooling",
+      "status pool",
+      "pooling status"
+    ) || "CONFIRM";
+
   return {
     id,
     poolingId,
+    statusPooling,
     type,
     customer,
-    origin,
+    origin: statusRealtime || origin || "IKK Karawang",
     destination,
     unitType,
     status,
@@ -418,6 +442,7 @@ export function mapSpreadsheetRowToOrder(
     quantity,
     driver,
     vehiclePlate,
+    statusRealtime: statusRealtime || origin || "",
     notes,
     lastUpdateCS,
     source: "Google Sheet"
@@ -579,6 +604,7 @@ export async function getExecutedLookupMap(): Promise<Map<string, any>> {
             lastUpdateCS: preferredCS,
             driver: ord.driver || existing.driver,
             vehiclePlate: ord.vehiclePlate || existing.vehiclePlate,
+            statusRealtime: ord.statusRealtime || existing.statusRealtime,
             notes: ord.notes || existing.notes
           });
         }
@@ -625,6 +651,7 @@ export function enrichAndDeduplicateOrders(rawOrders: Order[], executedMap: Map<
         }
         if (execInfo.driver) updated.driver = execInfo.driver;
         if (execInfo.vehiclePlate) updated.vehiclePlate = execInfo.vehiclePlate;
+        if (execInfo.statusRealtime) updated.statusRealtime = execInfo.statusRealtime;
       }
 
       updated.status = resolveCSStatus(updated.lastUpdateCS).status;

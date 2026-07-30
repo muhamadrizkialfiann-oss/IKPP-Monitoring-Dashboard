@@ -33,7 +33,7 @@ export default function ShipmentPage() {
                 tripStatus,
                 unit: o.vehiclePlate && o.vehiclePlate !== "#N/A" && o.vehiclePlate !== "N/A" ? o.vehiclePlate : "",
                 driver: o.driver && o.driver !== "#N/A" && o.driver !== "N/A" ? o.driver : "",
-                currentLocation: o.origin && o.origin !== "#N/A" && o.origin !== "N/A" ? o.origin : "",
+                currentLocation: (o.statusRealtime || o.origin) && (o.statusRealtime || o.origin) !== "#N/A" && (o.statusRealtime || o.origin) !== "N/A" ? (o.statusRealtime || o.origin) : "",
                 eta: o.eta && o.eta !== "#N/A" && o.eta !== "N/A" ? o.eta : "",
                 customer: o.customer || "INDAH KIAT PULP & PAPER TBK.",
                 quantity: 1

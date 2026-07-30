@@ -829,7 +829,22 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
         if (lookupRes.ok) {
           const csvText = await lookupRes.text();
           const records = parseCSVRecords(csvText);
-          for (const r of records) {
+
+          const headers = records[0] ? records[0].map(h => (h || "").trim().toUpperCase()) : [];
+          let nopolIdx = headers.findIndex(h => h === "NOPOL" || h === "NOPOL DEDICATED" || h === "MIRROR NOPOL");
+          if (nopolIdx === -1) nopolIdx = 30;
+
+          let driverIdx = headers.findIndex(h => h === "ID - DRIVER NAME" || h === "DRIVER ERP");
+          if (driverIdx === -1) driverIdx = 31;
+
+          let statusRealtimeIdx = headers.findIndex(h => h === "STATUS REALTIME" || h === "STATUS REALTIME BACKUP");
+          if (statusRealtimeIdx === -1) statusRealtimeIdx = 32;
+
+          let etaIdx = headers.findIndex(h => h === "SHIPMENT FINISH" || h === "CLOSING TIME PORT (TILA / GATEPASS)");
+          if (etaIdx === -1) etaIdx = 50;
+
+          for (let i = 1; i < records.length; i++) {
+            const r = records[i];
             const idKey = (r[0] || "").trim().toUpperCase();
             if (!idKey || idKey.includes("ID ORDER EXECUTE") || idKey.includes("JANGAN DI HAPUS")) continue;
 
@@ -839,10 +854,10 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
               return trimmed;
             };
 
-            const unitVal = sanitize(r[29] || r[24] || r[59] || "");
-            const driverVal = sanitize(r[30] || r[25] || r[58] || "");
-            const locVal = sanitize(r[31] || r[13] || r[10] || "");
-            const etaVal = sanitize(r[49] || r[50] || r[7] || "");
+            const unitVal = sanitize(r[nopolIdx] || r[30] || r[29] || r[41] || r[61] || r[25] || "");
+            const driverVal = sanitize(r[driverIdx] || r[31] || r[60] || r[26] || "");
+            const locVal = sanitize(r[statusRealtimeIdx] || r[32] || r[56] || r[13] || r[10] || "");
+            const etaVal = sanitize(r[etaIdx] || r[50] || r[51] || r[7] || "");
 
             sinarmasMap.set(idKey, {
               unit: unitVal,
@@ -876,10 +891,11 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
             quantity: 1,
             status: resolveCSStatus(ord.lastUpdateCS).status,
             // VLOOKUP result fields (UNIT / PLAT NO, DRIVER, LOKASI TERKINI, ETA):
-            vehiclePlate: lookup ? lookup.unit : "",
-            driver: lookup ? lookup.driver : "",
-            origin: lookup ? lookup.location : "",
-            eta: lookup ? lookup.eta : ""
+            vehiclePlate: lookup && lookup.unit ? lookup.unit : (ord.vehiclePlate || ""),
+            driver: lookup && lookup.driver ? lookup.driver : (ord.driver || ""),
+            origin: lookup && lookup.location ? lookup.location : (ord.origin || ""),
+            statusRealtime: lookup && lookup.location ? lookup.location : (ord.statusRealtime || ord.origin || ""),
+            eta: lookup && lookup.eta ? lookup.eta : (ord.eta || "")
           };
         });
 
