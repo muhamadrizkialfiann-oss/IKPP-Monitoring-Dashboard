@@ -1,15 +1,17 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Truck, ClipboardList, ShieldCheck, BarChart3, FileSpreadsheet, Search, X, ExternalLink, Filter, Eye, CircleDot } from "lucide-react";
+import { Truck, ClipboardList, ShieldCheck, BarChart3, FileSpreadsheet, Search, X, ExternalLink, Filter, Eye, CircleDot, Calendar } from "lucide-react";
 import TripStepper from "../components/TripStepper";
 import StackedBarChart from "../components/StackedBarChart";
 import BarChart from "../components/BarChart";
 import ServiceStreamCard from "../components/ServiceStreamCard";
+import DateRangeFilter, { DateFilterState, filterByDate, parseBookingDate, formatDateIndo } from "../components/DateRangeFilter";
 import { useFirebaseRealtime } from "../hooks/useFirebaseRealtime";
 import { TabType } from "../components/Sidebar";
 import { Order } from "../types";
 import { fetchLiveOrdersClient, fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
 import { mapCSStatus } from "../lib/statusMapper";
+import DetailListModal from "../components/DetailListModal";
 
 interface OverviewProps {
   onNavigate: (tab: TabType, filterType?: string) => void;
@@ -18,7 +20,35 @@ interface OverviewProps {
 export default function Overview({ onNavigate }: OverviewProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [executedShipments, setExecutedShipments] = useState<Order[]>([]);
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    startDate: "",
+    endDate: "",
+    preset: "auto"
+  });
   const { trucks } = useFirebaseRealtime();
+
+  // Modal state for viewing detail list when KPI numbers are clicked
+  const [detailModal, setDetailModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    data: any[];
+    dataType: "order" | "shipment";
+  }>({
+    isOpen: false,
+    title: "",
+    data: [],
+    dataType: "order",
+  });
+
+  // Filter orders and shipments dynamically by selected date range
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => filterByDate(o.bookingDate, dateFilter));
+  }, [orders, dateFilter]);
+
+  const filteredExecutedShipments = useMemo(() => {
+    return executedShipments.filter((o) => filterByDate(o.bookingDate, dateFilter));
+  }, [executedShipments, dateFilter]);
 
   // Real-time live auto-connection to Google Sheets with Vercel client fallback support
   useEffect(() => {
@@ -104,31 +134,57 @@ export default function Overview({ onNavigate }: OverviewProps) {
 
   // Compute live Order Metrics from spreadsheet
   const orderStats = useMemo(() => {
-    const total = orders.length;
-    const open = orders.filter((o) => o.status === "open").length;
-    const inProgress = orders.filter((o) => o.status === "in_progress").length;
-    const done = orders.filter((o) => o.status === "done").length;
-    const cancel = orders.filter((o) => o.status === "cancel").length;
-    const activeTotal = open + inProgress + done;
+    const total = filteredOrders.length;
+    // CONFIRM: statusPooling order is confirm
+    const confirm = filteredOrders.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM")).length;
+    // CANCEL: statusPooling cancel
+    const cancel = filteredOrders.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL")).length;
+    // NEED ACTION: statusPooling is empty or NEED ACTION
+    const needAction = filteredOrders.filter((o) => {
+      const s = (o.statusPooling || "").toUpperCase();
+      return !s.includes("CONFIRM") && !s.includes("CANCEL");
+    }).length;
 
-    const ekspor = orders.filter((o) => o.type === "ekspor");
-    const impor = orders.filter((o) => o.type === "impor");
-    const repo = orders.filter((o) => o.type === "repo");
+    const activeTotal = needAction + confirm;
+
+    const ekspor = filteredOrders.filter((o) => o.type === "ekspor");
+    const impor = filteredOrders.filter((o) => o.type === "impor");
+    
+    // REPO PDT: COMMERCIAL ROUTE or drop location/destination mentioning PDT, Depo PDT, Pancaran, Priok, 0 - 36
+    const repoPdt = filteredOrders.filter((o) => {
+      const cr = (o.commercialRoute || "").toLowerCase();
+      const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""}`.toLowerCase();
+      return (
+        cr.includes("pancaran") ||
+        cr.includes("0 - 36") ||
+        cr.includes("0-36") ||
+        cr.includes("pdt") ||
+        cr.includes("depo pdt") ||
+        text.includes("depo arround priok - pancaran") ||
+        text.includes("pancaran depo")
+      );
+    });
+
+    const repo = filteredOrders.filter((o) => o.type === "repo" && !repoPdt.includes(o));
 
     const getBreakdown = (list: Order[]) => {
       const listTotal = list.length || 1;
-      const op = list.filter((o) => o.status === "open").length;
-      const tr = list.filter((o) => o.status === "in_progress").length;
-      const dn = list.filter((o) => o.status === "done").length;
+      const tr = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM")).length;
+      const dn = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL")).length;
+      const op = list.filter((o) => {
+        const s = (o.statusPooling || "").toUpperCase();
+        return !s.includes("CONFIRM") && !s.includes("CANCEL");
+      }).length;
+
       return {
         total: list.length,
         open: op,
         transit: tr,
         done: dn,
         segments: [
-          { label: "open", count: op, percentage: Math.round((op / listTotal) * 100), color: "bg-sky-500", hoverColor: "bg-sky-400", shadowColor: "#0ea5e9" },
-          { label: "transit", count: tr, percentage: Math.round((tr / listTotal) * 100), color: "bg-blue-600", hoverColor: "bg-blue-500", shadowColor: "#2563eb" },
-          { label: "done", count: dn, percentage: Math.round((dn / listTotal) * 100), color: "bg-emerald-500", hoverColor: "bg-emerald-400", shadowColor: "#10b981" },
+          { label: "need action", count: op, percentage: Math.round((op / listTotal) * 100), color: "bg-amber-500", hoverColor: "bg-amber-400", shadowColor: "#f59e0b" },
+          { label: "confirm", count: tr, percentage: Math.round((tr / listTotal) * 100), color: "bg-blue-600", hoverColor: "bg-blue-500", shadowColor: "#2563eb" },
+          { label: "cancel", count: dn, percentage: Math.round((dn / listTotal) * 100), color: "bg-rose-500", hoverColor: "bg-rose-400", shadowColor: "#f43f5e" },
         ]
       };
     };
@@ -137,19 +193,20 @@ export default function Overview({ onNavigate }: OverviewProps) {
       total,
       activeTotal,
       cancel,
-      open,
-      inProgress,
-      done,
+      needAction,
+      confirm,
       ekspor: getBreakdown(ekspor),
-      impor: getBreakdown(impor),
+      repoPdt: getBreakdown(repoPdt),
       repo: getBreakdown(repo),
+      impor: getBreakdown(impor),
       eksporCount: ekspor.length,
-      imporCount: impor.length,
-      repoCount: repo.length
+      repoPdtCount: repoPdt.length,
+      repoCount: repo.length,
+      imporCount: impor.length
     };
-  }, [orders]);
+  }, [filteredOrders]);
 
-  // Compute Live Shipment Stats directly from EXECUTED SINARMAS sheet rows (694 rows)
+  // Compute Live Shipment Stats directly from EXECUTED SINARMAS sheet rows
   const shipmentStats = useMemo(() => {
     let total = 0;
     let preTrip = 0;
@@ -157,10 +214,10 @@ export default function Overview({ onNavigate }: OverviewProps) {
     let endTrip = 0;
     let cancel = 0;
 
-    const dataset = executedShipments.length > 0 ? executedShipments : orders;
+    const dataset = filteredExecutedShipments.length > 0 ? filteredExecutedShipments : filteredOrders;
 
     dataset.forEach((o) => {
-      const qty = executedShipments.length > 0 ? 1 : (o.quantity || 1);
+      const qty = filteredExecutedShipments.length > 0 ? 1 : (o.quantity || 1);
       const { shipmentStatus } = mapCSStatus(o.lastUpdateCS);
 
       total += qty;
@@ -192,7 +249,7 @@ export default function Overview({ onNavigate }: OverviewProps) {
       onTripPct,
       endTripPct
     };
-  }, [executedShipments, orders]);
+  }, [filteredExecutedShipments, filteredOrders]);
 
   const totalOrders = orderStats.total;
 
@@ -228,10 +285,18 @@ export default function Overview({ onNavigate }: OverviewProps) {
               Real-time monitoring of fleet allocation, container orders, and client shipments for PT Indah Kiat Pulp & Paper Tbk (IKPP).
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800 shrink-0 shadow-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Google Sheet Live Connected</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Filter Tanggal Booking for Dashboard */}
+            <DateRangeFilter
+              value={dateFilter}
+              onChange={setDateFilter}
+              align="right"
+            />
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800 shrink-0 shadow-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Google Sheet Live Connected</span>
+            </div>
           </div>
         </div>
 
@@ -239,6 +304,34 @@ export default function Overview({ onNavigate }: OverviewProps) {
         <div className="absolute -right-16 -top-16 w-48 h-48 bg-gray-50 dark:bg-slate-800/40 rounded-full blur-2xl"></div>
         <div className="absolute -left-10 -bottom-10 w-36 h-36 bg-gray-50 dark:bg-slate-800/40 rounded-full blur-xl"></div>
       </div>
+
+      {/* Active Date Filter Notice Banner */}
+      {(dateFilter.startDate || dateFilter.endDate || (dateFilter.preset && dateFilter.preset !== "auto")) && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 px-4 py-3 rounded-2xl text-xs font-bold text-amber-900 dark:text-amber-300 shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-amber-200/60 dark:bg-amber-900/60 rounded-lg text-amber-800 dark:text-amber-300">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-extrabold">Filter Tanggal Aktif:</span>{" "}
+              <span className="font-extrabold text-amber-950 dark:text-amber-100">
+                {dateFilter.startDate ? formatDateIndo(dateFilter.startDate) : "Awal"} s/d {dateFilter.endDate ? formatDateIndo(dateFilter.endDate) : "Akhir"}
+              </span>{" "}
+              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 ml-1">
+                (Menampilkan {filteredOrders.length} Order &amp; {filteredExecutedShipments.length} Shipment)
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDateFilter({ startDate: "", endDate: "", preset: "auto" })}
+            className="flex items-center gap-1.5 text-[11px] font-extrabold text-amber-900 dark:text-amber-200 hover:text-red-600 dark:hover:text-red-400 bg-white/80 dark:bg-amber-900/40 hover:bg-red-50 dark:hover:bg-red-950/50 px-3 py-1.5 rounded-xl border border-amber-300/80 dark:border-amber-700 transition-all cursor-pointer shadow-2xs"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Reset Filter Tanggal</span>
+          </button>
+        </div>
+      )}
 
       {/* Grid of 4 Widget Boxes (Bento Dashboard Grid) - now perfectly equal & aligned */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
@@ -340,45 +433,118 @@ export default function Overview({ onNavigate }: OverviewProps) {
           </div>
 
           <div className="flex-1 flex flex-col justify-between space-y-4">
-            {/* 4 Stat Cards Highlighted - Equal height & alignment */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {/* 5 Stat Cards Highlighted - Equal height & alignment */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {/* Total Order */}
               <div
-                onClick={() => onNavigate("order")}
-                className="bg-slate-50/60 dark:bg-slate-800/60 border-l-4 border-l-slate-500 border border-slate-200/80 dark:border-slate-700 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+                onClick={() => {
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: Total Order",
+                    subtitle: "Seluruh order yang terdaftar dalam sistem / sheet",
+                    data: filteredOrders,
+                    dataType: "order"
+                  });
+                }}
+                className="bg-slate-50/60 dark:bg-slate-800/60 border-l-4 border-l-slate-500 border border-slate-200/80 dark:border-slate-700 p-2.5 rounded-xl flex flex-col justify-center min-h-[80px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
               >
                 <div>
-                  <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">
+                  <span className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight leading-none">
                     {orderStats.total}
                   </span>
-                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1.5 leading-none block">
+                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1 leading-none block">
                     Total Order
                   </span>
-                  <span className="text-[9px] text-rose-600 dark:text-rose-400 font-bold mt-1 block leading-none">
+                  <span className="text-[8px] text-rose-600 dark:text-rose-400 font-bold mt-1 block leading-none">
                     Detail Cancel: {orderStats.cancel} Cancel
                   </span>
                 </div>
               </div>
+
+              {/* Total Shipment (Samping Kanan Total Order) */}
+              <div
+                onClick={() => {
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: Total Shipment",
+                    subtitle: "Seluruh eksekusi trip shipment dalam sistem / sheet",
+                    data: filteredExecutedShipments,
+                    dataType: "shipment"
+                  });
+                }}
+                className="bg-sky-50/30 dark:bg-sky-950/20 border-l-4 border-l-sky-500 border border-sky-200/60 dark:border-sky-800/40 p-2.5 rounded-xl flex flex-col justify-center min-h-[80px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
+                <div>
+                  <span className="text-xl sm:text-2xl font-black text-sky-700 dark:text-sky-300 tracking-tight leading-none">
+                    {shipmentStats.total}
+                  </span>
+                  <span className="text-[9px] font-black text-sky-800 dark:text-sky-300 uppercase tracking-wider mt-1 leading-none block">
+                    Total Shipment
+                  </span>
+                  <span className="text-[8px] text-sky-600 dark:text-sky-400 font-bold mt-1 block leading-none">
+                    Executed Trips
+                  </span>
+                </div>
+              </div>
               
-              {/* Open Queue */}
-              <div className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight leading-none">{orderStats.open}</span>
-                <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1.5 leading-none block">Open Queue</span>
-                <span className="text-[9px] text-amber-500 dark:text-amber-400 font-bold mt-1 block leading-none">Awaiting Dispatch</span>
+              {/* Need Action (Open Queue) */}
+              <div
+                onClick={() => {
+                  const needActionList = filteredOrders.filter((o) => {
+                    const s = (o.statusPooling || "").toUpperCase();
+                    return !s.includes("CONFIRM") && !s.includes("CANCEL");
+                  });
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: Need Action",
+                    subtitle: "Order dengan Status Pooling belum dikonfirmasi (Kosong / Need Action)",
+                    data: needActionList,
+                    dataType: "order"
+                  });
+                }}
+                className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-2.5 rounded-xl flex flex-col justify-center min-h-[80px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
+                <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight leading-none">{orderStats.needAction}</span>
+                <span className="text-[9px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1 leading-none block">Need Action</span>
+                <span className="text-[8px] text-amber-500 dark:text-amber-400 font-bold mt-1 block leading-none">Status Pooling Empty</span>
               </div>
 
-              {/* In Progress */}
-              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{orderStats.inProgress}</span>
-                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">In Transit</span>
-                <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">On the Road</span>
+              {/* Confirm (In Progress) */}
+              <div
+                onClick={() => {
+                  const confirmList = filteredOrders.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM"));
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: Confirm",
+                    subtitle: "Order dengan Status Pooling telah dikonfirmasi (Confirm)",
+                    data: confirmList,
+                    dataType: "order"
+                  });
+                }}
+                className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-2.5 rounded-xl flex flex-col justify-center min-h-[80px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
+                <span className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{orderStats.confirm}</span>
+                <span className="text-[9px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1 leading-none block">Confirm</span>
+                <span className="text-[8px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">Status Pooling Order</span>
               </div>
 
-              {/* Completed */}
-              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{orderStats.done}</span>
-                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none block">Completed</span>
-                <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">Arrived Safely</span>
+              {/* Cancel (Completed) */}
+              <div
+                onClick={() => {
+                  const cancelList = filteredOrders.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL"));
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: Cancel",
+                    subtitle: "Order dengan Status Pooling Cancel",
+                    data: cancelList,
+                    dataType: "order"
+                  });
+                }}
+                className="bg-rose-50/25 dark:bg-rose-950/20 border-l-4 border-l-rose-500 border border-rose-200/60 dark:border-rose-800/40 p-2.5 rounded-xl flex flex-col justify-center min-h-[80px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
+                <span className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none">{orderStats.cancel}</span>
+                <span className="text-[9px] font-black text-rose-800 dark:text-rose-300 uppercase tracking-wider mt-1 leading-none block">Cancel</span>
+                <span className="text-[8px] text-rose-500 dark:text-rose-400 font-bold mt-1 block leading-none">Status Pooling Cancel</span>
               </div>
             </div>
 
@@ -387,7 +553,7 @@ export default function Overview({ onNavigate }: OverviewProps) {
               <span className="text-[9px] text-gray-400 dark:text-slate-400 font-extrabold uppercase tracking-wider block mb-2.5">
                 Service Streams Progress Breakdown
               </span>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 <ServiceStreamCard
                   title="EKSPOR SERVICE"
                   total={orderStats.ekspor.total}
@@ -396,10 +562,10 @@ export default function Overview({ onNavigate }: OverviewProps) {
                 />
 
                 <ServiceStreamCard
-                  title="IMPOR SERVICE"
-                  total={orderStats.impor.total}
-                  themeColor="blue"
-                  segments={orderStats.impor.segments}
+                  title="REPO PDT"
+                  total={orderStats.repoPdt.total}
+                  themeColor="amber"
+                  segments={orderStats.repoPdt.segments}
                 />
 
                 <ServiceStreamCard
@@ -407,6 +573,13 @@ export default function Overview({ onNavigate }: OverviewProps) {
                   total={orderStats.repo.total}
                   themeColor="emerald"
                   segments={orderStats.repo.segments}
+                />
+
+                <ServiceStreamCard
+                  title="IMPOR SERVICE"
+                  total={orderStats.impor.total}
+                  themeColor="blue"
+                  segments={orderStats.impor.segments}
                 />
               </div>
             </div>
@@ -455,21 +628,64 @@ export default function Overview({ onNavigate }: OverviewProps) {
               </div>
               
               {/* Pre-Trip */}
-              <div className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+              <div
+                onClick={() => {
+                  const preTripList = filteredExecutedShipments.filter((s) => {
+                    const cs = (s.lastUpdateCS || "").toLowerCase();
+                    const isCancel =
+                      s.tripStatus === "cancel" ||
+                      (s.orderStatus || "").toLowerCase().includes("cancel") ||
+                      cs.includes("cancel");
+                    return s.tripStatus === "pre_trip" && !isCancel;
+                  });
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: Pre-Trip",
+                    subtitle: "Persiapan unit dan antrian muat barang (Pre-Trip)",
+                    data: preTripList,
+                    dataType: "shipment"
+                  });
+                }}
+                className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
                 <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight leading-none">{shipmentStats.preTrip}</span>
                 <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1.5 leading-none block">Pre-Trip</span>
                 <span className="text-[9px] text-amber-500 dark:text-amber-400 font-bold mt-1 block leading-none">Preparation ({shipmentStats.preTripPct}%)</span>
               </div>
 
               {/* On Trip */}
-              <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+              <div
+                onClick={() => {
+                  const onTripList = filteredExecutedShipments.filter((s) => s.tripStatus === "on_trip");
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: On Trip",
+                    subtitle: "Armada sedang dalam perjalanan ke lokasi tujuan (In Transit)",
+                    data: onTripList,
+                    dataType: "shipment"
+                  });
+                }}
+                className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
                 <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{shipmentStats.onTrip}</span>
                 <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">On Trip</span>
                 <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">On Road ({shipmentStats.onTripPct}%)</span>
               </div>
 
               {/* End Trip */}
-              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+              <div
+                onClick={() => {
+                  const endTripList = filteredExecutedShipments.filter((s) => s.tripStatus === "end_trip");
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: End Trip",
+                    subtitle: "Pengiriman barang telah selesai dan armada tiba dengan aman",
+                    data: endTripList,
+                    dataType: "shipment"
+                  });
+                }}
+                className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer"
+              >
                 <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{shipmentStats.endTrip}</span>
                 <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none block">End Trip</span>
                 <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">Unloaded ({shipmentStats.endTripPct}%)</span>
@@ -562,6 +778,16 @@ export default function Overview({ onNavigate }: OverviewProps) {
         </div>
 
       </div>
+
+      {/* Detail List Modal for KPI Clicks */}
+      <DetailListModal
+        isOpen={detailModal.isOpen}
+        onClose={() => setDetailModal((prev) => ({ ...prev, isOpen: false }))}
+        title={detailModal.title}
+        subtitle={detailModal.subtitle}
+        data={detailModal.data}
+        dataType={detailModal.dataType}
+      />
     </motion.div>
   );
 }

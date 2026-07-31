@@ -5,9 +5,12 @@ import StatCard from "../components/StatCard";
 import DataTable, { Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
 import SheetManagerModal, { DEFAULT_SHEET_SOURCES } from "../components/SheetManagerModal";
+import DateRangeFilter, { DateFilterState, filterByDate, parseBookingDate, formatDateIndo } from "../components/DateRangeFilter";
 import { dummyOrders } from "../lib/dummy-data";
 import { Order, OrderType, OrderStatus, SheetSource } from "../types";
-import { fetchLiveOrdersClient } from "../lib/fetchOrdersClient";
+import { fetchLiveOrdersClient, fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
+import { formatJobOrderCode } from "../lib/statusMapper";
+import DetailListModal from "../components/DetailListModal";
 
 interface OrderProps {
   initialTypeFilter?: string;
@@ -76,6 +79,25 @@ function PoolingStatusBadge({ status }: { status?: string }) {
 export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: OrderProps) {
   // Live orders state initialized with empty array (loaded live from Google Sheets)
   const [orders, setOrders] = useState<Order[]>([]);
+  const [executedShipments, setExecutedShipments] = useState<Order[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchExecuted = async () => {
+      try {
+        const executed = await fetchExecutedShipmentsClient();
+        if (isMounted && Array.isArray(executed)) {
+          setExecutedShipments(executed);
+        }
+      } catch (e) {}
+    };
+    fetchExecuted();
+    const interval = setInterval(fetchExecuted, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Multi-Spreadsheet Sources State
   const [sheetSources, setSheetSources] = useState<SheetSource[]>(() => {
@@ -125,12 +147,31 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
   const [customerFilter, setCustomerFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    startDate: "",
+    endDate: "",
+    preset: "auto"
+  });
   
   // Success Notification Banner
   const [notification, setNotification] = useState<string | null>(null);
 
   // Selected Order Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Modal State for viewing detail list of clicked KPI
+  const [detailModal, setDetailModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    data: any[];
+    dataType: "order" | "shipment";
+  }>({
+    isOpen: false,
+    title: "",
+    data: [],
+    dataType: "order"
+  });
 
   // Fetch Google Sheets orders from backend proxy API (Supports Multi-Sheet sync with client fallback)
   const syncGoogleSheets = async (showNotification = true, sourcesToSync = sheetSources) => {
@@ -243,6 +284,19 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
     return Array.from(customersSet).sort();
   }, [orders]);
 
+  // Extract available months for month filter selector
+  const availableMonths = useMemo(() => {
+    const monthsSet = new Set<string>();
+    orders.forEach((o) => {
+      const dt = parseBookingDate(o.bookingDate);
+      if (dt) {
+        const monthKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+        monthsSet.add(monthKey);
+      }
+    });
+    return Array.from(monthsSet).sort();
+  }, [orders]);
+
   // Reset Filters handler
   const handleResetFilters = () => {
     setSearchQuery("");
@@ -250,73 +304,107 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
     setCustomerFilter("all");
     setTypeFilter("all");
     setStatusFilter("all");
+    setDateFilter({ startDate: "", endDate: "", preset: "auto" });
     if (onClearInitialFilter) onClearInitialFilter();
   };
 
   const hasActiveFilters = Boolean(
-    searchQuery || orderIdFilter || customerFilter !== "all" || typeFilter !== "all" || statusFilter !== "all"
+    searchQuery || orderIdFilter || customerFilter !== "all" || typeFilter !== "all" || statusFilter !== "all" || dateFilter.startDate || dateFilter.endDate
   );
 
-  // Dynamic KPI Stats calculated from live orders
+  // Date filtered orders for stats and breakdowns
+  const dateFilteredOrders = useMemo(() => {
+    return orders.filter((order) => filterByDate(order.bookingDate, dateFilter));
+  }, [orders, dateFilter]);
+
+  // Date filtered executed shipments matching Shipment Tracking menu
+  const dateFilteredExecutedShipments = useMemo(() => {
+    return executedShipments.filter((shp) => filterByDate(shp.bookingDate, dateFilter));
+  }, [executedShipments, dateFilter]);
+
+  // Dynamic KPI Stats calculated from live orders (filtered by dateFilter)
   const stats = useMemo(() => {
-    const total = orders.length;
-    const open = orders.filter((o) => o.status === "open").length;
-    const inProgress = orders.filter((o) => o.status === "in_progress").length;
-    const done = orders.filter((o) => o.status === "done").length;
-    const cancel = orders.filter((o) => o.status === "cancel").length;
-    const activeTotal = open + inProgress + done;
+    const total = dateFilteredOrders.length;
+    // CONFIRM: statusPooling order is confirm
+    const confirm = dateFilteredOrders.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM")).length;
+    // CANCEL: statusPooling cancel
+    const cancel = dateFilteredOrders.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL")).length;
+    // NEED ACTION: statusPooling is empty or NEED ACTION
+    const needAction = dateFilteredOrders.filter((o) => {
+      const s = (o.statusPooling || "").toUpperCase();
+      return !s.includes("CONFIRM") && !s.includes("CANCEL");
+    }).length;
+
+    const totalShipment = dateFilteredExecutedShipments.length;
+    const activeTotal = needAction + confirm;
+
     return {
       total,
-      activeTotal,
+      totalShipment,
+      needAction,
+      confirm,
       cancel,
-      open,
-      inProgress,
-      done,
-      openPct: activeTotal > 0 ? Math.round((open / activeTotal) * 100) : 0,
-      inProgressPct: activeTotal > 0 ? Math.round((inProgress / activeTotal) * 100) : 0,
-      donePct: activeTotal > 0 ? Math.round((done / activeTotal) * 100) : 0
+      needActionPct: activeTotal > 0 ? Math.round((needAction / activeTotal) * 100) : 0,
+      confirmPct: activeTotal > 0 ? Math.round((confirm / activeTotal) * 100) : 0,
     };
-  }, [orders]);
+  }, [dateFilteredOrders, dateFilteredExecutedShipments]);
 
-  // Dynamic Service Type Breakdown calculated from live orders
+  // Dynamic Service Type Breakdown calculated from live orders (filtered by dateFilter)
   const typeBreakdowns = useMemo(() => {
-    const types: OrderType[] = ["ekspor", "impor", "repo"];
-    const labels: Record<OrderType, string> = {
-      ekspor: "EKSPOR SERVICE",
-      impor: "IMPOR SERVICE",
-      repo: "REPO SERVICE"
-    };
-    const colors: Record<OrderType, { tag: string; totalText: string }> = {
-      ekspor: { tag: "text-sky-700 bg-sky-50", totalText: "text-sky-800" },
-      impor: { tag: "text-blue-700 bg-blue-50", totalText: "text-blue-800" },
-      repo: { tag: "text-emerald-700 bg-emerald-50", totalText: "text-emerald-800" }
-    };
+    const eksporOrders = dateFilteredOrders.filter((o) => o.type === "ekspor");
+    const imporOrders = dateFilteredOrders.filter((o) => o.type === "impor");
+    
+    // REPO PDT: COMMERCIAL ROUTE or drop location/destination mentioning PDT, Depo PDT, Pancaran, Priok, 0 - 36
+    const repoPdtOrders = dateFilteredOrders.filter((o) => {
+      const cr = (o.commercialRoute || "").toLowerCase();
+      const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""}`.toLowerCase();
+      return (
+        cr.includes("pancaran") ||
+        cr.includes("0 - 36") ||
+        cr.includes("0-36") ||
+        cr.includes("pdt") ||
+        cr.includes("depo pdt") ||
+        text.includes("depo arround priok - pancaran") ||
+        text.includes("pancaran depo")
+      );
+    });
 
-    return types.map((t) => {
-      const typeOrders = orders.filter((o) => o.type === t);
-      const total = typeOrders.length;
-      const open = typeOrders.filter((o) => o.status === "open").length;
-      const inProgress = typeOrders.filter((o) => o.status === "in_progress").length;
-      const done = typeOrders.filter((o) => o.status === "done").length;
+    const repoOrders = dateFilteredOrders.filter((o) => o.type === "repo" && !repoPdtOrders.includes(o));
+
+    const buildItem = (id: string, label: string, list: Order[], styles: { tag: string; totalText: string }) => {
+      const total = list.length;
+      const confirm = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM")).length;
+      const cancel = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL")).length;
+      const needAction = list.filter((o) => {
+        const s = (o.statusPooling || "").toUpperCase();
+        return !s.includes("CONFIRM") && !s.includes("CANCEL");
+      }).length;
 
       return {
-        type: t,
-        label: labels[t],
+        id,
+        label,
         total,
-        open,
-        inProgress,
-        done,
-        openPct: total > 0 ? (open / total) * 100 : 0,
-        inProgressPct: total > 0 ? (inProgress / total) * 100 : 0,
-        donePct: total > 0 ? (done / total) * 100 : 0,
-        styles: colors[t]
+        needAction,
+        confirm,
+        cancel,
+        needActionPct: total > 0 ? (needAction / total) * 100 : 0,
+        confirmPct: total > 0 ? (confirm / total) * 100 : 0,
+        cancelPct: total > 0 ? (cancel / total) * 100 : 0,
+        styles
       };
-    });
-  }, [orders]);
+    };
+
+    return [
+      buildItem("ekspor", "EKSPOR SERVICE", eksporOrders, { tag: "text-sky-700 bg-sky-50 dark:bg-sky-950/60 dark:text-sky-300", totalText: "text-sky-800 dark:text-sky-300" }),
+      buildItem("repo_pdt", "REPO PDT", repoPdtOrders, { tag: "text-amber-700 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300", totalText: "text-amber-800 dark:text-amber-300" }),
+      buildItem("repo", "REPO SERVICE", repoOrders, { tag: "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300", totalText: "text-emerald-800 dark:text-emerald-300" }),
+      buildItem("impor", "IMPOR SERVICE", imporOrders, { tag: "text-blue-700 bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300", totalText: "text-blue-800 dark:text-blue-300" }),
+    ];
+  }, [dateFilteredOrders]);
 
   // Client-side filtering logic
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
+    return dateFilteredOrders.filter((order) => {
       const matchesSource =
         sourceFilter === "all" ||
         (sourceFilter === "sheets" && order.source === "Google Sheet") ||
@@ -327,6 +415,7 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       const matchesSearch =
         !q ||
         order.id.toLowerCase().includes(q) ||
+        (order.noJobOrder && order.noJobOrder.toLowerCase().includes(q)) ||
         order.customer.toLowerCase().includes(q) ||
         order.origin.toLowerCase().includes(q) ||
         order.destination.toLowerCase().includes(q) ||
@@ -336,18 +425,29 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
         (order.source && order.source.toLowerCase().includes(q));
 
       const idQ = orderIdFilter.toLowerCase().trim();
-      const matchesOrderId = !idQ || order.id.toLowerCase().includes(idQ);
+      const matchesOrderId =
+        !idQ ||
+        order.id.toLowerCase().includes(idQ) ||
+        (order.noJobOrder && order.noJobOrder.toLowerCase().includes(idQ));
 
       const matchesCustomer =
         customerFilter === "all" ||
         order.customer.toLowerCase() === customerFilter.toLowerCase();
 
-      const matchesType = typeFilter === "all" || order.type === typeFilter;
+      const matchesType =
+        typeFilter === "all" ||
+        (typeFilter === "repo_pdt"
+          ? (
+              `${order.commercialRoute || ""} ${order.origin || ""} ${order.destination || ""} ${order.notes || ""}`
+            )
+              .toLowerCase()
+              .match(/pancaran|0 - 36|0-36|depo pdt|pdt/) !== null
+          : order.type === typeFilter);
       const matchesStatus = statusFilter === "all" || order.status === statusFilter;
 
       return matchesSource && matchesSearch && matchesOrderId && matchesCustomer && matchesType && matchesStatus;
     });
-  }, [orders, searchQuery, orderIdFilter, customerFilter, typeFilter, statusFilter, sourceFilter]);
+  }, [dateFilteredOrders, searchQuery, orderIdFilter, customerFilter, typeFilter, statusFilter, sourceFilter]);
 
   // Handle Quick Advance Order Status
   const handleAdvanceStatus = (orderId: string, nextStatus: OrderStatus) => {
@@ -364,12 +464,14 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
   // Column Definitions for DataTable
   const columns: Column<Order>[] = [
     {
-      key: "id",
-      header: "Order ID",
+      key: "noJobOrder" as keyof Order,
+      header: "NO JOB ORDER",
       sortable: true,
       render: (item) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono font-black text-xs sm:text-sm text-[#0B2C6B] dark:text-sky-400">{item.id}</span>
+          <span className="font-mono font-extrabold text-xs sm:text-sm text-[#0B2C6B] dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2 py-0.5 rounded border border-sky-200 dark:border-sky-800 w-fit">
+            {formatJobOrderCode(item.noJobOrder || item.id)}
+          </span>
           {item.source === "Google Sheet" ? (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 w-fit">
               <FileSpreadsheet className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" /> {item.sourceSheetName || "Google Sheet"}
@@ -395,22 +497,10 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       render: (item) => <StatusBadge status={item.status} />
     },
     {
-      key: "lastUpdateCS" as keyof Order,
-      header: "LAST UPDATE CS",
-      sortable: true,
-      render: (item) => <CSStatusBadge status={item.lastUpdateCS} />
-    },
-    {
       key: "statusPooling" as keyof Order,
       header: "STATUS POOLING",
       sortable: true,
       render: (item) => <PoolingStatusBadge status={item.statusPooling} />
-    },
-    {
-      key: "customer",
-      header: "Customer",
-      sortable: true,
-      render: (item) => <span className="font-semibold text-xs sm:text-sm text-gray-800 dark:text-slate-200">{item.customer}</span>
     },
     {
       key: "origin",
@@ -439,12 +529,23 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       )
     },
     {
-      key: "eta",
-      header: "ETA/Due Date",
+      key: "bookingDate" as keyof Order,
+      header: "Booking Date",
       sortable: true,
       render: (item) => (
-        <span className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-          <Calendar className="w-4 h-4 text-gray-400" /> {item.eta}
+        <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 flex items-center gap-1.5 whitespace-nowrap">
+          <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          {item.bookingDate || "-"}
+        </span>
+      )
+    },
+    {
+      key: "eta",
+      header: "ESTIMATE REQ DLV DATE",
+      sortable: true,
+      render: (item) => (
+        <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 flex items-center gap-1.5">
+          <Calendar className="w-4 h-4 text-gray-400" /> {item.eta || "-"}
         </span>
       )
     }
@@ -628,9 +729,46 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
         </div>
       )}
 
-      {/* 4 Interactive Kolom KPI Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div onClick={() => setStatusFilter("all")} className="cursor-pointer transition-transform hover:scale-[1.015]">
+      {/* Top Date Range Filter Control Bar */}
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between gap-3 transition-colors duration-200">
+        <div className="flex items-center gap-2">
+          {(dateFilter.startDate || dateFilter.endDate) && (
+            <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-300 dark:border-amber-700">
+              {formatDateIndo(dateFilter.startDate)} s/d {formatDateIndo(dateFilter.endDate)}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <DateRangeFilter value={dateFilter} onChange={setDateFilter} align="right" />
+          {(dateFilter.startDate || dateFilter.endDate || (dateFilter.preset && dateFilter.preset !== "auto")) && (
+            <button
+              onClick={() => setDateFilter({ startDate: "", endDate: "", preset: "auto" })}
+              className="text-[11px] font-extrabold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/80 px-3 py-2.5 rounded-xl border border-red-200 dark:border-red-800 transition-all cursor-pointer flex items-center gap-1 shrink-0"
+              title="Reset Filter Tanggal"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 5 Interactive Kolom KPI Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div
+          onClick={() => {
+            setStatusFilter("all");
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Total Order",
+              subtitle: "Seluruh order yang terdaftar dalam sistem / sheet",
+              data: dateFilteredOrders,
+              dataType: "order"
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
           <StatCard
             title="Total Order"
             value={String(stats.total)}
@@ -639,68 +777,156 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
             description={`Detail Cancel: ${stats.cancel} Cancel`}
           />
         </div>
-        <div onClick={() => setStatusFilter("open")} className="cursor-pointer transition-transform hover:scale-[1.015]">
+        <div
+          onClick={() => {
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Total Shipment",
+              subtitle: "Seluruh eksekusi trip shipment dalam sistem / sheet",
+              data: dateFilteredExecutedShipments,
+              dataType: "shipment"
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
           <StatCard
-            title="Open Queue"
-            value={String(stats.open)}
-            statusType="warning"
-            description={`Awaiting vehicle placement (${stats.openPct}%)`}
-          />
-        </div>
-        <div onClick={() => setStatusFilter("in_progress")} className="cursor-pointer transition-transform hover:scale-[1.015]">
-          <StatCard
-            title="In Progress"
-            value={String(stats.inProgress)}
+            title="Total Shipment"
+            value={String(stats.totalShipment)}
+            icon={Truck}
             statusType="info"
-            description={`Containers in transit (${stats.inProgressPct}%)`}
+            description="Total Executed Shipments"
           />
         </div>
-        <div onClick={() => setStatusFilter("done")} className="cursor-pointer transition-transform hover:scale-[1.015]">
+        <div
+          onClick={() => {
+            setStatusFilter("open");
+            const needActionList = dateFilteredOrders.filter((o) => {
+              const s = (o.statusPooling || "").toUpperCase();
+              return !s.includes("CONFIRM") && !s.includes("CANCEL");
+            });
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Need Action",
+              subtitle: "Order dengan Status Pooling belum dikonfirmasi (Kosong / Need Action)",
+              data: needActionList,
+              dataType: "order"
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
           <StatCard
-            title="Completed (Done)"
-            value={String(stats.done)}
-            statusType="success"
-            description={`Safely arrived & processed (${stats.donePct}%)`}
+            title="Need Action"
+            value={String(stats.needAction)}
+            statusType="warning"
+            description="Status Pooling Empty"
+          />
+        </div>
+        <div
+          onClick={() => {
+            setStatusFilter("in_progress");
+            const confirmList = dateFilteredOrders.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM"));
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Confirm",
+              subtitle: "Order dengan Status Pooling telah dikonfirmasi (Confirm)",
+              data: confirmList,
+              dataType: "order"
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Confirm"
+            value={String(stats.confirm)}
+            statusType="info"
+            description="Status Pooling Order"
+          />
+        </div>
+        <div
+          onClick={() => {
+            setStatusFilter("cancel");
+            const cancelList = dateFilteredOrders.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL"));
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Cancel",
+              subtitle: "Order dengan Status Pooling Cancel",
+              data: cancelList,
+              dataType: "order"
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Cancel"
+            value={String(stats.cancel)}
+            statusType="danger"
+            description="Status Pooling Cancel"
           />
         </div>
       </div>
 
       {/* Breakdown Tipe Order (Clickable Cards with Live Segmented Bars) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {typeBreakdowns.map((b) => (
-          <div
-            key={b.type}
-            onClick={() => setTypeFilter(b.type)}
-            className={`bg-white dark:bg-slate-900 rounded-2xl border transition-all cursor-pointer p-5 shadow-sm hover:shadow-md ${
-              typeFilter === b.type ? "ring-2 ring-[#0B2C6B] dark:ring-sky-500 border-[#0B2C6B] dark:border-sky-500" : "border-gray-200 dark:border-slate-800"
-            }`}
-          >
-            <div className="flex justify-between items-center mb-3">
-              <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-md ${b.styles.tag}`}>
-                {b.label}
-              </span>
-              <span className={`text-sm font-extrabold ${b.styles.totalText}`}>{b.total} total</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {typeBreakdowns.map((b) => {
+          const typeOrders = dateFilteredOrders.filter((o) => {
+            if (b.id === "ekspor") return o.type === "ekspor";
+            if (b.id === "impor") return o.type === "impor";
+            if (b.id === "repo_pdt") {
+              const text = `${o.commercialRoute || ""} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""}`.toLowerCase();
+              return text.match(/pancaran|0 - 36|0-36|depo pdt|pdt/) !== null;
+            }
+            if (b.id === "repo") {
+              const text = `${o.commercialRoute || ""} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""}`.toLowerCase();
+              const isPdt = text.match(/pancaran|0 - 36|0-36|depo pdt|pdt/) !== null;
+              return o.type === "repo" && !isPdt;
+            }
+            return false;
+          });
+
+          return (
+            <div
+              key={b.id}
+              onClick={() => {
+                setTypeFilter(b.id === "repo_pdt" ? "repo" : b.id);
+                setDetailModal({
+                  isOpen: true,
+                  title: `Detail Data: ${b.label}`,
+                  subtitle: `Rincian order untuk kategori service ${b.label}`,
+                  data: typeOrders,
+                  dataType: "order"
+                });
+              }}
+              className={`bg-white dark:bg-slate-900 rounded-2xl border transition-all cursor-pointer p-4 shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+                typeFilter === b.id ? "ring-2 ring-[#0B2C6B] dark:ring-sky-500 border-[#0B2C6B] dark:border-sky-500" : "border-gray-200 dark:border-slate-800"
+              }`}
+            >
+              <div className="flex justify-between items-center mb-3">
+                <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-md ${b.styles.tag}`}>
+                  {b.label}
+                </span>
+                <span className={`text-xs font-extrabold ${b.styles.totalText}`}>{b.total} total</span>
+              </div>
+              <div className="space-y-2 mt-3">
+                <div className="flex justify-between text-[11px] font-semibold text-gray-500 dark:text-slate-400">
+                  <span>Action: {b.needAction}</span>
+                  <span>Confirm: {b.confirm}</span>
+                  <span>Cancel: {b.cancel}</span>
+                </div>
+                {/* Custom Multi-Segment Segmented Progress Bar */}
+                <div className="w-full h-3 bg-gray-100 dark:bg-slate-800 rounded-full flex overflow-hidden border border-gray-200/80 dark:border-slate-700 shadow-inner">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.needActionPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="bg-amber-500 h-full" title={`Need Action: ${b.needAction}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.confirmPct}%` }} transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }} className="bg-blue-500 h-full" title={`Confirm: ${b.confirm}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.cancelPct}%` }} transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }} className="bg-rose-500 h-full" title={`Cancel: ${b.cancel}`} />
+                </div>
+                <div className="flex justify-between text-[10px] text-gray-400 dark:text-slate-500 font-bold pt-0.5 uppercase tracking-wider">
+                  <span>{b.needAction} Action</span>
+                  <span>{b.confirm} Confirm</span>
+                  <span>{b.cancel} Cancel</span>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2 mt-4">
-              <div className="flex justify-between text-xs font-semibold text-gray-500 dark:text-slate-400">
-                <span>Open: {b.open}</span>
-                <span>In Progress: {b.inProgress}</span>
-                <span>Done: {b.done}</span>
-              </div>
-              {/* Custom Multi-Segment Segmented Progress Bar */}
-              <div className="w-full h-3.5 bg-gray-100 dark:bg-slate-800 rounded-full flex overflow-hidden border border-gray-200/80 dark:border-slate-700 shadow-inner">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${b.openPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="bg-sky-500 h-full" title={`Open: ${b.open}`} />
-                <motion.div initial={{ width: 0 }} animate={{ width: `${b.inProgressPct}%` }} transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }} className="bg-blue-500 h-full" title={`In Progress: ${b.inProgress}`} />
-                <motion.div initial={{ width: 0 }} animate={{ width: `${b.donePct}%` }} transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }} className="bg-emerald-500 h-full" title={`Done: ${b.done}`} />
-              </div>
-              <div className="flex justify-between text-[10px] text-gray-400 dark:text-slate-500 font-bold pt-1 uppercase tracking-wider">
-                <span>{b.open} Open</span>
-                <span>{b.inProgress} Transit</span>
-                <span>{b.done} Done</span>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Filter Bar */}
@@ -795,6 +1021,13 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
               </select>
             </div>
 
+            {/* Date Range & Month Filter Component */}
+            <DateRangeFilter
+              value={dateFilter}
+              onChange={setDateFilter}
+              availableMonths={availableMonths}
+            />
+
             {/* Clear Filter button */}
             {hasActiveFilters && (
               <button
@@ -840,6 +1073,12 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                 <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 font-bold px-2.5 py-1 rounded-lg border border-emerald-200 uppercase">
                   Status: {statusFilter.replace("_", " ")}
                   <X className="w-3 h-3 hover:text-red-500 cursor-pointer" onClick={() => setStatusFilter("all")} />
+                </span>
+              )}
+              {(dateFilter.startDate || dateFilter.endDate) && (
+                <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-bold px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800">
+                  Tgl Booking: {dateFilter.startDate ? formatDateIndo(dateFilter.startDate) : "Awal"} s/d {dateFilter.endDate ? formatDateIndo(dateFilter.endDate) : "Akhir"}
+                  <X className="w-3 h-3 hover:text-red-500 cursor-pointer" onClick={() => setDateFilter({ startDate: "", endDate: "", preset: "auto" })} />
                 </span>
               )}
             </div>
@@ -997,17 +1236,30 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
                   </div>
                 </div>
 
-                {/* Schedules & SLA */}
+                {/* Schedules, Booking & SLA */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest border-b pb-1.5">
-                    Schedule & SLA
+                    Schedule, Booking & SLA
                   </h4>
-                  <div className="bg-sky-50/50 border border-sky-100 p-4 rounded-xl flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-extrabold text-sky-800 block">SLA Due Date / ETA</span>
-                      <span className="text-sm font-black text-sky-900 mt-1 block">{selectedOrder.eta}</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 p-4 rounded-xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-amber-700 dark:text-amber-400 font-extrabold uppercase tracking-wider block flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                          Tanggal Booking
+                        </span>
+                        <span className="text-sm font-black text-amber-950 dark:text-amber-200 mt-1 block font-mono">
+                          {selectedOrder.bookingDate || "N/A"}
+                        </span>
+                      </div>
                     </div>
-                    <AlertCircle className="w-6 h-6 text-sky-500" />
+                    <div className="bg-sky-50/50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-900/60 p-4 rounded-xl flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-extrabold text-sky-800 dark:text-sky-300 block">SLA Due Date / ETA</span>
+                        <span className="text-sm font-black text-sky-900 dark:text-sky-100 mt-1 block">{selectedOrder.eta}</span>
+                      </div>
+                      <AlertCircle className="w-5 h-5 text-sky-500" />
+                    </div>
                   </div>
                 </div>
 
@@ -1044,6 +1296,16 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
         }}
         onSyncAll={() => syncGoogleSheets(true, sheetSources)}
         isSyncing={isSyncingSheets}
+      />
+
+      {/* Detail List Modal for KPI Clicks */}
+      <DetailListModal
+        isOpen={detailModal.isOpen}
+        onClose={() => setDetailModal((prev) => ({ ...prev, isOpen: false }))}
+        title={detailModal.title}
+        subtitle={detailModal.subtitle}
+        data={detailModal.data}
+        dataType={detailModal.dataType}
       />
     </motion.div>
   );

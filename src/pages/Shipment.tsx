@@ -1,19 +1,33 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ShieldCheck, CircleDot, Truck, Clock, Search, Filter, RefreshCw, Navigation, MapPin, Compass, Package, X, CheckCircle2, UserCheck, Shield, ChevronRight } from "lucide-react";
+import { ShieldCheck, CircleDot, Truck, Clock, Search, Filter, RefreshCw, Navigation, MapPin, Compass, Package, X, CheckCircle2, UserCheck, Shield, ChevronRight, Calendar, AlertCircle, XCircle } from "lucide-react";
 import StatCard from "../components/StatCard";
 import DataTable, { Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
 import TripStepper from "../components/TripStepper";
 import GpsMap from "../components/GpsMap";
+import DateRangeFilter, { DateFilterState, filterByDate, parseBookingDate, formatDateIndo } from "../components/DateRangeFilter";
 import { dummyShipments } from "../lib/dummy-data";
 import { Shipment, TripStatus } from "../types";
 import { fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
-import { mapCSStatus } from "../lib/statusMapper";
+import { mapCSStatus, formatJobOrderCode } from "../lib/statusMapper";
+import DetailListModal from "../components/DetailListModal";
 
 export default function ShipmentPage() {
   // Live Shipments state initialized to 0
   const [shipments, setShipments] = useState<Shipment[]>([]);
+
+  // Modal State for viewing detail list of clicked KPI
+  const [detailModal, setDetailModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    data: Shipment[];
+  }>({
+    isOpen: false,
+    title: "",
+    data: []
+  });
 
   // Auto-fetch Google Sheets data on mount and poll continuously in real-time
   useEffect(() => {
@@ -28,15 +42,18 @@ export default function ShipmentPage() {
               const tripStatus: TripStatus = shipmentStatus;
               return {
                 id: o.id || `SHP-${String(idx + 1).padStart(4, "0")}`,
-                orderRef: o.poolingId || o.id || "SM-D000001",
+                orderRef: o.noJobOrder || o.poolingId || o.id || "SM-D000001",
                 type: o.type || "ekspor",
                 tripStatus,
                 unit: o.vehiclePlate && o.vehiclePlate !== "#N/A" && o.vehiclePlate !== "N/A" ? o.vehiclePlate : "",
                 driver: o.driver && o.driver !== "#N/A" && o.driver !== "N/A" ? o.driver : "",
                 currentLocation: (o.statusRealtime || o.origin) && (o.statusRealtime || o.origin) !== "#N/A" && (o.statusRealtime || o.origin) !== "N/A" ? (o.statusRealtime || o.origin) : "",
                 eta: o.eta && o.eta !== "#N/A" && o.eta !== "N/A" ? o.eta : "",
+                bookingDate: o.bookingDate && o.bookingDate !== "#N/A" && o.bookingDate !== "N/A" ? o.bookingDate : "",
                 customer: o.customer || "INDAH KIAT PULP & PAPER TBK.",
-                quantity: 1
+                quantity: 1,
+                lastUpdateCS: o.lastUpdateCS,
+                orderStatus: o.status
               };
             });
             setShipments(list);
@@ -63,6 +80,11 @@ export default function ShipmentPage() {
   const [customerFilter, setCustomerFilter] = useState<string>("all");
   const [tripStatusFilter, setTripStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    startDate: "",
+    endDate: "",
+    preset: "auto"
+  });
 
   // Selected Shipment for Detail / Status Advance Drawer
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
@@ -79,25 +101,61 @@ export default function ShipmentPage() {
     return Array.from(set).sort();
   }, [shipments]);
 
+  // Available months list derived dynamically for Month filter
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    shipments.forEach((s) => {
+      const dt = parseBookingDate(s.bookingDate);
+      if (dt) {
+        const monthKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+        set.add(monthKey);
+      }
+    });
+    return Array.from(set).sort();
+  }, [shipments]);
+
   const handleResetFilters = () => {
     setSearchQuery("");
     setOrderIdFilter("");
     setCustomerFilter("all");
     setTripStatusFilter("all");
     setTypeFilter("all");
+    setDateFilter({ startDate: "", endDate: "", preset: "auto" });
   };
 
   const hasActiveFilters = Boolean(
-    searchQuery || orderIdFilter || customerFilter !== "all" || tripStatusFilter !== "all" || typeFilter !== "all"
+    searchQuery || orderIdFilter || customerFilter !== "all" || tripStatusFilter !== "all" || typeFilter !== "all" || dateFilter.startDate || dateFilter.endDate
   );
 
-  // Dynamic KPI Counts
+  // Shipments filtered by date range for the top dashboard KPIs, trip stepper, and matrix
+  const dateFilteredShipments = useMemo(() => {
+    return shipments.filter((shp) => filterByDate(shp.bookingDate, dateFilter));
+  }, [shipments, dateFilter]);
+
+  // Dynamic KPI Counts (filtered by dateFilter)
   const stats = useMemo(() => {
-    const total = shipments.length;
-    const preTrip = shipments.filter((s) => s.tripStatus === "pre_trip").length;
-    const onTrip = shipments.filter((s) => s.tripStatus === "on_trip").length;
-    const endTrip = shipments.filter((s) => s.tripStatus === "end_trip").length;
-    const cancel = shipments.filter((s) => s.tripStatus === "cancel").length;
+    const total = dateFilteredShipments.length;
+    const cancel = dateFilteredShipments.filter(
+      (s) =>
+        s.tripStatus === "cancel" ||
+        (s.orderStatus || "").toLowerCase().includes("cancel") ||
+        (s.lastUpdateCS || "").toLowerCase().includes("cancel")
+    ).length;
+
+    const rawPreTrip = dateFilteredShipments.filter((s) => s.tripStatus === "pre_trip").length;
+    // Pre-Trip excludes cancelled trips (e.g., 292 - 24 = 268)
+    const preTrip = Math.max(0, rawPreTrip - cancel);
+    const onTrip = dateFilteredShipments.filter((s) => s.tripStatus === "on_trip").length;
+    const endTrip = dateFilteredShipments.filter((s) => s.tripStatus === "end_trip").length;
+    
+    // WAITING BON MUAT from lastUpdateCS (strictly matching BON MUAT)
+    const waitingBonMuat = dateFilteredShipments.filter((s) => (s.lastUpdateCS || "").toUpperCase().includes("BON MUAT")).length;
+    // PENDING SHIPMENT based on WAITING BON MUAT / HOLD
+    const pendingShipment = dateFilteredShipments.filter((s) => {
+      const cs = (s.lastUpdateCS || "").toUpperCase();
+      return cs.includes("BON MUAT") || cs.includes("HOLD") || s.orderStatus === "hold";
+    }).length;
+
     const activeTotal = preTrip + onTrip + endTrip;
 
     return {
@@ -107,13 +165,15 @@ export default function ShipmentPage() {
       preTrip,
       onTrip,
       endTrip,
+      waitingBonMuat,
+      pendingShipment,
       preTripPct: activeTotal > 0 ? Math.round((preTrip / activeTotal) * 100) : 0,
       onTripPct: activeTotal > 0 ? Math.round((onTrip / activeTotal) * 100) : 0,
       endTripPct: activeTotal > 0 ? Math.round((endTrip / activeTotal) * 100) : 0
     };
-  }, [shipments]);
+  }, [dateFilteredShipments]);
 
-  // Matrix Breakdown calculated dynamically from shipments
+  // Matrix Breakdown calculated dynamically from shipments (filtered by dateFilter)
   const breakdownMatrix = useMemo(() => {
     const types = [
       { key: "ekspor", label: "Ekspor" },
@@ -122,7 +182,7 @@ export default function ShipmentPage() {
     ];
 
     return types.map((t) => {
-      const typeShipments = shipments.filter((s) => s.type === t.key);
+      const typeShipments = dateFilteredShipments.filter((s) => s.type === t.key);
       const preTrip = typeShipments.filter((s) => s.tripStatus === "pre_trip").length;
       const onTrip = typeShipments.filter((s) => s.tripStatus === "on_trip").length;
       const endTrip = typeShipments.filter((s) => s.tripStatus === "end_trip").length;
@@ -136,11 +196,11 @@ export default function ShipmentPage() {
         total
       };
     });
-  }, [shipments]);
+  }, [dateFilteredShipments]);
 
   // Filtering logic
   const filteredShipments = useMemo(() => {
-    return shipments.filter((shp) => {
+    return dateFilteredShipments.filter((shp) => {
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
@@ -158,12 +218,18 @@ export default function ShipmentPage() {
         customerFilter === "all" ||
         (shp.customer && shp.customer.toLowerCase() === customerFilter.toLowerCase());
 
-      const matchesTripStatus = tripStatusFilter === "all" || shp.tripStatus === tripStatusFilter;
+      const matchesTripStatus =
+        tripStatusFilter === "all" ||
+        shp.tripStatus === tripStatusFilter ||
+        (tripStatusFilter === "cancel" &&
+          (shp.tripStatus === "cancel" ||
+            (shp.orderStatus || "").toLowerCase().includes("cancel") ||
+            (shp.lastUpdateCS || "").toLowerCase().includes("cancel")));
       const matchesType = typeFilter === "all" || shp.type === typeFilter;
 
       return matchesSearch && matchesOrderId && matchesCustomer && matchesTripStatus && matchesType;
     });
-  }, [shipments, searchQuery, orderIdFilter, customerFilter, tripStatusFilter, typeFilter]);
+  }, [dateFilteredShipments, searchQuery, orderIdFilter, customerFilter, tripStatusFilter, typeFilter]);
 
   // Handler: Advance or set Trip Status Live
   const handleUpdateTripStatus = (shipmentId: string, nextStatus: TripStatus) => {
@@ -203,9 +269,13 @@ export default function ShipmentPage() {
     },
     {
       key: "orderRef",
-      header: "Order Ref",
+      header: "NO JOB ORDER",
       sortable: true,
-      render: (item) => <span className="font-mono text-xs sm:text-sm font-semibold text-gray-600">{item.orderRef}</span>
+      render: (item) => (
+        <span className="font-mono text-xs sm:text-sm font-extrabold text-[#0B2C6B] dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2.5 py-1 rounded border border-sky-200 dark:border-sky-800">
+          {formatJobOrderCode(item.orderRef)}
+        </span>
+      )
     },
     {
       key: "customer",
@@ -263,6 +333,19 @@ export default function ShipmentPage() {
       )
     },
     {
+      key: "bookingDate",
+      header: "Booking Date",
+      sortable: true,
+      render: (item) => (
+        item.bookingDate && item.bookingDate !== "#N/A" && item.bookingDate !== "N/A" ? (
+          <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-300 flex items-center gap-1.5 whitespace-nowrap">
+            <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            {item.bookingDate}
+          </span>
+        ) : <span className="text-xs text-gray-400">-</span>
+      )
+    },
+    {
       key: "eta",
       header: "ETA",
       sortable: true,
@@ -304,18 +387,137 @@ export default function ShipmentPage() {
         )}
       </AnimatePresence>
 
-      {/* 4 Kolom KPI Stats (Clickable to filter) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div onClick={() => setTripStatusFilter("all")} className="cursor-pointer transition-transform hover:scale-[1.01]">
+      {/* Title Header Card */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs flex items-center gap-3.5 transition-colors duration-200">
+        <div className="p-2.5 bg-blue-50 dark:bg-sky-950/60 text-[#0B2C6B] dark:text-sky-400 rounded-xl border border-blue-100 dark:border-sky-800 shrink-0">
+          <ShieldCheck className="w-5 h-5" />
+        </div>
+        <div>
+          <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-slate-100">
+            Dashboard - Shipment Tracking &amp; Pipeline
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
+            Active pre-trip &amp; transit GPS status checkpoints
+          </p>
+        </div>
+      </div>
+
+      {/* Top Date Range Filter Control Bar */}
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between gap-3 transition-colors duration-200">
+        <div className="flex items-center gap-2">
+          {(dateFilter.startDate || dateFilter.endDate) && (
+            <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-300 dark:border-amber-700">
+              {formatDateIndo(dateFilter.startDate)} s/d {formatDateIndo(dateFilter.endDate)}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <DateRangeFilter value={dateFilter} onChange={setDateFilter} align="right" />
+          {(dateFilter.startDate || dateFilter.endDate || (dateFilter.preset && dateFilter.preset !== "auto")) && (
+            <button
+              onClick={() => setDateFilter({ startDate: "", endDate: "", preset: "auto" })}
+              className="text-[11px] font-extrabold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/80 px-3 py-2.5 rounded-xl border border-red-200 dark:border-red-800 transition-all cursor-pointer flex items-center gap-1 shrink-0"
+              title="Reset Filter Tanggal"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 6 Kolom KPI Stats (Clickable to view detail modal popup & filter) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div
+          onClick={() => {
+            setTripStatusFilter("all");
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Total Shipment",
+              subtitle: "Seluruh data eksekusi shipment dalam periode terpilih",
+              data: dateFilteredShipments,
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
           <StatCard
             title="Total Shipment"
             value={String(stats.total)}
             icon={Package}
             statusType="neutral"
-            description={`Detail Cancel: ${stats.cancel} Trip`}
+            description="Total Executed Trips"
           />
         </div>
-        <div onClick={() => setTripStatusFilter("pre_trip")} className="cursor-pointer transition-transform hover:scale-[1.01]">
+        <div
+          onClick={() => {
+            setTripStatusFilter("cancel");
+            const cancelList = dateFilteredShipments.filter(
+              (s) =>
+                s.tripStatus === "cancel" ||
+                (s.orderStatus || "").toLowerCase().includes("cancel") ||
+                (s.lastUpdateCS || "").toLowerCase().includes("cancel")
+            );
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Total Cancel Customer",
+              subtitle: "Trip shipment dengan status order cancel customer",
+              data: cancelList,
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Total Cancel Customer"
+            value={String(stats.cancel)}
+            icon={XCircle}
+            statusType="danger"
+            description="Status Order Cancel"
+          />
+        </div>
+        <div
+          onClick={() => {
+            const pendingList = dateFilteredShipments.filter((s) => {
+              const cs = (s.lastUpdateCS || "").toUpperCase();
+              return cs.includes("BON MUAT") || cs.includes("HOLD") || s.orderStatus === "hold";
+            });
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Pending Shipment",
+              subtitle: "Shipment dalam antrian Bon Muat atau status Hold CS",
+              data: pendingList,
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Pending Shipment"
+            value={String(stats.pendingShipment)}
+            icon={AlertCircle}
+            statusType="danger"
+            description="Waiting Bon Muat"
+          />
+        </div>
+        <div
+          onClick={() => {
+            setTripStatusFilter("pre_trip");
+            const preTripList = dateFilteredShipments.filter((s) => {
+              const cs = (s.lastUpdateCS || "").toLowerCase();
+              const isCancel =
+                s.tripStatus === "cancel" ||
+                (s.orderStatus || "").toLowerCase().includes("cancel") ||
+                cs.includes("cancel");
+              return s.tripStatus === "pre_trip" && !isCancel;
+            });
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Pre-Trip",
+              subtitle: "Persiapan unit dan antrian muat barang (Pre-Trip)",
+              data: preTripList,
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
           <StatCard
             title="Pre-Trip"
             value={String(stats.preTrip)}
@@ -323,7 +525,19 @@ export default function ShipmentPage() {
             description={`Prep & loading queues (${stats.preTripPct}%)`}
           />
         </div>
-        <div onClick={() => setTripStatusFilter("on_trip")} className="cursor-pointer transition-transform hover:scale-[1.01]">
+        <div
+          onClick={() => {
+            setTripStatusFilter("on_trip");
+            const onTripList = dateFilteredShipments.filter((s) => s.tripStatus === "on_trip");
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: On Trip",
+              subtitle: "Armada sedang dalam perjalanan ke lokasi tujuan (In Transit)",
+              data: onTripList,
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
           <StatCard
             title="On Trip"
             value={String(stats.onTrip)}
@@ -331,7 +545,19 @@ export default function ShipmentPage() {
             description={`Active in transit (${stats.onTripPct}%)`}
           />
         </div>
-        <div onClick={() => setTripStatusFilter("end_trip")} className="cursor-pointer transition-transform hover:scale-[1.01]">
+        <div
+          onClick={() => {
+            setTripStatusFilter("end_trip");
+            const endTripList = dateFilteredShipments.filter((s) => s.tripStatus === "end_trip");
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: End Trip",
+              subtitle: "Pengiriman barang telah selesai dan armada tiba dengan aman",
+              data: endTripList,
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
           <StatCard
             title="End Trip"
             value={String(stats.endTrip)}
@@ -538,6 +764,13 @@ export default function ShipmentPage() {
                 </select>
               </div>
 
+              {/* Date Range & Month Filter Component */}
+              <DateRangeFilter
+                value={dateFilter}
+                onChange={setDateFilter}
+                availableMonths={availableMonths}
+              />
+
               {hasActiveFilters && (
                 <button
                   onClick={handleResetFilters}
@@ -581,6 +814,12 @@ export default function ShipmentPage() {
                 <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 font-bold px-2.5 py-0.5 rounded-lg border border-amber-200 uppercase">
                   Trip Status: {tripStatusFilter.replace("_", " ")}
                   <X className="w-3 h-3 hover:text-red-500 cursor-pointer" onClick={() => setTripStatusFilter("all")} />
+                </span>
+              )}
+              {(dateFilter.startDate || dateFilter.endDate) && (
+                <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-bold px-2.5 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                  Tgl Booking: {dateFilter.startDate ? formatDateIndo(dateFilter.startDate) : "Awal"} s/d {dateFilter.endDate ? formatDateIndo(dateFilter.endDate) : "Akhir"}
+                  <X className="w-3 h-3 hover:text-red-500 cursor-pointer" onClick={() => setDateFilter({ startDate: "", endDate: "", preset: "auto" })} />
                 </span>
               )}
             </div>
@@ -717,19 +956,33 @@ export default function ShipmentPage() {
                   </div>
                 </div>
 
-                {/* GPS Location & ETA */}
+                {/* Booking Date, GPS Location & ETA */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest border-b pb-1.5">
-                    Real-time Location & ETA
+                    Schedule, Location & ETA
                   </h4>
-                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-800">
+                  <div className="bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 p-3.5 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-amber-800 dark:text-amber-400 font-extrabold uppercase tracking-wider block flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Tanggal Booking (Booking Date)
+                      </span>
+                      <span className="text-sm font-black font-mono text-amber-950 dark:text-amber-200 block mt-0.5">
+                        {selectedShipment.bookingDate || "N/A"}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 px-2.5 py-1 rounded-md">
+                      Booking
+                    </span>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-slate-800/80 p-4 rounded-xl border border-gray-100 dark:border-slate-700 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-gray-800 dark:text-slate-200">
                       <MapPin className="w-4 h-4 text-sky-500 shrink-0" />
                       <span>{selectedShipment.currentLocation}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500 pt-1">
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-slate-400 pt-1">
                       <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>Estimated Arrival (ETA): <strong className="text-gray-900 font-bold">{selectedShipment.eta}</strong></span>
+                      <span>Estimated Arrival (ETA): <strong className="text-gray-900 dark:text-slate-100 font-bold">{selectedShipment.eta}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -749,6 +1002,16 @@ export default function ShipmentPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Detail List Modal for KPI Clicks */}
+      <DetailListModal
+        isOpen={detailModal.isOpen}
+        onClose={() => setDetailModal((prev) => ({ ...prev, isOpen: false }))}
+        title={detailModal.title}
+        subtitle={detailModal.subtitle}
+        data={detailModal.data}
+        dataType="shipment"
+      />
     </motion.div>
   );
 }

@@ -22,6 +22,8 @@ export interface Order {
   sourceSheetName?: string;
   sourceUrl?: string;
   poolingId?: string;
+  noJobOrder?: string;
+  commercialRoute?: string;
   statusPooling?: string;
   statusRealtime?: string;
 }
@@ -76,8 +78,11 @@ export interface Shipment {
   driver: string;
   currentLocation: string;
   eta: string;
+  bookingDate?: string;
   customer?: string;
   quantity?: number;
+  lastUpdateCS?: string;
+  orderStatus?: string;
 }
 
 export interface TikProStatusItem {

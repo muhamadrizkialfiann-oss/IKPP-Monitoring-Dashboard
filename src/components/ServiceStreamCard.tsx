@@ -13,7 +13,7 @@ interface StreamSegment {
 interface ServiceStreamCardProps {
   title: string;
   total: number;
-  themeColor: "sky" | "blue" | "emerald";
+  themeColor: "sky" | "blue" | "emerald" | "amber" | "teal" | "purple";
   segments: StreamSegment[];
 }
 
@@ -33,6 +33,18 @@ export default function ServiceStreamCard({ title, total, themeColor, segments }
     emerald: {
       badge: "bg-emerald-50 text-emerald-700 border border-emerald-200/50",
       glow: "group-hover:border-emerald-200 group-hover:shadow-emerald-500/5",
+    },
+    amber: {
+      badge: "bg-amber-50 text-amber-800 border border-amber-200/50",
+      glow: "group-hover:border-amber-200 group-hover:shadow-amber-500/5",
+    },
+    teal: {
+      badge: "bg-teal-50 text-teal-800 border border-teal-200/50",
+      glow: "group-hover:border-teal-200 group-hover:shadow-teal-500/5",
+    },
+    purple: {
+      badge: "bg-purple-50 text-purple-800 border border-purple-200/50",
+      glow: "group-hover:border-purple-200 group-hover:shadow-purple-500/5",
     },
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { RitaseDoc, MasterJenisProdukDoc } from "../lib/firebase";
+import DateRangeFilter, { DateFilterState } from "./DateRangeFilter";
 import * as XLSX from "xlsx";
 import html2canvas from "html2canvas";
 import {
@@ -24,8 +25,11 @@ export default function LaporanRitaseView({
   masterJenisProduk,
   vendorName
 }: LaporanRitaseViewProps) {
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({
+    startDate: "",
+    endDate: "",
+    preset: "auto"
+  });
   const [vendorFilter, setVendorFilter] = useState<string>("ALL");
   const [productFilter, setProductFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -35,12 +39,12 @@ export default function LaporanRitaseView({
   // Filter Ritase
   const filteredRitase = ritase.filter((r) => {
     // Date filter
-    if (startDate) {
-      const s = new Date(startDate).getTime();
+    if (dateFilter.startDate) {
+      const s = new Date(dateFilter.startDate).getTime();
       if (r.tgl_selesai < s) return false;
     }
-    if (endDate) {
-      const e = new Date(endDate).getTime() + 86400000;
+    if (dateFilter.endDate) {
+      const e = new Date(dateFilter.endDate).getTime() + 86400000;
       if (r.tgl_selesai > e) return false;
     }
 
@@ -147,24 +151,13 @@ export default function LaporanRitaseView({
       </div>
 
       {/* Filter Controls */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 text-xs">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-4 shadow-xs flex flex-wrap items-end gap-3 text-xs">
         <div>
-          <label className="block font-bold text-gray-500 dark:text-slate-400 mb-1">Dari Tanggal:</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full p-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-          />
-        </div>
-
-        <div>
-          <label className="block font-bold text-gray-500 dark:text-slate-400 mb-1">Sampai Tanggal:</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full p-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100"
+          <label className="block font-bold text-gray-500 dark:text-slate-400 mb-1">Filter Tanggal Booking / Ritase:</label>
+          <DateRangeFilter
+            value={dateFilter}
+            onChange={setDateFilter}
+            align="left"
           />
         </div>
 

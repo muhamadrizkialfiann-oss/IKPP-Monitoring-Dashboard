@@ -44,7 +44,7 @@ export default function App() {
       subtitle: "Track live vehicle statuses, container tier availability, and active drivers"
     },
     shipment: {
-      title: "Shipment & GPS Tracking",
+      title: "Dashboard - Shipment Tracking",
       subtitle: "Active pre-trip loading and on-trip container GPS transits"
     }
   }[activeTab];

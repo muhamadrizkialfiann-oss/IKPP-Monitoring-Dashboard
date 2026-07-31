@@ -53,3 +53,28 @@ export function mapCSStatus(lastUpdateCS?: string): MappedStatus {
   // Fallback for empty or unknown
   return { orderStatus: "cancel", shipmentStatus: "cancel" };
 }
+
+/**
+ * Extracts strictly the job order alphanumeric code (e.g., F1O0000467)
+ * from strings like "SI DO DN F1O0000467 - 272724662" or "SI DO F1O0000162 - 080600290866".
+ */
+export function formatJobOrderCode(rawString?: string): string {
+  if (!rawString) return "-";
+  const trimmed = rawString.trim();
+  
+  // Look for F1O or job order alphanumeric pattern (e.g. F1O0000467, F1O0000162)
+  const match = trimmed.match(/(?:SI\s*DO\s*DN\s*|SI\s*DO\s*)?([A-Z0-9]{8,12})/i) || trimmed.match(/([A-Z][0-9][A-Z0-9]{6,11})/i);
+  if (match && match[1]) {
+    return match[1].toUpperCase();
+  }
+
+  // Fallback: search for first chunk containing letters and digits
+  const parts = trimmed.split(/[\s-]+/).filter((p) => p.length >= 6);
+  if (parts.length > 0) {
+    const jobPart = parts.find((p) => /^[A-Z0-9]+$/i.test(p) && /[A-Z]/i.test(p) && /\d/.test(p));
+    if (jobPart) return jobPart.toUpperCase();
+  }
+
+  return trimmed;
+}
+

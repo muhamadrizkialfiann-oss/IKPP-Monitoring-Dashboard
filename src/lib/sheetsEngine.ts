@@ -258,6 +258,23 @@ export function mapSpreadsheetRowToOrder(
     ) || `ORD-GS-${String(index + 1).padStart(3, "0")}`;
   const poolingId = idPooling || (id.includes(".") ? id.split(".")[0] : id);
 
+  const rawNoJobOrder = getVal(
+    "no job order",
+    [5, 4, 6],
+    "no job order",
+    "no. job order",
+    "no_job_order",
+    "job order no",
+    "job order number",
+    "no. job",
+    "no spk",
+    "no order"
+  );
+  const isJobTypeStr =
+    !rawNoJobOrder ||
+    /trip basis|reguler|emkl|trucking|rtb|type|jenis/i.test(rawNoJobOrder);
+  const noJobOrder = !isJobTypeStr ? rawNoJobOrder : (idPooling || idExecute || id);
+
   const rawType = getVal(
     mapping?.typeField,
     [16, 17, 15],
@@ -354,9 +371,7 @@ export function mapSpreadsheetRowToOrder(
       "cs update",
       "status cdo",
       "status_cdo",
-      "status cs",
-      "last update",
-      "status"
+      "last update"
     ) || "WAITING CONFIRM";
 
   const { status } = resolveCSStatus(lastUpdateCS);
@@ -410,19 +425,51 @@ export function mapSpreadsheetRowToOrder(
 
   let notes = getVal("notes", [32, 31], "catatan", "keterangan");
 
-  const statusPooling =
-    getVal(
-      "status pooling",
-      [30],
-      "status pooling",
-      "status_pooling",
-      "status pool",
-      "pooling status"
-    ) || "CONFIRM";
+  const commercialRoute = getVal(
+    "commercial route",
+    [24, 25, 23],
+    "commercial route",
+    "commercial_route",
+    "route commercial",
+    "rute komersial"
+  );
+
+  const rawStatusPooling = getVal(
+    "status pooling",
+    [30, 29, 31, 32],
+    "status pooling order",
+    "status pooling",
+    "status_pooling",
+    "status_pooling_order",
+    "status pool",
+    "pooling status",
+    "status order"
+  );
+
+  let statusPooling = rawStatusPooling ? rawStatusPooling.trim() : "";
+  if (!statusPooling) {
+    statusPooling = "";
+  } else {
+    const upper = statusPooling.toUpperCase();
+    if (upper.includes("CANCEL")) {
+      statusPooling = "CANCEL";
+    } else if (
+      upper.includes("NEED") ||
+      upper.includes("ACTION") ||
+      upper.includes("DRAFT") ||
+      upper.includes("PENDING")
+    ) {
+      statusPooling = "NEED ACTION";
+    } else if (upper.includes("CONFIRM")) {
+      statusPooling = "CONFIRM";
+    }
+  }
 
   return {
     id,
     poolingId,
+    noJobOrder,
+    commercialRoute,
     statusPooling,
     type,
     customer,
