@@ -59,22 +59,46 @@ export function mapCSStatus(lastUpdateCS?: string): MappedStatus {
  * from strings like "SI DO DN F1O0000467 - 272724662" or "SI DO F1O0000162 - 080600290866".
  */
 export function formatJobOrderCode(rawString?: string): string {
-  if (!rawString) return "-";
+  if (!rawString) return "";
   const trimmed = rawString.trim();
-  
+  if (!trimmed) return "";
+
+  const lower = trimmed.toLowerCase();
+
+  // Return empty string for garbage / instruction text / placeholders / SM- IDs
+  if (
+    lower.includes("jangan") ||
+    lower.includes("hapus") ||
+    lower.includes("kosong") ||
+    lower.includes("tidak ada") ||
+    lower.startsWith("sm-") ||
+    lower === "-" ||
+    lower === "#n/a" ||
+    lower === "n/a" ||
+    lower === "null" ||
+    lower === "undefined"
+  ) {
+    return "";
+  }
+
   // Look for F1O or job order alphanumeric pattern (e.g. F1O0000467, F1O0000162)
-  const match = trimmed.match(/(?:SI\s*DO\s*DN\s*|SI\s*DO\s*)?([A-Z0-9]{8,12})/i) || trimmed.match(/([A-Z][0-9][A-Z0-9]{6,11})/i);
+  const match = trimmed.match(/(?:SI\s*DO\s*DN\s*|SI\s*DO\s*)?([A-Z0-9]{5,15})/i) || trimmed.match(/([A-Z][0-9][A-Z0-9]{4,14})/i);
   if (match && match[1]) {
     return match[1].toUpperCase();
   }
 
   // Fallback: search for first chunk containing letters and digits
-  const parts = trimmed.split(/[\s-]+/).filter((p) => p.length >= 6);
+  const parts = trimmed.split(/[\s-]+/).filter((p) => p.length >= 4);
   if (parts.length > 0) {
-    const jobPart = parts.find((p) => /^[A-Z0-9]+$/i.test(p) && /[A-Z]/i.test(p) && /\d/.test(p));
+    const jobPart = parts.find((p) => /^[A-Z0-9]+$/i.test(p));
     if (jobPart) return jobPart.toUpperCase();
   }
 
-  return trimmed;
+  // If it's a clean alphanumeric string
+  if (/^[A-Za-z0-9._/-]+$/.test(trimmed) && trimmed.length <= 25) {
+    return trimmed.toUpperCase();
+  }
+
+  return "";
 }
 

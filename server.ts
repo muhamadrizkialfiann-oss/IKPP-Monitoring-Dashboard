@@ -459,33 +459,35 @@ function mapSpreadsheetRowToOrder(
 
   const rawStatusPooling = getVal(
     "status pooling",
-    [30, 29, 31, 32],
-    "status pooling order",
+    [30, 31, 32],
     "status pooling",
     "status_pooling",
+    "status pooling order",
     "status_pooling_order",
     "status pool",
-    "pooling status",
-    "status order"
+    "pooling status"
   );
 
-  let statusPooling = rawStatusPooling ? rawStatusPooling.trim() : "";
-  if (!statusPooling) {
-    statusPooling = "";
-  } else {
-    const upper = statusPooling.toUpperCase();
-    if (upper.includes("CANCEL")) {
+  let statusPooling = "NEED ACTION";
+  if (rawStatusPooling && rawStatusPooling.trim()) {
+    const upper = rawStatusPooling.trim().toUpperCase();
+    if (upper.includes("CANCEL") || upper.includes("BATAL") || upper.includes("MISSED")) {
       statusPooling = "CANCEL";
     } else if (
       upper.includes("NEED") ||
       upper.includes("ACTION") ||
       upper.includes("DRAFT") ||
-      upper.includes("PENDING")
+      upper.includes("PENDING") ||
+      upper.includes("WAIT")
     ) {
       statusPooling = "NEED ACTION";
-    } else if (upper.includes("CONFIRM")) {
+    } else if (upper.includes("CONFIRM") || upper.includes("DONE") || upper.includes("OK")) {
       statusPooling = "CONFIRM";
+    } else {
+      statusPooling = "NEED ACTION";
     }
+  } else {
+    statusPooling = "NEED ACTION";
   }
 
   // Execute Looker Studio Formula Rules

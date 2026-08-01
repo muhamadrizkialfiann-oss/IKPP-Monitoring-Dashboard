@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Search, FileSpreadsheet, Calendar, User, MapPin, Truck, Hash, Tag, Info, Download } from "lucide-react";
 import { Order, Shipment } from "../types";
+import { formatJobOrderCode } from "../lib/statusMapper";
 import StatusBadge from "./StatusBadge";
 
 function PoolingBadge({ status }: { status?: string }) {
@@ -80,16 +81,15 @@ export default function DetailListModal({
     if (!filteredData.length) return;
     const headers =
       dataType === "order"
-        ? ["Job Order / ID", "Tipe", "Customer", "Commercial Route / Origin-Dest", "Status Pooling", "Last Update CS", "Booking Date"]
-        : ["Shipment ID", "Order Ref", "Driver", "Plat Nomor / Unit", "Status Trip", "Last Update CS", "Booking Date"];
+        ? ["ID Shipment", "No Job Order", "Tipe", "Status Pooling", "Last Update CS", "Booking Date"]
+        : ["Shipment ID", "Order Ref", "Status Trip", "Last Update CS", "Booking Date"];
 
     const rows = filteredData.map((item: any) => {
       if (dataType === "order") {
         return [
-          item.noJobOrder || item.id,
+          item.id || "",
+          item.noJobOrder || "",
           item.type || "",
-          item.customer || "",
-          item.commercialRoute || `${item.origin || ""} - ${item.destination || ""}`,
           item.statusPooling || "",
           item.lastUpdateCS || "",
           item.bookingDate || "",
@@ -98,8 +98,6 @@ export default function DetailListModal({
         return [
           item.id || "",
           item.orderRef || "",
-          item.driver || "",
-          item.unit || "",
           item.tripStatus || "",
           item.lastUpdateCS || "",
           item.bookingDate || "",
@@ -154,14 +152,6 @@ export default function DetailListModal({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={handleExportCSV}
-                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                title="Download CSV"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Export CSV</span>
-              </button>
-              <button
                 onClick={onClose}
                 className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
@@ -195,10 +185,9 @@ export default function DetailListModal({
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider">
                     <tr>
-                      <th className="px-3 py-2.5 rounded-l-xl">No Job Order</th>
+                      <th className="px-3 py-2.5 rounded-l-xl">ID Shipment</th>
+                      <th className="px-3 py-2.5">No Job Order</th>
                       <th className="px-3 py-2.5">Tipe</th>
-                      <th className="px-3 py-2.5">Customer</th>
-                      <th className="px-3 py-2.5">Origin - Destination / Rute</th>
                       <th className="px-3 py-2.5">Status Pooling</th>
                       <th className="px-3 py-2.5">Last Update CS</th>
                       <th className="px-3 py-2.5 rounded-r-xl">Tgl Booking</th>
@@ -208,16 +197,13 @@ export default function DetailListModal({
                     {filteredData.map((item: any, idx) => (
                       <tr key={item.id || idx} className="hover:bg-sky-50/50 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="px-3 py-2.5 font-mono font-bold text-sky-900 dark:text-sky-300 whitespace-nowrap">
-                          {item.noJobOrder || item.id}
+                          {item.id || "-"}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono font-extrabold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                          {item.noJobOrder || "-"}
                         </td>
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <StatusBadge status={item.type || "ekspor"} />
-                        </td>
-                        <td className="px-3 py-2.5 font-semibold text-slate-800 dark:text-slate-200">
-                          {item.customer || "-"}
-                        </td>
-                        <td className="px-3 py-2.5 text-slate-600 dark:text-slate-400 max-w-[220px] truncate" title={item.commercialRoute || `${item.origin || ""} - ${item.destination || ""}`}>
-                          {item.commercialRoute || `${item.origin || "-"} → ${item.destination || "-"}`}
                         </td>
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <PoolingBadge status={item.statusPooling} />
@@ -239,8 +225,7 @@ export default function DetailListModal({
                   <thead className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider">
                     <tr>
                       <th className="px-3 py-2.5 rounded-l-xl">Shipment ID</th>
-                      <th className="px-3 py-2.5">Customer</th>
-                      <th className="px-3 py-2.5">Driver / Unit</th>
+                      <th className="px-3 py-2.5">No Job Order</th>
                       <th className="px-3 py-2.5">Status Trip</th>
                       <th className="px-3 py-2.5">Last Update CS</th>
                       <th className="px-3 py-2.5 rounded-r-xl">Tgl Booking</th>
@@ -252,11 +237,8 @@ export default function DetailListModal({
                         <td className="px-3 py-2.5 font-mono font-bold text-sky-900 dark:text-sky-300 whitespace-nowrap">
                           {item.id}
                         </td>
-                        <td className="px-3 py-2.5 font-semibold text-slate-800 dark:text-slate-200">
-                          {item.customer || "-"}
-                        </td>
-                        <td className="px-3 py-2.5 font-medium text-slate-700 dark:text-slate-300">
-                          {item.driver || "-"} <span className="text-slate-400 font-normal">({item.unit || "-"})</span>
+                        <td className="px-3 py-2.5 font-mono font-extrabold text-blue-900 dark:text-sky-300">
+                          {formatJobOrderCode(item.orderRef || item.noJobOrder) || ""}
                         </td>
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <StatusBadge status={item.tripStatus || "pre_trip"} />

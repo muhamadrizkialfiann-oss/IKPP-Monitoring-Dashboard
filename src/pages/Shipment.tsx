@@ -13,6 +13,37 @@ import { fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
 import { mapCSStatus, formatJobOrderCode } from "../lib/statusMapper";
 import DetailListModal from "../components/DetailListModal";
 
+function CSStatusBadge({ status }: { status?: string }) {
+  const val = (status || "WAITING CONFIRM").toUpperCase().trim();
+
+  let badgeStyle = "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+  let dotStyle = "bg-emerald-500";
+
+  if (val.includes("WAITING") || val.includes("CONFIRM")) {
+    badgeStyle = "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800";
+    dotStyle = "bg-amber-500";
+  } else if (val.includes("FINISH") || val.includes("FIN") || val.includes("DONE") || val.includes("COMPLETE")) {
+    badgeStyle = "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+    dotStyle = "bg-emerald-500";
+  } else if (val.includes("JOB") || val.includes("TRIP") || val.includes("TRANSIT") || val.includes("JALAN")) {
+    badgeStyle = "bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800";
+    dotStyle = "bg-sky-500";
+  } else if (val.includes("CANCEL") || val.includes("BATAL") || val.includes("REJECT")) {
+    badgeStyle = "bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800";
+    dotStyle = "bg-rose-500";
+  } else if (val.includes("PLANNING") || val.includes("OPR")) {
+    badgeStyle = "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800";
+    dotStyle = "bg-indigo-500";
+  }
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold px-2.5 py-1 rounded-lg border shrink-0 shadow-2xs ${badgeStyle}`}>
+      <span className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${dotStyle}`} />
+      <span>{val}</span>
+    </span>
+  );
+}
+
 export default function ShipmentPage() {
   // Live Shipments state initialized to 0
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -42,7 +73,7 @@ export default function ShipmentPage() {
               const tripStatus: TripStatus = shipmentStatus;
               return {
                 id: o.id || `SHP-${String(idx + 1).padStart(4, "0")}`,
-                orderRef: o.noJobOrder || o.poolingId || o.id || "SM-D000001",
+                orderRef: o.noJobOrder || o.orderRef || "",
                 type: o.type || "ekspor",
                 tripStatus,
                 unit: o.vehiclePlate && o.vehiclePlate !== "#N/A" && o.vehiclePlate !== "N/A" ? o.vehiclePlate : "",
@@ -77,7 +108,7 @@ export default function ShipmentPage() {
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [orderIdFilter, setOrderIdFilter] = useState("");
-  const [customerFilter, setCustomerFilter] = useState<string>("all");
+  const [csFilter, setCsFilter] = useState<string>("all");
   const [tripStatusFilter, setTripStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<DateFilterState>({
@@ -92,11 +123,11 @@ export default function ShipmentPage() {
   // Notification Toast
   const [notification, setNotification] = useState<string | null>(null);
 
-  // Unique Customer list derived dynamically from shipments
-  const customerOptions = useMemo(() => {
+  // Unique Last Update CS list derived dynamically from shipments
+  const csOptions = useMemo(() => {
     const set = new Set<string>();
     shipments.forEach((s) => {
-      if (s.customer) set.add(s.customer);
+      if (s.lastUpdateCS) set.add(s.lastUpdateCS.trim().toUpperCase());
     });
     return Array.from(set).sort();
   }, [shipments]);
@@ -117,14 +148,14 @@ export default function ShipmentPage() {
   const handleResetFilters = () => {
     setSearchQuery("");
     setOrderIdFilter("");
-    setCustomerFilter("all");
+    setCsFilter("all");
     setTripStatusFilter("all");
     setTypeFilter("all");
     setDateFilter({ startDate: "", endDate: "", preset: "auto" });
   };
 
   const hasActiveFilters = Boolean(
-    searchQuery || orderIdFilter || customerFilter !== "all" || tripStatusFilter !== "all" || typeFilter !== "all" || dateFilter.startDate || dateFilter.endDate
+    searchQuery || orderIdFilter || csFilter !== "all" || tripStatusFilter !== "all" || typeFilter !== "all" || dateFilter.startDate || dateFilter.endDate
   );
 
   // Shipments filtered by date range for the top dashboard KPIs, trip stepper, and matrix
@@ -135,16 +166,16 @@ export default function ShipmentPage() {
   // Dynamic KPI Counts (filtered by dateFilter)
   const stats = useMemo(() => {
     const total = dateFilteredShipments.length;
-    const cancel = dateFilteredShipments.filter(
+    const cancelCustomer = dateFilteredShipments.filter(
       (s) =>
-        s.tripStatus === "cancel" ||
-        (s.orderStatus || "").toLowerCase().includes("cancel") ||
-        (s.lastUpdateCS || "").toLowerCase().includes("cancel")
+        (s.orderStatus || "").toLowerCase().includes("cancel customer") ||
+        (s.lastUpdateCS || "").toLowerCase().includes("cancel customer") ||
+        (s.lastUpdateCS || "").toLowerCase().includes("cancel cust")
     ).length;
 
-    const rawPreTrip = dateFilteredShipments.filter((s) => s.tripStatus === "pre_trip").length;
-    // Pre-Trip excludes cancelled trips (e.g., 292 - 24 = 268)
-    const preTrip = Math.max(0, rawPreTrip - cancel);
+    const cancel = dateFilteredShipments.filter((s) => s.tripStatus === "cancel").length;
+
+    const preTrip = dateFilteredShipments.filter((s) => s.tripStatus === "pre_trip").length;
     const onTrip = dateFilteredShipments.filter((s) => s.tripStatus === "on_trip").length;
     const endTrip = dateFilteredShipments.filter((s) => s.tripStatus === "end_trip").length;
     
@@ -162,6 +193,7 @@ export default function ShipmentPage() {
       total,
       activeTotal,
       cancel,
+      cancelCustomer,
       preTrip,
       onTrip,
       endTrip,
@@ -207,6 +239,7 @@ export default function ShipmentPage() {
         shp.id.toLowerCase().includes(q) ||
         shp.orderRef.toLowerCase().includes(q) ||
         (shp.customer && shp.customer.toLowerCase().includes(q)) ||
+        (shp.lastUpdateCS && shp.lastUpdateCS.toLowerCase().includes(q)) ||
         shp.driver.toLowerCase().includes(q) ||
         shp.unit.toLowerCase().includes(q) ||
         shp.currentLocation.toLowerCase().includes(q);
@@ -214,9 +247,9 @@ export default function ShipmentPage() {
       const idQ = orderIdFilter.toLowerCase().trim();
       const matchesOrderId = !idQ || shp.orderRef.toLowerCase().includes(idQ) || shp.id.toLowerCase().includes(idQ);
 
-      const matchesCustomer =
-        customerFilter === "all" ||
-        (shp.customer && shp.customer.toLowerCase() === customerFilter.toLowerCase());
+      const matchesCS =
+        csFilter === "all" ||
+        (shp.lastUpdateCS && shp.lastUpdateCS.trim().toUpperCase() === csFilter.toUpperCase());
 
       const matchesTripStatus =
         tripStatusFilter === "all" ||
@@ -227,9 +260,9 @@ export default function ShipmentPage() {
             (shp.lastUpdateCS || "").toLowerCase().includes("cancel")));
       const matchesType = typeFilter === "all" || shp.type === typeFilter;
 
-      return matchesSearch && matchesOrderId && matchesCustomer && matchesTripStatus && matchesType;
+      return matchesSearch && matchesOrderId && matchesCS && matchesTripStatus && matchesType;
     });
-  }, [dateFilteredShipments, searchQuery, orderIdFilter, customerFilter, tripStatusFilter, typeFilter]);
+  }, [dateFilteredShipments, searchQuery, orderIdFilter, csFilter, tripStatusFilter, typeFilter]);
 
   // Handler: Advance or set Trip Status Live
   const handleUpdateTripStatus = (shipmentId: string, nextStatus: TripStatus) => {
@@ -271,17 +304,21 @@ export default function ShipmentPage() {
       key: "orderRef",
       header: "NO JOB ORDER",
       sortable: true,
-      render: (item) => (
-        <span className="font-mono text-xs sm:text-sm font-extrabold text-[#0B2C6B] dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2.5 py-1 rounded border border-sky-200 dark:border-sky-800">
-          {formatJobOrderCode(item.orderRef)}
-        </span>
-      )
+      render: (item) => {
+        const code = formatJobOrderCode(item.orderRef);
+        if (!code) return null;
+        return (
+          <span className="font-mono text-xs sm:text-sm font-extrabold text-[#0B2C6B] dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2.5 py-1 rounded border border-sky-200 dark:border-sky-800">
+            {code}
+          </span>
+        );
+      }
     },
     {
-      key: "customer",
-      header: "Customer",
+      key: "lastUpdateCS",
+      header: "LAST UPDATE CS",
       sortable: true,
-      render: (item) => <span className="font-semibold text-xs sm:text-sm text-gray-800">{item.customer || "PT IKPP"}</span>
+      render: (item) => <CSStatusBadge status={item.lastUpdateCS} />
     },
     {
       key: "type",
@@ -388,36 +425,32 @@ export default function ShipmentPage() {
       </AnimatePresence>
 
       {/* Title Header Card */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs flex items-center gap-3.5 transition-colors duration-200">
-        <div className="p-2.5 bg-blue-50 dark:bg-sky-950/60 text-[#0B2C6B] dark:text-sky-400 rounded-xl border border-blue-100 dark:border-sky-800 shrink-0">
-          <ShieldCheck className="w-5 h-5" />
+      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 transition-colors duration-200">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-blue-50 dark:bg-sky-950/60 text-[#0B2C6B] dark:text-sky-400 rounded-xl border border-blue-100 dark:border-sky-800 shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-slate-100">
+              Dashboard - Shipment Tracking &amp; Pipeline
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
+              Active pre-trip &amp; transit GPS status checkpoints
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-slate-100">
-            Dashboard - Shipment Tracking &amp; Pipeline
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
-            Active pre-trip &amp; transit GPS status checkpoints
-          </p>
-        </div>
-      </div>
 
-      {/* Top Date Range Filter Control Bar */}
-      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between gap-3 transition-colors duration-200">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
           {(dateFilter.startDate || dateFilter.endDate) && (
-            <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-300 dark:border-amber-700">
+            <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-300 dark:border-amber-700 hidden md:inline-block">
               {formatDateIndo(dateFilter.startDate)} s/d {formatDateIndo(dateFilter.endDate)}
             </span>
           )}
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <DateRangeFilter value={dateFilter} onChange={setDateFilter} align="right" />
           {(dateFilter.startDate || dateFilter.endDate || (dateFilter.preset && dateFilter.preset !== "auto")) && (
             <button
               onClick={() => setDateFilter({ startDate: "", endDate: "", preset: "auto" })}
-              className="text-[11px] font-extrabold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/80 px-3 py-2.5 rounded-xl border border-red-200 dark:border-red-800 transition-all cursor-pointer flex items-center gap-1 shrink-0"
+              className="text-[11px] font-extrabold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/80 px-2.5 py-2 rounded-xl border border-red-200 dark:border-red-800 transition-all cursor-pointer flex items-center gap-1 shrink-0"
               title="Reset Filter Tanggal"
             >
               <X className="w-3.5 h-3.5" />
@@ -444,19 +477,19 @@ export default function ShipmentPage() {
           <StatCard
             title="Total Shipment"
             value={String(stats.total)}
-            icon={Package}
             statusType="neutral"
-            description="Total Executed Trips"
+            valueOnTop={false}
+            description={`Total Cancel: ${stats.cancel}`}
+            descriptionColor="text-rose-600 dark:text-rose-400 font-extrabold"
           />
         </div>
         <div
           onClick={() => {
-            setTripStatusFilter("cancel");
             const cancelList = dateFilteredShipments.filter(
               (s) =>
-                s.tripStatus === "cancel" ||
-                (s.orderStatus || "").toLowerCase().includes("cancel") ||
-                (s.lastUpdateCS || "").toLowerCase().includes("cancel")
+                (s.orderStatus || "").toLowerCase().includes("cancel customer") ||
+                (s.lastUpdateCS || "").toLowerCase().includes("cancel customer") ||
+                (s.lastUpdateCS || "").toLowerCase().includes("cancel cust")
             );
             setDetailModal({
               isOpen: true,
@@ -469,7 +502,7 @@ export default function ShipmentPage() {
         >
           <StatCard
             title="Total Cancel Customer"
-            value={String(stats.cancel)}
+            value={String(stats.cancelCustomer)}
             icon={XCircle}
             statusType="danger"
             description="Status Order Cancel"
@@ -574,9 +607,6 @@ export default function ShipmentPage() {
         endTripCount={stats.endTrip}
       />
 
-      {/* Live GPS Fleet Transit Radar Map */}
-      <GpsMap />
-
       {/* Split layout: Breakdown Matrix Table & Live Delivery SLA stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -659,6 +689,9 @@ export default function ShipmentPage() {
 
       </div>
 
+      {/* Live GPS Fleet Transit Radar Map */}
+      <GpsMap />
+
       {/* Shipment Data Table Section */}
       <div className="space-y-4">
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm space-y-4 transition-colors duration-200">
@@ -716,18 +749,18 @@ export default function ShipmentPage() {
                 )}
               </div>
 
-              {/* Customer Dropdown Selector */}
+              {/* Last Update CS Dropdown Selector */}
               <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-2 flex-1 sm:flex-initial">
                 <Filter className="w-3 h-3 text-gray-400 shrink-0" />
                 <select
-                  value={customerFilter}
-                  onChange={(e) => setCustomerFilter(e.target.value)}
-                  className="text-xs font-bold text-gray-700 bg-transparent border-none focus:outline-none cursor-pointer max-w-[150px] truncate"
+                  value={csFilter}
+                  onChange={(e) => setCsFilter(e.target.value)}
+                  className="text-xs font-bold text-gray-700 bg-transparent border-none focus:outline-none cursor-pointer max-w-[170px] truncate"
                 >
-                  <option value="all">Customer: All</option>
-                  {customerOptions.map((cust) => (
-                    <option key={cust} value={cust}>
-                      {cust}
+                  <option value="all">Last Update CS: All</option>
+                  {csOptions.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
                     </option>
                   ))}
                 </select>
@@ -798,10 +831,10 @@ export default function ShipmentPage() {
                   <X className="w-3 h-3 hover:text-red-500 cursor-pointer" onClick={() => setOrderIdFilter("")} />
                 </span>
               )}
-              {customerFilter !== "all" && (
+              {csFilter !== "all" && (
                 <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 font-bold px-2.5 py-0.5 rounded-lg border border-indigo-200">
-                  Customer: {customerFilter}
-                  <X className="w-3 h-3 hover:text-red-500 cursor-pointer" onClick={() => setCustomerFilter("all")} />
+                  Last Update CS: {csFilter}
+                  <X className="w-3 h-3 hover:text-red-500 cursor-pointer" onClick={() => setCsFilter("all")} />
                 </span>
               )}
               {typeFilter !== "all" && (
@@ -879,7 +912,7 @@ export default function ShipmentPage() {
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Order Reference</span>
-                    <span className="text-sm font-black font-mono text-gray-900 mt-0.5 block">{selectedShipment.orderRef}</span>
+                    <span className="text-sm font-black font-mono text-gray-900 mt-0.5 block">{formatJobOrderCode(selectedShipment.orderRef) || ""}</span>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <StatusBadge status={selectedShipment.tripStatus} />

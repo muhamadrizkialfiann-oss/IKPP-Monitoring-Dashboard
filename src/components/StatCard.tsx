@@ -6,7 +6,9 @@ interface StatCardProps {
   title: string;
   value: string | number;
   icon?: LucideIcon;
-  description?: string;
+  description?: string | React.ReactNode;
+  descriptionColor?: string;
+  valueOnTop?: boolean;
   statusType?: "success" | "warning" | "info" | "neutral" | "danger";
   breakdown?: {
     label: string;
@@ -22,6 +24,8 @@ export default function StatCard({
   value,
   icon: Icon,
   description,
+  descriptionColor,
+  valueOnTop = false,
   statusType = "neutral",
   breakdown,
   onClick,
@@ -55,26 +59,39 @@ export default function StatCard({
       }`}
     >
       {/* Card Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">
-            {title}
-          </span>
-          <h3 className={`text-3xl font-extrabold tabular-nums mt-1 tracking-tight ${valueColor}`}>
-            {value}
-          </h3>
-        </div>
-        {Icon && (
-          <div className={`p-2.5 rounded-lg ${
-            onClick ? "bg-blue-50 dark:bg-slate-800 text-[#0B2C6B] dark:text-sky-400 group-hover:bg-[#0B2C6B] group-hover:text-white" : "bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-400"
-          } transition-colors`}>
-            <Icon className="w-5 h-5" />
+      <div>
+        {valueOnTop ? (
+          <div>
+            <h3 className={`text-3xl font-extrabold tabular-nums tracking-tight ${valueColor}`}>
+              {value}
+            </h3>
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mt-1 block">
+              {title}
+            </span>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-start justify-between gap-1 min-h-[32px]">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 leading-tight block">
+                {title}
+              </span>
+              {Icon && (
+                <div className={`p-1.5 rounded-lg shrink-0 ${
+                  onClick ? "bg-blue-50 dark:bg-slate-800 text-[#0B2C6B] dark:text-sky-400 group-hover:bg-[#0B2C6B] group-hover:text-white" : "bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-400"
+                } transition-colors`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+              )}
+            </div>
+            <h3 className={`text-2xl sm:text-3xl font-extrabold tabular-nums mt-1 tracking-tight leading-none ${valueColor}`}>
+              {value}
+            </h3>
           </div>
         )}
       </div>
 
       {/* Breakdown or Description */}
-      <div className="mt-4">
+      <div className="mt-3">
         {breakdown ? (
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
             {breakdown.map((item, idx) => (
@@ -90,10 +107,12 @@ export default function StatCard({
           </div>
         ) : (
           description && (
-            <p className="text-xs text-gray-400 dark:text-slate-400 font-medium tracking-wide flex items-center gap-1.5">
-              {statusType === "success" && <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>}
-              {statusType === "warning" && <span className="w-2 h-2 rounded-full bg-sky-500 inline-block"></span>}
-              {statusType === "info" && <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>}
+            <p className={`text-xs font-semibold tracking-wide flex items-center gap-1.5 ${
+              descriptionColor ? descriptionColor : "text-gray-400 dark:text-slate-400"
+            }`}>
+              {statusType === "success" && <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0"></span>}
+              {statusType === "warning" && <span className="w-2 h-2 rounded-full bg-sky-500 inline-block shrink-0"></span>}
+              {statusType === "info" && <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shrink-0"></span>}
               {description}
             </p>
           )
