@@ -205,16 +205,36 @@ export default function ShipmentPage() {
     };
   }, [dateFilteredShipments]);
 
+  // Helper to identify Repo PDT shipments
+  const isShipmentRepoPdt = (s: Shipment) => {
+    const text = `${s.commercialRoute || ""} ${s.origin || ""} ${s.destination || ""} ${s.notes || ""} ${s.unit || ""} ${s.currentLocation || ""}`.toLowerCase();
+    return (
+      text.includes("pancaran") ||
+      text.includes("0 - 36") ||
+      text.includes("0-36") ||
+      text.includes("pdt") ||
+      text.includes("depo pdt") ||
+      text.includes("depo arround priok - pancaran")
+    );
+  };
+
   // Matrix Breakdown calculated dynamically from shipments (filtered by dateFilter)
   const breakdownMatrix = useMemo(() => {
     const types = [
       { key: "ekspor", label: "Ekspor" },
-      { key: "impor", label: "Impor" },
-      { key: "repo", label: "Repo" }
+      { key: "repo_pdt", label: "Repo PDT" },
+      { key: "repo_service", label: "Repo Service" },
+      { key: "impor", label: "Impor" }
     ];
 
     return types.map((t) => {
-      const typeShipments = dateFilteredShipments.filter((s) => s.type === t.key);
+      const typeShipments = dateFilteredShipments.filter((s) => {
+        if (t.key === "ekspor") return s.type === "ekspor";
+        if (t.key === "impor") return s.type === "impor";
+        if (t.key === "repo_pdt") return (s.type === "repo" || isShipmentRepoPdt(s)) && isShipmentRepoPdt(s);
+        if (t.key === "repo_service") return s.type === "repo" && !isShipmentRepoPdt(s);
+        return false;
+      });
       const preTrip = typeShipments.filter((s) => s.tripStatus === "pre_trip").length;
       const onTrip = typeShipments.filter((s) => s.tripStatus === "on_trip").length;
       const endTrip = typeShipments.filter((s) => s.tripStatus === "end_trip").length;
@@ -258,7 +278,13 @@ export default function ShipmentPage() {
           (shp.tripStatus === "cancel" ||
             (shp.orderStatus || "").toLowerCase().includes("cancel") ||
             (shp.lastUpdateCS || "").toLowerCase().includes("cancel")));
-      const matchesType = typeFilter === "all" || shp.type === typeFilter;
+      const matchesType =
+        typeFilter === "all" ||
+        (typeFilter === "ekspor" && shp.type === "ekspor") ||
+        (typeFilter === "impor" && shp.type === "impor") ||
+        (typeFilter === "repo" && shp.type === "repo") ||
+        (typeFilter === "repo_pdt" && (shp.type === "repo" || isShipmentRepoPdt(shp)) && isShipmentRepoPdt(shp)) ||
+        (typeFilter === "repo_service" && shp.type === "repo" && !isShipmentRepoPdt(shp));
 
       return matchesSearch && matchesOrderId && matchesCS && matchesTripStatus && matchesType;
     });
@@ -639,7 +665,13 @@ export default function ShipmentPage() {
                   >
                     <td className="py-4 font-extrabold text-gray-950 dark:text-slate-100 flex items-center gap-2 text-sm sm:text-base">
                       <span className={`w-3 h-3 rounded-full ${
-                        row.type === "Ekspor" ? "bg-sky-500" : row.type === "Impor" ? "bg-blue-500" : "bg-emerald-500"
+                        row.type === "Ekspor"
+                          ? "bg-sky-500"
+                          : row.type === "Repo PDT"
+                          ? "bg-amber-500"
+                          : row.type === "Repo Service"
+                          ? "bg-emerald-500"
+                          : "bg-blue-600"
                       }`}></span>
                       {row.type}
                     </td>
@@ -792,8 +824,10 @@ export default function ShipmentPage() {
                 >
                   <option value="all">Order Tipe: All</option>
                   <option value="ekspor">Ekspor Only</option>
+                  <option value="repo_pdt">Repo PDT Only</option>
+                  <option value="repo_service">Repo Service Only</option>
+                  <option value="repo">Repo All (PDT & Service)</option>
                   <option value="impor">Impor Only</option>
-                  <option value="repo">Repo Only</option>
                 </select>
               </div>
 

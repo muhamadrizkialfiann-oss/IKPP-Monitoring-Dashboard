@@ -268,14 +268,16 @@ export default function Overview({ onNavigate }: OverviewProps) {
   // Stacked bar segments for Order Types
   const orderTypeSegments = [
     { label: "Ekspor", count: orderStats.eksporCount, percentage: totalOrders ? Math.round((orderStats.eksporCount / totalOrders) * 100) : 0, color: "bg-sky-500" },
-    { label: "Impor", count: orderStats.imporCount, percentage: totalOrders ? Math.round((orderStats.imporCount / totalOrders) * 100) : 0, color: "bg-blue-600" },
-    { label: "Repo", count: orderStats.repoCount, percentage: totalOrders ? Math.round((orderStats.repoCount / totalOrders) * 100) : 0, color: "bg-emerald-500" }
+    { label: "Repo PDT", count: orderStats.repoPdtCount, percentage: totalOrders ? Math.round((orderStats.repoPdtCount / totalOrders) * 100) : 0, color: "bg-amber-500" },
+    { label: "Repo Service", count: orderStats.repoCount, percentage: totalOrders ? Math.round((orderStats.repoCount / totalOrders) * 100) : 0, color: "bg-emerald-500" },
+    { label: "Impor", count: orderStats.imporCount, percentage: totalOrders ? Math.round((orderStats.imporCount / totalOrders) * 100) : 0, color: "bg-blue-600" }
   ];
 
   const orderDistributionData = [
-    { name: "Ekspor", value: orderStats.eksporCount, color: "#0EA5E9" },   // sky-500
-    { name: "Impor", value: orderStats.imporCount, color: "#2563EB" },    // blue-600
-    { name: "Repo", value: orderStats.repoCount, color: "#10B981" }      // emerald-500
+    { name: "Ekspor", value: orderStats.eksporCount, color: "#0EA5E9" },    // sky-500
+    { name: "Repo PDT", value: orderStats.repoPdtCount, color: "#F59E0B" },  // amber-500
+    { name: "Repo Service", value: orderStats.repoCount, color: "#10B981" }, // emerald-500
+    { name: "Impor", value: orderStats.imporCount, color: "#2563EB" }        // blue-600
   ];
 
   return (
@@ -849,8 +851,8 @@ export default function Overview({ onNavigate }: OverviewProps) {
           </div>
 
           <div className="flex-1 flex flex-col justify-between space-y-4">
-            {/* 3 Stat Cards Highlighted - Equal height & alignment */}
-            <div className="grid grid-cols-3 gap-2.5">
+            {/* 4 Stat Cards Highlighted - Equal height & alignment */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
               {/* Ekspor */}
               <div className="bg-sky-50/25 dark:bg-sky-950/20 border-l-4 border-l-sky-400 border border-sky-200/60 dark:border-sky-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 tracking-tight leading-none">{orderStats.eksporCount}</span>
@@ -858,18 +860,25 @@ export default function Overview({ onNavigate }: OverviewProps) {
                 <span className="text-[9px] text-sky-500 dark:text-sky-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.eksporCount / totalOrders) * 100) : 0}% Share</span>
               </div>
 
+              {/* Repo PDT */}
+              <div className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+                <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight leading-none">{orderStats.repoPdtCount}</span>
+                <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1.5 leading-none block">Repo PDT</span>
+                <span className="text-[9px] text-amber-500 dark:text-amber-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.repoPdtCount / totalOrders) * 100) : 0}% Share</span>
+              </div>
+
+              {/* Repo Service */}
+              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{orderStats.repoCount}</span>
+                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none block">Repo Service</span>
+                <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.repoCount / totalOrders) * 100) : 0}% Share</span>
+              </div>
+
               {/* Impor */}
               <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{orderStats.imporCount}</span>
                 <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">Impor</span>
                 <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.imporCount / totalOrders) * 100) : 0}% Share</span>
-              </div>
-
-              {/* Repo */}
-              <div className="bg-emerald-50/25 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 border border-emerald-200/60 dark:border-emerald-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none">{orderStats.repoCount}</span>
-                <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mt-1.5 leading-none block">Repo</span>
-                <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.repoCount / totalOrders) * 100) : 0}% Share</span>
               </div>
             </div>
 

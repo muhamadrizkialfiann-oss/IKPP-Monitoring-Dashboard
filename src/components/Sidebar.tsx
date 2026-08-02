@@ -10,9 +10,10 @@ interface SidebarProps {
   setActiveTab: (tab: TabType) => void;
   isOpen: boolean;
   onClose: () => void;
+  onGoToLanding?: () => void;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGoToLanding }: SidebarProps) {
   const menuItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "order", label: "Order Management", icon: ClipboardList },
@@ -102,16 +103,20 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }: Si
 
               {/* Sign Out Section */}
               <div className="px-5 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto">
-                {/* Sign Out Button */}
+                {/* Sign Out / Exit Portal Button */}
                 <button
                   id="sidebar-sign-out"
                   onClick={() => {
-                    console.log("Sign Out clicked");
+                    if (onGoToLanding) {
+                      onGoToLanding();
+                    } else {
+                      window.location.reload();
+                    }
                   }}
                   className="w-full flex items-center gap-3.5 px-3 py-2.5 text-sm font-bold text-[#7c94b6] dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors cursor-pointer group"
                 >
                   <LogOut className="w-5 h-5 text-[#7c94b6] dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
-                  <span>Sign Out</span>
+                  <span>Exit Portal / Sign Out</span>
                 </button>
               </div>
             </div>

@@ -189,7 +189,6 @@ export default function DetailListModal({
                       <th className="px-3 py-2.5">No Job Order</th>
                       <th className="px-3 py-2.5">Tipe</th>
                       <th className="px-3 py-2.5">Status Pooling</th>
-                      <th className="px-3 py-2.5">Last Update CS</th>
                       <th className="px-3 py-2.5 rounded-r-xl">Tgl Booking</th>
                     </tr>
                   </thead>
@@ -197,10 +196,10 @@ export default function DetailListModal({
                     {filteredData.map((item: any, idx) => (
                       <tr key={item.id || idx} className="hover:bg-sky-50/50 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="px-3 py-2.5 font-mono font-bold text-sky-900 dark:text-sky-300 whitespace-nowrap">
-                          {item.id || "-"}
+                          {item.id || ""}
                         </td>
                         <td className="px-3 py-2.5 font-mono font-extrabold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                          {item.noJobOrder || "-"}
+                          {item.noJobOrder || ""}
                         </td>
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <StatusBadge status={item.type || "ekspor"} />
@@ -208,11 +207,8 @@ export default function DetailListModal({
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <PoolingBadge status={item.statusPooling} />
                         </td>
-                        <td className="px-3 py-2.5 font-medium text-slate-700 dark:text-slate-300 max-w-[180px] truncate" title={item.lastUpdateCS}>
-                          {item.lastUpdateCS || "-"}
-                        </td>
                         <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">
-                          {item.bookingDate || "-"}
+                          {item.bookingDate || ""}
                         </td>
                       </tr>
                     ))}
@@ -227,7 +223,6 @@ export default function DetailListModal({
                       <th className="px-3 py-2.5 rounded-l-xl">Shipment ID</th>
                       <th className="px-3 py-2.5">No Job Order</th>
                       <th className="px-3 py-2.5">Status Trip</th>
-                      <th className="px-3 py-2.5">Last Update CS</th>
                       <th className="px-3 py-2.5 rounded-r-xl">Tgl Booking</th>
                     </tr>
                   </thead>
@@ -243,11 +238,8 @@ export default function DetailListModal({
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <StatusBadge status={item.tripStatus || "pre_trip"} />
                         </td>
-                        <td className="px-3 py-2.5 font-medium text-slate-700 dark:text-slate-300 max-w-[200px] truncate" title={item.lastUpdateCS}>
-                          {item.lastUpdateCS || "-"}
-                        </td>
                         <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">
-                          {item.bookingDate || "-"}
+                          {item.bookingDate || ""}
                         </td>
                       </tr>
                     ))}

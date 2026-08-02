@@ -6,9 +6,14 @@ import OrderPage from "./pages/Order";
 import AvailabilityPage from "./pages/Availability";
 import ShipmentPage from "./pages/Shipment";
 import TikProLiveDashboard from "./components/TikProLiveDashboard";
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
 
 export default function App() {
-  // Navigation State
+  // Navigation View State ('landing' | 'login' | 'dashboard')
+  const [view, setView] = useState<"landing" | "login" | "dashboard">("landing");
+
+  // Dashboard Active Tab State
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
@@ -24,6 +29,20 @@ export default function App() {
     }
     setActiveTab(tab);
   };
+
+  // Views handling
+  if (view === "landing") {
+    return <LandingPage onLogin={() => setView("login")} />;
+  }
+
+  if (view === "login") {
+    return (
+      <LoginPage
+        onBackToHome={() => setView("landing")}
+        onLoginSuccess={() => setView("dashboard")}
+      />
+    );
+  }
 
   // Get dynamic titles and subtitles for each view
   const headerDetails = {
@@ -57,6 +76,7 @@ export default function App() {
         setActiveTab={(tab) => handleNavigate(tab)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onGoToLanding={() => setView("landing")}
       />
 
       {/* Main Content Area */}
