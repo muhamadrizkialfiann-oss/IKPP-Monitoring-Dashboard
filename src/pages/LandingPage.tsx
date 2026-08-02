@@ -30,7 +30,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
       {/* 1. Header Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-6 py-3.5 transition-all shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 px-6 py-3.5 transition-all shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Logo Brand */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>

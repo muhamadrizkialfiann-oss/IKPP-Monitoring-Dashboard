@@ -36,7 +36,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
       if (isRegisterView) {
         // Handle User Registration
         if (!fullName.trim()) {
-          setErrorMessage("Nama Lengkap wajib diisi untuk registrasi akun.");
+          setErrorMessage("Full Name is required for account registration.");
           return;
         }
 
@@ -48,12 +48,12 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
         });
 
         if (res.success) {
-          setRegisterSuccessMsg(res.message || "Pendaftaran akun berhasil!");
+          setRegisterSuccessMsg(res.message || "Account registration successful!");
           setIsRegisterView(false);
           setEmail(email);
           setPassword(password);
         } else {
-          setErrorMessage(res.message || "Gagal melakukan pendaftaran akun.");
+          setErrorMessage(res.message || "Failed to register account.");
         }
       } else {
         // Handle User Login
@@ -62,7 +62,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
         if (res.success && res.user) {
           onLoginSuccess(res.user);
         } else {
-          setErrorMessage(res.message || "Gagal Masuk: Kombinasi email & password tidak valid atau akun belum aktif.");
+          setErrorMessage(res.message || "Sign In Failed: Invalid email & password combination or account not yet active.");
         }
       }
     }, 400);
@@ -100,7 +100,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
               </h2>
               <p className="text-slate-500 text-xs sm:text-sm font-medium mt-1">
                 {isRegisterView
-                  ? "Buat kredensial akses internal Pancaran"
+                  ? "Create internal Pancaran access credentials"
                   : "Access ecosystem management systems"}
               </p>
             </div>
@@ -140,7 +140,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Budi Santoso"
+                    placeholder="Enter full name"
                     className="w-full bg-slate-50 border border-slate-200 focus:border-sky-600 focus:bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
                   />
                 </div>
@@ -158,7 +158,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="digital.solution@pancaran-logistic.id"
+                  placeholder="email@pancaran-logistic.id"
                   className="w-full bg-slate-50 border border-slate-200 focus:border-sky-600 focus:bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
                 />
               </div>
@@ -190,7 +190,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
                 {!isRegisterView && (
                   <button
                     type="button"
-                    onClick={() => alert("Untuk reset password, silakan hubungi Super Admin di digital.solution@pancaran-logistic.id.")}
+                    onClick={() => alert("To reset your password, please contact Super Admin at digital.solution@pancaran-logistic.id.")}
                     className="text-[11px] font-bold text-sky-600 hover:underline cursor-pointer"
                   >
                     Forgot Password?
@@ -227,7 +227,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>{isRegisterView ? "Kirim Registrasi Account" : "Sign In to Portal"}</span>
+                  <span>{isRegisterView ? "Submit Account Registration" : "Sign In to Portal"}</span>
                   <Shield className="w-4 h-4" />
                 </>
               )}
@@ -238,7 +238,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
           <div className="mt-6 text-center text-xs font-semibold text-slate-500">
             {isRegisterView ? (
               <p>
-                Sudah memiliki akun terverifikasi?{" "}
+                Already have a verified account?{" "}
                 <button
                   onClick={() => {
                     setIsRegisterView(false);
@@ -251,7 +251,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
               </p>
             ) : (
               <p>
-                Belum memiliki akun?{" "}
+                Don't have an account?{" "}
                 <button
                   onClick={() => {
                     setIsRegisterView(true);
@@ -259,7 +259,7 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
                   }}
                   className="text-sky-600 font-bold hover:underline cursor-pointer ml-1"
                 >
-                  Register Internal Account (Perlu Approval)
+                  Register Internal Account (Approval Required)
                 </button>
               </p>
             )}

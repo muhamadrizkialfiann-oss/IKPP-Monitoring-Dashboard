@@ -110,10 +110,10 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGo
                       className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                         isActive
                           ? isApprovalTab
-                            ? "bg-amber-500 text-white shadow-md translate-x-1 font-extrabold"
+                            ? "bg-sky-600 text-white shadow-md translate-x-1 font-extrabold"
                             : "bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-l-4 border-sky-500 shadow-sm translate-x-1"
                           : isApprovalTab
-                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-300/60 dark:border-amber-800/60"
+                          ? "bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 hover:bg-sky-100 border border-sky-300/60 dark:border-sky-800/60"
                           : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-slate-100"
                       }`}
                     >
@@ -121,7 +121,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGo
                         <Icon className={`w-4 h-4 shrink-0 ${
                           isActive
                             ? isApprovalTab ? "text-white" : "text-sky-500 dark:text-sky-400"
-                            : isApprovalTab ? "text-amber-600 dark:text-amber-400" : "text-gray-400 dark:text-slate-400"
+                            : isApprovalTab ? "text-sky-600 dark:text-sky-400" : "text-gray-400 dark:text-slate-400"
                         }`} />
                         <span>{item.label}</span>
                       </div>
@@ -129,7 +129,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGo
                       {/* Optional Badge (e.g. Pending count) */}
                       {"badge" in item && item.badge && (
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse ${
-                          isActive ? "bg-white text-amber-800" : "bg-amber-500 text-white"
+                          isActive ? "bg-white text-sky-800" : "bg-sky-600 text-white"
                         }`}>
                           {item.badge}
                         </span>
@@ -139,37 +139,8 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGo
                 })}
               </nav>
 
-              {/* Bottom User Info & Sign Out Section */}
+              {/* Bottom Sign Out Section */}
               <div className="px-4 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto space-y-3">
-                {/* Active User Card */}
-                {currentUser && (
-                  <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                      isSuperAdmin 
-                        ? "bg-purple-600 text-white"
-                        : currentUser.role === "Internal CS"
-                        ? "bg-sky-600 text-white"
-                        : "bg-slate-700 text-white"
-                    }`}>
-                      {currentUser.fullName.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
-                        {currentUser.fullName}
-                      </div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
-                          isSuperAdmin 
-                            ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
-                            : "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"
-                        }`}>
-                          {currentUser.role}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Sign Out / Exit Portal Button */}
                 <button
                   id="sidebar-sign-out"
