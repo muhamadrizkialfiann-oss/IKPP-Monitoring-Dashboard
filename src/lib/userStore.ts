@@ -4,6 +4,17 @@ const STORAGE_KEY = "pancaran_users_db_v1";
 
 const DEFAULT_USERS: UserAccount[] = [
   {
+    id: "user-customer-1",
+    email: "customer@example.com",
+    passwordHash: "12345678",
+    fullName: "Indah Kiat Pulp & Paper (IKPP)",
+    role: "Management Executive",
+    department: "VIP Customer Account",
+    status: "active",
+    registeredAt: "2026-01-01 08:00",
+    lastLoginAt: "2026-08-02 00:00"
+  },
+  {
     id: "user-super-admin-1",
     email: "digital.solution@pancaran-logistic.id",
     passwordHash: "12345678",

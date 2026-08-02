@@ -16,7 +16,7 @@ import {
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
 
 interface LandingPageProps {
-  onLogin: () => void;
+  onLogin: (portal?: "customer" | "internal" | "partner") => void;
 }
 
 export default function LandingPage({ onLogin }: LandingPageProps) {
@@ -150,7 +150,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             <div className="relative">
               <button
                 id="landing-login-portal-btn"
-                onClick={onLogin}
+                onClick={() => onLogin("customer")}
                 className="bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-extrabold text-xs px-5 py-2.5 rounded-full flex items-center gap-2 shadow-md shadow-sky-600/20 hover:shadow-sky-600/30 transition-all cursor-pointer transform hover:-translate-y-0.5"
               >
                 <span>Login Portal</span>
@@ -205,7 +205,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <button
               id="hero-get-started-btn"
-              onClick={onLogin}
+              onClick={() => onLogin("customer")}
               className="bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-extrabold text-sm px-7 py-3.5 rounded-full flex items-center gap-2 shadow-xl shadow-sky-600/30 transition-all cursor-pointer transform hover:-translate-y-0.5"
             >
               <span>Get Started</span>
@@ -257,7 +257,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               </div>
               <div>
                 <button
-                  onClick={onLogin}
+                  onClick={() => onLogin("customer")}
                   className="text-sky-600 hover:text-sky-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer group-hover:translate-x-1 transition-all"
                 >
                   <span>Enter Portal</span>
@@ -279,7 +279,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               </div>
               <div>
                 <button
-                  onClick={onLogin}
+                  onClick={() => onLogin("internal")}
                   className="text-sky-600 hover:text-sky-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer group-hover:translate-x-1 transition-all"
                 >
                   <span>Enter Portal</span>
@@ -306,7 +306,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               </div>
               <div>
                 <button
-                  onClick={onLogin}
+                  onClick={() => onLogin("partner")}
                   className="text-sky-600 hover:text-sky-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer group-hover:translate-x-1 transition-all"
                 >
                   <span>Enter Portal</span>

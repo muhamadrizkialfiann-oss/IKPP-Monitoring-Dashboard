@@ -14,6 +14,7 @@ import { UserAccount } from "./types";
 export default function App() {
   // Navigation View State ('landing' | 'login' | 'dashboard')
   const [view, setView] = useState<"landing" | "login" | "dashboard">("landing");
+  const [initialPortal, setInitialPortal] = useState<"customer" | "internal" | "partner">("customer");
 
   // Current Logged In User Account
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
@@ -51,14 +52,20 @@ export default function App() {
     setView("landing");
   };
 
+  const handleOpenLogin = (portal: "customer" | "internal" | "partner" = "customer") => {
+    setInitialPortal(portal);
+    setView("login");
+  };
+
   // Views handling
   if (view === "landing") {
-    return <LandingPage onLogin={() => setView("login")} />;
+    return <LandingPage onLogin={handleOpenLogin} />;
   }
 
   if (view === "login") {
     return (
       <LoginPage
+        initialPortal={initialPortal}
         onBackToHome={() => setView("landing")}
         onLoginSuccess={handleLoginSuccess}
       />
