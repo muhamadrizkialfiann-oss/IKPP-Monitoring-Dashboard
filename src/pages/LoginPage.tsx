@@ -57,17 +57,12 @@ export default function LoginPage({ initialPortal = "customer", onBackToHome, on
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [registerSuccessMsg, setRegisterSuccessMsg] = useState<string | null>(null);
 
-  // Set default email placeholder per active portal when switching
+  // Reset inputs & feedback on portal switch so placeholders act as templates
   useEffect(() => {
     setErrorMessage(null);
     setRegisterSuccessMsg(null);
-    if (activePortal === "customer" && !email) {
-      setEmail("customer@example.com");
-      setPassword("12345678");
-    } else if (activePortal === "internal" && email === "customer@example.com") {
-      setEmail("digital.solution@pancaran-logistic.id");
-      setPassword("12345678");
-    }
+    setEmail("");
+    setPassword("");
   }, [activePortal]);
 
   // Close dropdowns on outside click
@@ -144,48 +139,6 @@ export default function LoginPage({ initialPortal = "customer", onBackToHome, on
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Home</span>
         </button>
-
-        {/* Portal Switcher Tabs */}
-        <div className="flex items-center bg-slate-200/80 p-1 rounded-2xl gap-1">
-          <button
-            onClick={() => {
-              setActivePortal("customer");
-              setIsRegisterView(false);
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activePortal === "customer"
-                ? "bg-white text-[#008CA8] shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Customer Portal
-          </button>
-          <button
-            onClick={() => {
-              setActivePortal("internal");
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activePortal === "internal"
-                ? "bg-white text-[#5438FF] shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Internal Portal
-          </button>
-          <button
-            onClick={() => {
-              setActivePortal("partner");
-              setIsRegisterView(false);
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activePortal === "partner"
-                ? "bg-white text-sky-600 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Partner Portal
-          </button>
-        </div>
       </header>
 
       {/* Main Login / Register Card Container */}
