@@ -352,18 +352,23 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
 
       {/* 5. Footer */}
       <footer className="py-8 bg-slate-50 border-t border-slate-200 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <img 
-              src={PANCARAN_LOGO_DATA_URL} 
-              alt="Pancaran Logo" 
-              className="w-7 h-7 object-contain rounded bg-white p-0.5 border border-slate-200"
-              referrerPolicy="no-referrer"
-            />
-            <div className="flex items-center gap-1 text-xs">
-              <span className="text-slate-900 font-black">PANCARAN</span>
-              <span className="text-sky-600 font-black">ONE</span>
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <img 
+                src={PANCARAN_LOGO_DATA_URL} 
+                alt="Pancaran Logo" 
+                className="w-8 h-8 object-contain rounded-lg bg-white p-0.5 border border-slate-200"
+                referrerPolicy="no-referrer"
+              />
+              <div className="flex items-center gap-1.5 text-sm font-black tracking-wider">
+                <span className="text-[#0B2C6B]">PANCARAN</span>
+                <span className="text-[#00AEEF]">ONE</span>
+              </div>
             </div>
+            <p className="text-xs text-slate-500 font-medium max-w-md leading-relaxed">
+              Connecting ecosystems for efficient logistics operations across Indonesia.
+            </p>
           </div>
 
           <div className="flex items-center gap-6 text-[11px] font-bold tracking-wider text-slate-500">
