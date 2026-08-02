@@ -7,7 +7,7 @@ const DEFAULT_USERS: UserAccount[] = [
     id: "user-super-admin-1",
     email: "digital.solution@pancaran-logistic.id",
     passwordHash: "12345678",
-    fullName: "Super Admin Digital Solution",
+    fullName: "Digital Solution",
     role: "Super Admin",
     department: "IT & Digital Transformation",
     status: "active",

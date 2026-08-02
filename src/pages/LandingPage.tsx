@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { 
   ChevronRight, 
+  ChevronLeft,
+  Info,
   Shield, 
   UserCheck, 
   Users, 
@@ -19,6 +21,7 @@ interface LandingPageProps {
 
 export default function LandingPage({ onLogin }: LandingPageProps) {
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showAboutUsView, setShowAboutUsView] = useState(false);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -26,6 +29,80 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
       el.scrollIntoView({ behavior: "smooth" });
     }
   };
+
+  if (showAboutUsView) {
+    return (
+      <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+        {/* Header Navigation */}
+        <header className="border-b border-slate-100 px-6 py-4 bg-white sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            {/* Back to Home Button */}
+            <button
+              onClick={() => setShowAboutUsView(false)}
+              className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/80 px-4 py-2 rounded-full transition-all cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Back to Home</span>
+            </button>
+
+            {/* Logo Center */}
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setShowAboutUsView(false)}>
+              <img 
+                src={PANCARAN_LOGO_DATA_URL} 
+                alt="Pancaran Logo" 
+                className="w-8 h-8 object-contain rounded-lg bg-white p-0.5 border border-slate-200 shadow-sm shrink-0"
+                referrerPolicy="no-referrer"
+              />
+              <div className="flex items-center gap-1 text-base font-black tracking-wider">
+                <span className="text-[#0B2C6B]">PANCARAN</span>
+                <span className="text-[#00AEEF]">ONE</span>
+              </div>
+            </div>
+
+            {/* Spacer to balance layout */}
+            <div className="w-[120px] hidden sm:block" />
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center max-w-5xl mx-auto w-full">
+          {/* Category Badge */}
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-sky-50 text-[#00AEEF] border border-sky-200 text-[11px] font-extrabold uppercase tracking-wider mb-4 shadow-sm">
+            <Info className="w-3.5 h-3.5 text-[#00AEEF]" />
+            <span>CORPORATE VIDEO</span>
+          </div>
+
+          {/* Title */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            About Us: <span className="text-[#00AEEF]">Pancaran Group</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-slate-500 text-sm sm:text-base max-w-2xl mx-auto font-medium leading-relaxed mt-4">
+            Experience the journey of Pancaran Group through our corporate showcase. Discover how we orchestrate logistics excellence across the archipelago.
+          </p>
+
+          {/* YouTube Video Container */}
+          <div className="mt-8 w-full max-w-4xl mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white ring-1 ring-slate-200/80 bg-black aspect-video relative">
+            <iframe 
+              className="w-full h-full rounded-2xl"
+              src="https://www.youtube.com/embed/Gn2oi6YyQnY?autoplay=1&rel=0" 
+              title="Pancaran Group Corporate Video" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+              allowFullScreen
+            />
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="py-6 border-t border-slate-100 text-center">
+          <p className="text-[11px] font-bold text-slate-400 tracking-wider">
+            © 2026 PANCARAN GROUP. ALL RIGHTS RESERVED.
+          </p>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
@@ -49,6 +126,12 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
           {/* Navigation Links & Action Button */}
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-8 text-xs font-bold tracking-widest text-slate-600">
+              <button 
+                onClick={() => setShowAboutUsView(true)} 
+                className="hover:text-sky-600 transition-colors uppercase cursor-pointer"
+              >
+                ABOUT US
+              </button>
               <button 
                 onClick={() => scrollToSection("why-choose")} 
                 className="hover:text-sky-600 transition-colors uppercase cursor-pointer"
@@ -130,15 +213,15 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             </button>
 
             <button
-              onClick={() => scrollToSection("why-choose")}
+              onClick={() => setShowAboutUsView(true)}
               className="bg-white/90 hover:bg-white text-slate-800 border border-slate-200 font-extrabold text-sm px-7 py-3.5 rounded-full transition-all cursor-pointer shadow-sm hover:shadow transform hover:-translate-y-0.5"
             >
               About Us
             </button>
 
             <button
-              onClick={() => setShowDemoModal(true)}
-              className="border-2 border-sky-600/40 hover:border-sky-600 bg-white/80 hover:bg-white text-sky-800 font-extrabold text-sm px-7 py-3.5 rounded-full transition-all cursor-pointer shadow-sm transform hover:-translate-y-0.5"
+              disabled
+              className="border-2 border-sky-600/40 bg-white/80 text-sky-800 font-extrabold text-sm px-7 py-3.5 rounded-full shadow-sm pointer-events-none select-none"
             >
               Request Demo
             </button>

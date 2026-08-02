@@ -106,11 +106,11 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
               ? "bg-sky-600 border-sky-400"
               : "bg-[#0B2C6B] border-[#00AEEF]"
           }`}>
-            {currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "U"}
+            {(currentUser?.fullName || "Digital Solution").replace(/^Super Admin\s*/i, "").charAt(0).toUpperCase()}
           </div>
           <div className="hidden md:flex flex-col text-left">
-            <span className="text-xs font-black text-gray-900 dark:text-slate-100 truncate max-w-[150px]">
-              {currentUser?.fullName || "Pancaran Staff"}
+            <span className="text-xs font-black text-gray-900 dark:text-slate-100 whitespace-nowrap">
+              {(currentUser?.fullName || "Digital Solution").replace(/^Super Admin\s*/i, "")}
             </span>
             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
               <Shield className="w-3 h-3 text-emerald-500 shrink-0" />
