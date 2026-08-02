@@ -150,7 +150,11 @@ export default function App() {
           )}
 
           {activeTab === "user_approval" && (
-            <UserApprovalPage />
+            (currentUser?.role === "Super Admin" || currentUser?.email?.toLowerCase() === "digital.solution@pancaran-logistic.id") ? (
+              <UserApprovalPage />
+            ) : (
+              <Overview onNavigate={handleNavigate} />
+            )
           )}
         </main>
       </div>

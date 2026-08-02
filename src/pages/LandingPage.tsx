@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   ChevronRight, 
   ChevronLeft,
   Info,
   Shield, 
+  User,
   UserCheck, 
   Users, 
   Radio, 
@@ -22,6 +23,20 @@ interface LandingPageProps {
 export default function LandingPage({ onLogin }: LandingPageProps) {
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [showAboutUsView, setShowAboutUsView] = useState(false);
+  const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsLoginDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -146,16 +161,69 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               </button>
             </nav>
 
-            {/* Login Portal Button */}
-            <div className="relative">
+            {/* Login Portal Button with Dropdown Options */}
+            <div className="relative" ref={dropdownRef}>
               <button
                 id="landing-login-portal-btn"
-                onClick={() => onLogin("customer")}
+                onClick={() => setIsLoginDropdownOpen(!isLoginDropdownOpen)}
                 className="bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-extrabold text-xs px-5 py-2.5 rounded-full flex items-center gap-2 shadow-md shadow-sky-600/20 hover:shadow-sky-600/30 transition-all cursor-pointer transform hover:-translate-y-0.5"
               >
                 <span>Login Portal</span>
-                <ChevronDown className="w-3.5 h-3.5 text-white" />
+                <ChevronDown className={`w-3.5 h-3.5 text-white transition-transform duration-200 ${isLoginDropdownOpen ? "rotate-180" : ""}`} />
               </button>
+
+              {/* Portal Selection Dropdown Popup */}
+              {isLoginDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-100/90 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <button
+                    onClick={() => {
+                      setIsLoginDropdownOpen(false);
+                      onLogin("customer");
+                    }}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-cyan-50/80 text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-cyan-100/80 text-cyan-600 flex items-center justify-center shrink-0 group-hover:bg-cyan-200/80 transition-colors">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 group-hover:text-cyan-900">Customer Portal</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Logistics Tracking & Orders</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsLoginDropdownOpen(false);
+                      onLogin("internal");
+                    }}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-indigo-50/80 text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 group-hover:bg-indigo-200/80 transition-colors">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 group-hover:text-indigo-900">Internal Portal</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Management & Operations</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsLoginDropdownOpen(false);
+                      onLogin("partner");
+                    }}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-sky-50/80 text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-sky-100/80 text-sky-600 flex items-center justify-center shrink-0 group-hover:bg-sky-200/80 transition-colors">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 group-hover:text-sky-900">Partner Portal</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Vendor & Fleet Ecosystem</div>
+                    </div>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -394,7 +462,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
 
           {/* Right Column: Command Center Control Room Image & Metric Overlay */}
           <div className="lg:col-span-6 relative">
-            <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-xl group">
+            <div className="relative rounded-[36px] overflow-hidden border border-slate-100 shadow-2xl group">
               <img 
                 src="https://lh3.googleusercontent.com/d/13s1nRki93N4BzDCJjPcaXOdiksOTBq5X" 
                 alt="Pancaran Team Operations" 
@@ -408,25 +476,27 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                     target.src = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1200&q=80";
                   }
                 }}
-                className="w-full h-[380px] sm:h-[420px] object-cover object-center filter contrast-[1.05]"
+                className="w-full h-[380px] sm:h-[420px] object-cover object-center filter contrast-[1.05] rounded-[36px]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent pointer-events-none" />
             </div>
 
             {/* Floating Metric Badge */}
-            <div className="absolute -bottom-6 -left-2 sm:left-4 bg-white text-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-200 max-w-[280px] flex items-start gap-3.5 z-20">
-              <div className="w-9 h-9 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 shrink-0 mt-0.5">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-slate-900 leading-none">99.8%</span>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">On-time</span>
+            <div className="absolute -bottom-6 -left-3 sm:-left-6 bg-white text-slate-900 rounded-[28px] p-6 shadow-2xl border border-slate-100 max-w-[260px] space-y-3.5 z-20">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-full bg-cyan-100/80 flex items-center justify-center text-cyan-600 shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-600" />
                 </div>
-                <p className="text-[11px] text-slate-600 font-medium leading-tight">
-                  Industry leading performance across our hybrid fleet network
-                </p>
+                <div className="flex flex-col justify-center">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900 leading-none tracking-tight">99.8%</span>
+                  <span className="text-[11px] font-bold text-sky-700/80 mt-1">On-time</span>
+                </div>
               </div>
+              <p className="text-[12px] text-slate-600 font-medium leading-relaxed">
+                Industry leading performance<br />
+                across our hybrid fleet<br />
+                network.
+              </p>
             </div>
           </div>
 
@@ -450,7 +520,8 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               </div>
             </div>
             <p className="text-xs text-slate-500 font-medium max-w-md leading-relaxed">
-              Connecting ecosystems for efficient logistics operations across Indonesia.
+              Connecting ecosystems for efficient logistics<br />
+              operations across Indonesia.
             </p>
           </div>
 
