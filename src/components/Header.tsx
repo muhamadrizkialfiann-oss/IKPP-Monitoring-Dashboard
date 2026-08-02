@@ -1,6 +1,7 @@
 import React from "react";
-import { Bell, Globe, User, Shield, Menu, ArrowLeft, Sun, Moon } from "lucide-react";
+import { Bell, Shield, Menu, ArrowLeft, UserCheck } from "lucide-react";
 import { useTheme } from "../ThemeContext";
+import { UserAccount } from "../types";
 
 interface HeaderProps {
   title: string;
@@ -8,10 +9,11 @@ interface HeaderProps {
   onMenuClick: () => void;
   showBackButton?: boolean;
   onBackClick?: () => void;
+  currentUser?: UserAccount | null;
 }
 
-export default function Header({ title, subtitle, onMenuClick, showBackButton, onBackClick }: HeaderProps) {
-  const { isDark, toggleTheme } = useTheme();
+export default function Header({ title, subtitle, onMenuClick, showBackButton, onBackClick, currentUser }: HeaderProps) {
+  const isSuperAdmin = currentUser?.role === "Super Admin" || currentUser?.email.toLowerCase() === "digital.solution@pancaran-logistic.id";
 
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 h-16 md:h-20 px-3 md:px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm transition-colors duration-200">
@@ -55,23 +57,13 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
 
       {/* Right side controls */}
       <div className="flex items-center gap-2 md:gap-3 lg:gap-5 shrink-0">
-        {/* Language Switcher */}
-        <div className="hidden sm:flex items-center bg-gray-100 dark:bg-slate-800 rounded-full p-0.5 border border-gray-200 dark:border-slate-700">
-          <button className="text-[10px] md:text-xs font-bold px-2 md:px-3 py-0.5 md:py-1 rounded-full bg-white dark:bg-slate-900 text-[#0B2C6B] dark:text-sky-400 shadow-sm cursor-pointer">
-            EN
-          </button>
-          <button className="text-[10px] md:text-xs font-semibold px-2 md:px-3 py-0.5 md:py-1 text-gray-500 dark:text-slate-400 rounded-full hover:text-gray-900 dark:hover:text-slate-200 cursor-pointer">
-            ID
-          </button>
-        </div>
-
         {/* PT Indah Kiat Pulp & Paper (IKPP) Branding - Exact Logo */}
         <div className="hidden lg:flex items-center gap-3.5 border-r border-gray-200 dark:border-slate-800 pr-4">
           <div className="flex items-center gap-3 bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-gray-100 dark:border-slate-700 shadow-xs">
             {/* Left red icon with accurate white split circular waves */}
             <svg 
               viewBox="0 0 100 100" 
-              className="w-12 h-12 shrink-0 shadow-sm rounded-xl"
+              className="w-10 h-10 shrink-0 shadow-sm rounded-xl"
               shapeRendering="geometricPrecision"
               textRendering="geometricPrecision"
             >
@@ -95,59 +87,34 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
             </svg>
 
             <div className="flex flex-col text-left shrink-0 justify-center">
-              <span className="text-[#031B4E] dark:text-slate-100 font-extrabold text-sm tracking-wider leading-none uppercase">
+              <span className="text-[#031B4E] dark:text-slate-100 font-extrabold text-xs tracking-wider leading-none uppercase">
                 indah kiat
               </span>
-              <span className="text-gray-500 dark:text-slate-400 font-extrabold text-[9px] leading-none tracking-widest mt-1 uppercase">
+              <span className="text-gray-500 dark:text-slate-400 font-extrabold text-[8px] leading-none tracking-widest mt-1 uppercase">
                 pulp & paper
               </span>
             </div>
-
-            <svg 
-              viewBox="0 0 100 120" 
-              className="w-7.5 h-9 shrink-0"
-              shapeRendering="geometricPrecision"
-              textRendering="geometricPrecision"
-            >
-              <path
-                d="M 50,5 C 30,25 12,45 12,70 C 12,88 28,95 44,95 L 42,115 L 58,115 L 56,95 C 72,95 88,88 88,70 C 88,45 70,25 50,5 Z"
-                fill="#008751"
-                stroke="#FFF200"
-                strokeWidth="5.5"
-                strokeLinejoin="miter"
-              />
-              <text
-                x="50"
-                y="67"
-                fill="#FFFFFF"
-                fontSize="27"
-                fontWeight="900"
-                textAnchor="middle"
-                fontFamily="'Inter', sans-serif"
-              >
-                IK
-              </text>
-            </svg>
           </div>
         </div>
 
-        {/* Bell Notifications */}
-        <button className="relative p-1.5 md:p-2 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-          <Bell className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-full scale-90">
-            46
-          </span>
-        </button>
-
-        {/* User Profile */}
+        {/* User Profile Info */}
         <div className="flex items-center gap-2 md:gap-3 pl-1 md:pl-2">
-          <div className="w-8 h-8 md:w-9 h-9 rounded-full bg-[#0B2C6B] flex items-center justify-center text-white text-xs md:text-sm font-semibold border-2 border-[#00AEEF] shadow shrink-0">
-            MR
+          <div className={`w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center text-white text-xs md:text-sm font-black border-2 shadow shrink-0 ${
+            isSuperAdmin 
+              ? "bg-purple-600 border-purple-400"
+              : currentUser?.role === "Internal CS"
+              ? "bg-sky-600 border-sky-400"
+              : "bg-[#0B2C6B] border-[#00AEEF]"
+          }`}>
+            {currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "U"}
           </div>
-          <div className="hidden md:flex flex-col">
-            <span className="text-xs font-bold text-gray-800 dark:text-slate-200">Muhamad Rizki Alfian</span>
+          <div className="hidden md:flex flex-col text-left">
+            <span className="text-xs font-black text-gray-900 dark:text-slate-100 truncate max-w-[150px]">
+              {currentUser?.fullName || "Pancaran Staff"}
+            </span>
             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-              <Shield className="w-3 h-3 text-emerald-500" /> Authorized
+              <Shield className="w-3 h-3 text-emerald-500 shrink-0" />
+              <span>{currentUser?.role || "Authorized"}</span>
             </span>
           </div>
         </div>
@@ -155,4 +122,3 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
     </header>
   );
 }
-

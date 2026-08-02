@@ -1,9 +1,11 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { LayoutDashboard, ClipboardList, Truck, Package, ChevronLeft, ShieldCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Truck, Package, ChevronLeft, ShieldCheck, LogOut, UserCheck, Shield, User } from "lucide-react";
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
+import { UserAccount } from "../types";
+import { getUsers } from "../lib/userStore";
 
-export type TabType = "overview" | "logistik_pro" | "order" | "availability" | "shipment";
+export type TabType = "overview" | "logistik_pro" | "order" | "availability" | "shipment" | "user_approval";
 
 interface SidebarProps {
   activeTab: TabType;
@@ -11,16 +13,31 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onGoToLanding?: () => void;
+  currentUser?: UserAccount | null;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGoToLanding }: SidebarProps) {
-  const menuItems = [
+export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGoToLanding, currentUser }: SidebarProps) {
+  const isSuperAdmin = currentUser?.role === "Super Admin" || currentUser?.email.toLowerCase() === "digital.solution@pancaran-logistic.id";
+  const pendingCount = getUsers().filter(u => u.status === "pending").length;
+
+  const baseMenuItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "order", label: "Order Management", icon: ClipboardList },
     { id: "availability", label: "Resources & Availability", icon: Truck },
     { id: "shipment", label: "Shipment Tracking", icon: Package },
     { id: "logistik_pro", label: "Dashboard Logistik Pro IKK", icon: ShieldCheck },
   ] as const;
+
+  // Add Super Admin Exclusive Menu Item if Super Admin
+  const menuItems = [
+    ...baseMenuItems,
+    ...(isSuperAdmin ? [{
+      id: "user_approval" as const,
+      label: "Aktivasi & Approval User",
+      icon: UserCheck,
+      badge: pendingCount > 0 ? `${pendingCount} Pending` : undefined
+    }] : [])
+  ];
 
   return (
     <AnimatePresence>
@@ -46,7 +63,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGo
             {/* Brand Logo Box with Close Button */}
             <div className="bg-white dark:bg-slate-900 p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between h-20 shrink-0">
               <div className="flex items-center gap-3">
-                {/* Official Pancaran Logo from Google Drive */}
+                {/* Official Pancaran Logo */}
                 <img 
                   src={PANCARAN_LOGO_DATA_URL} 
                   alt="Pancaran Logo" 
@@ -70,39 +87,89 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGo
             </div>
 
             {/* Navigation Menu */}
-            <div className="flex-1 py-6 flex flex-col justify-between overflow-y-auto">
+            <div className="flex-1 py-5 flex flex-col justify-between overflow-y-auto">
               <nav className="space-y-1.5 px-4">
-                <div className="px-3 mb-3 text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500 opacity-90">
+                <div className="px-3 mb-2 text-[10px] uppercase font-black tracking-widest text-gray-400 dark:text-slate-500 opacity-90">
                   Navigation Menu
                 </div>
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
+                  const isApprovalTab = item.id === "user_approval";
+
                   return (
                     <button
                       key={item.id}
                       id={`sidebar-tab-${item.id}`}
                       onClick={() => {
-                        setActiveTab(item.id);
+                        setActiveTab(item.id as TabType);
                         if (typeof window !== "undefined" && window.innerWidth < 768) {
                           onClose();
                         }
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                         isActive
-                          ? "bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-l-4 border-sky-500 shadow-sm translate-x-1"
+                          ? isApprovalTab
+                            ? "bg-amber-500 text-white shadow-md translate-x-1 font-extrabold"
+                            : "bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 border-l-4 border-sky-500 shadow-sm translate-x-1"
+                          : isApprovalTab
+                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-300/60 dark:border-amber-800/60"
                           : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-slate-100"
                       }`}
                     >
-                      <Icon className={`w-5 h-5 ${isActive ? "text-sky-500 dark:text-sky-400" : "text-gray-400 dark:text-slate-400"}`} />
-                      <span>{item.label}</span>
+                      <div className="flex items-center gap-2.5">
+                        <Icon className={`w-4 h-4 shrink-0 ${
+                          isActive
+                            ? isApprovalTab ? "text-white" : "text-sky-500 dark:text-sky-400"
+                            : isApprovalTab ? "text-amber-600 dark:text-amber-400" : "text-gray-400 dark:text-slate-400"
+                        }`} />
+                        <span>{item.label}</span>
+                      </div>
+
+                      {/* Optional Badge (e.g. Pending count) */}
+                      {"badge" in item && item.badge && (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse ${
+                          isActive ? "bg-white text-amber-800" : "bg-amber-500 text-white"
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </nav>
 
-              {/* Sign Out Section */}
-              <div className="px-5 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto">
+              {/* Bottom User Info & Sign Out Section */}
+              <div className="px-4 pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto space-y-3">
+                {/* Active User Card */}
+                {currentUser && (
+                  <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                      isSuperAdmin 
+                        ? "bg-purple-600 text-white"
+                        : currentUser.role === "Internal CS"
+                        ? "bg-sky-600 text-white"
+                        : "bg-slate-700 text-white"
+                    }`}>
+                      {currentUser.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                        {currentUser.fullName}
+                      </div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-md uppercase tracking-wider ${
+                          isSuperAdmin 
+                            ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
+                            : "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"
+                        }`}>
+                          {currentUser.role}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Sign Out / Exit Portal Button */}
                 <button
                   id="sidebar-sign-out"
@@ -113,10 +180,10 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGo
                       window.location.reload();
                     }
                   }}
-                  className="w-full flex items-center gap-3.5 px-3 py-2.5 text-sm font-bold text-[#7c94b6] dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors cursor-pointer group"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                 >
-                  <LogOut className="w-5 h-5 text-[#7c94b6] dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
-                  <span>Exit Portal / Sign Out</span>
+                  <LogOut className="w-4 h-4" />
+                  <span>Exit Portal / Logout</span>
                 </button>
               </div>
             </div>
@@ -126,4 +193,3 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose, onGo
     </AnimatePresence>
   );
 }
-

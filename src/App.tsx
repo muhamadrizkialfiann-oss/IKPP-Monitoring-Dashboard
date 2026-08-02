@@ -5,13 +5,18 @@ import Overview from "./pages/Overview";
 import OrderPage from "./pages/Order";
 import AvailabilityPage from "./pages/Availability";
 import ShipmentPage from "./pages/Shipment";
+import UserApprovalPage from "./pages/UserApprovalPage";
 import TikProLiveDashboard from "./components/TikProLiveDashboard";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import { UserAccount } from "./types";
 
 export default function App() {
   // Navigation View State ('landing' | 'login' | 'dashboard')
   const [view, setView] = useState<"landing" | "login" | "dashboard">("landing");
+
+  // Current Logged In User Account
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
 
   // Dashboard Active Tab State
   const [activeTab, setActiveTab] = useState<TabType>("overview");
@@ -30,6 +35,22 @@ export default function App() {
     setActiveTab(tab);
   };
 
+  const handleLoginSuccess = (user: UserAccount | null) => {
+    setCurrentUser(user);
+    // If logged in as Super Admin, default to Overview or User Approval
+    if (user?.role === "Super Admin" || user?.email.toLowerCase() === "digital.solution@pancaran-logistic.id") {
+      setActiveTab("user_approval");
+    } else {
+      setActiveTab("overview");
+    }
+    setView("dashboard");
+  };
+
+  const handleSignOut = () => {
+    setCurrentUser(null);
+    setView("landing");
+  };
+
   // Views handling
   if (view === "landing") {
     return <LandingPage onLogin={() => setView("login")} />;
@@ -39,7 +60,7 @@ export default function App() {
     return (
       <LoginPage
         onBackToHome={() => setView("landing")}
-        onLoginSuccess={() => setView("dashboard")}
+        onLoginSuccess={handleLoginSuccess}
       />
     );
   }
@@ -65,6 +86,10 @@ export default function App() {
     shipment: {
       title: "Dashboard - Shipment Tracking",
       subtitle: "Active pre-trip loading and on-trip container GPS transits"
+    },
+    user_approval: {
+      title: "Aktivasi User Aktif & Approval Portal",
+      subtitle: "Super Admin Governance - Persetujuan Registrasi & Kelola Hak Akses Login"
     }
   }[activeTab];
 
@@ -76,7 +101,8 @@ export default function App() {
         setActiveTab={(tab) => handleNavigate(tab)}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        onGoToLanding={() => setView("landing")}
+        onGoToLanding={handleSignOut}
+        currentUser={currentUser}
       />
 
       {/* Main Content Area */}
@@ -88,6 +114,7 @@ export default function App() {
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
           showBackButton={activeTab !== "logistik_pro"}
           onBackClick={() => setActiveTab("logistik_pro")}
+          currentUser={currentUser}
         />
 
         {/* Scrollable page body */}
@@ -114,9 +141,12 @@ export default function App() {
           {activeTab === "shipment" && (
             <ShipmentPage />
           )}
+
+          {activeTab === "user_approval" && (
+            <UserApprovalPage />
+          )}
         </main>
       </div>
     </div>
   );
 }
-

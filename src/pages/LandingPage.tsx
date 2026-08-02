@@ -102,7 +102,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-sky-200/30 rounded-full blur-3xl pointer-events-none z-0" />
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center space-y-6 py-6 sm:py-8 bg-white/15 backdrop-blur-xs rounded-3xl border border-white/30 shadow-md my-4">
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center space-y-6 py-6 sm:py-8 my-4">
           {/* Main Title */}
           <div className="space-y-3">
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-slate-900 leading-none">
