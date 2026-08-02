@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeft, Lock, Mail, Shield, User, Eye, EyeOff, UserCheck, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Lock, Mail, Shield, User, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
 import { authenticateUser, registerUser } from "../lib/userStore";
 import { UserAccount, UserRole } from "../types";
@@ -14,8 +14,8 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
   const [showPassword, setShowPassword] = useState(false);
 
   // Form states
-  const [email, setEmail] = useState("digital.solution@pancaran-logistic.id");
-  const [password, setPassword] = useState("12345678");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<UserRole>("Operations Staff");
   
@@ -50,7 +50,6 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
         if (res.success) {
           setRegisterSuccessMsg(res.message || "Pendaftaran akun berhasil!");
           setIsRegisterView(false);
-          // Switch to Super Admin autofill or clear
           setEmail(email);
           setPassword(password);
         } else {
@@ -67,31 +66,6 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
         }
       }
     }, 400);
-  };
-
-  const handleGuestLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const guestUser: UserAccount = {
-        id: "guest-user",
-        email: "guest@pancaran-logistic.id",
-        fullName: "Tamu (Guest User)",
-        role: "Guest",
-        department: "General Guest",
-        status: "active",
-        registeredAt: new Date().toISOString()
-      };
-      onLoginSuccess(guestUser);
-    }, 300);
-  };
-
-  const autofillAccount = (accEmail: string, accPass: string) => {
-    setEmail(accEmail);
-    setPassword(accPass);
-    setErrorMessage(null);
-    setRegisterSuccessMsg(null);
-    setIsRegisterView(false);
   };
 
   return (
@@ -129,64 +103,6 @@ export default function LoginPage({ onBackToHome, onLoginSuccess }: LoginPagePro
                   ? "Buat kredensial akses internal Pancaran"
                   : "Access ecosystem management systems"}
               </p>
-            </div>
-          </div>
-
-          {/* Quick Demo Autofill Shortcuts */}
-          {!isRegisterView && (
-            <div className="mb-5 bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2">
-              <div className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-sky-600" />
-                <span>Akun Otorisasi Utama (Klik untuk Autofill)</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => autofillAccount("digital.solution@pancaran-logistic.id", "12345678")}
-                  className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
-                    email === "digital.solution@pancaran-logistic.id"
-                      ? "bg-purple-50 border-purple-400 ring-2 ring-purple-500/20"
-                      : "bg-white border-slate-200 hover:border-purple-300"
-                  }`}
-                >
-                  <span className="text-[10px] font-black uppercase text-purple-700 block">Super Admin</span>
-                  <span className="text-[11px] font-semibold text-slate-700 truncate block">digital.solution@...</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => autofillAccount("cs@pancaran-logistic.id", "12345678")}
-                  className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
-                    email === "cs@pancaran-logistic.id"
-                      ? "bg-sky-50 border-sky-400 ring-2 ring-sky-500/20"
-                      : "bg-white border-slate-200 hover:border-sky-300"
-                  }`}
-                >
-                  <span className="text-[10px] font-black uppercase text-sky-700 block">Internal CS</span>
-                  <span className="text-[11px] font-semibold text-slate-700 truncate block">cs@pancaran-...</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* GUEST LOGIN BUTTON (Bypass Login) */}
-          <div className="mb-5">
-            <button
-              type="button"
-              onClick={handleGuestLogin}
-              disabled={isLoading}
-              className="w-full bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-500/50 hover:border-emerald-500 text-emerald-800 font-extrabold text-xs sm:text-sm py-3 px-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer transform active:scale-[0.99]"
-            >
-              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Login Sebagai Tamu (Guest Access)</span>
-              <span className="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full uppercase tracking-wider ml-auto">
-                Direct
-              </span>
-            </button>
-            <div className="flex items-center my-4">
-              <div className="flex-1 border-t border-slate-200" />
-              <span className="px-3 text-[11px] font-bold text-slate-400 uppercase">atau login dengan akun</span>
-              <div className="flex-1 border-t border-slate-200" />
             </div>
           </div>
 
