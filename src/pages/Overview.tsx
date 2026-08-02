@@ -8,16 +8,18 @@ import ServiceStreamCard from "../components/ServiceStreamCard";
 import DateRangeFilter, { DateFilterState, filterByDate, parseBookingDate, formatDateIndo } from "../components/DateRangeFilter";
 import { useFirebaseRealtime } from "../hooks/useFirebaseRealtime";
 import { TabType } from "../components/Sidebar";
-import { Order } from "../types";
+import { Order, UserAccount } from "../types";
 import { fetchLiveOrdersClient, fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
 import { mapCSStatus } from "../lib/statusMapper";
 import DetailListModal from "../components/DetailListModal";
 
 interface OverviewProps {
   onNavigate: (tab: TabType, filterType?: string) => void;
+  currentUser?: UserAccount | null;
 }
 
-export default function Overview({ onNavigate }: OverviewProps) {
+export default function Overview({ onNavigate, currentUser }: OverviewProps) {
+  const isSuperAdmin = currentUser?.role === "Super Admin" || currentUser?.email?.toLowerCase() === "digital.solution@pancaran-logistic.id";
   const [orders, setOrders] = useState<Order[]>([]);
   const [executedShipments, setExecutedShipments] = useState<Order[]>([]);
   const [dateFilter, setDateFilter] = useState<DateFilterState>({
@@ -306,11 +308,13 @@ export default function Overview({ onNavigate }: OverviewProps) {
               onChange={setDateFilter}
               align="right"
             />
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800 shrink-0 shadow-xs">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Google Sheet Live Connected</span>
-            </div>
+            {isSuperAdmin && (
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800 shrink-0 shadow-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Google Sheet Live Connected</span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -7,7 +7,7 @@ import StatusBadge from "../components/StatusBadge";
 import SheetManagerModal, { DEFAULT_SHEET_SOURCES } from "../components/SheetManagerModal";
 import DateRangeFilter, { DateFilterState, filterByDate, parseBookingDate, formatDateIndo } from "../components/DateRangeFilter";
 import { dummyOrders } from "../lib/dummy-data";
-import { Order, OrderType, OrderStatus, SheetSource } from "../types";
+import { Order, OrderType, OrderStatus, SheetSource, UserAccount } from "../types";
 import { fetchLiveOrdersClient, fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
 import { formatJobOrderCode } from "../lib/statusMapper";
 import DetailListModal from "../components/DetailListModal";
@@ -15,6 +15,7 @@ import DetailListModal from "../components/DetailListModal";
 interface OrderProps {
   initialTypeFilter?: string;
   onClearInitialFilter?: () => void;
+  currentUser?: UserAccount | null;
 }
 
 function CSStatusBadge({ status }: { status?: string }) {
@@ -76,7 +77,9 @@ function PoolingStatusBadge({ status }: { status?: string }) {
   );
 }
 
-export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: OrderProps) {
+export default function OrderPage({ initialTypeFilter, onClearInitialFilter, currentUser }: OrderProps) {
+  const isSuperAdmin = currentUser?.role === "Super Admin" || currentUser?.email?.toLowerCase() === "digital.solution@pancaran-logistic.id";
+
   // Live orders state initialized with empty array (loaded live from Google Sheets)
   const [orders, setOrders] = useState<Order[]>([]);
   const [executedShipments, setExecutedShipments] = useState<Order[]>([]);
@@ -608,25 +611,27 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
             </button>
           )}
 
-          <button
-            onClick={() => setShowSheetBanner(!showSheetBanner)}
-            className={`p-2.5 rounded-full border transition-all cursor-pointer shrink-0 flex items-center justify-center ${
-              showSheetBanner
-                ? "bg-emerald-100 dark:bg-emerald-900/80 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-400/30 scale-105"
-                : "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900 hover:scale-110"
-            }`}
-            title="Info Sync & Kelola Sheets - Klik untuk melihat / mengelola link Google Sheets"
-          >
-            <span className="relative flex h-3.5 w-3.5 items-center justify-center">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setShowSheetBanner(!showSheetBanner)}
+              className={`p-2.5 rounded-full border transition-all cursor-pointer shrink-0 flex items-center justify-center ${
+                showSheetBanner
+                  ? "bg-emerald-100 dark:bg-emerald-900/80 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-400/30 scale-105"
+                  : "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900 hover:scale-110"
+              }`}
+              title="Info Sync & Kelola Sheets - Klik untuk melihat / mengelola link Google Sheets"
+            >
+              <span className="relative flex h-3.5 w-3.5 items-center justify-center">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Google Sheets Integration Card (Multi-Sheet Banner) */}
-      {showSheetBanner && (
+      {isSuperAdmin && showSheetBanner && (
         <div className="relative bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-5 rounded-2xl shadow-md border border-emerald-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <button
             onClick={() => setShowSheetBanner(false)}
@@ -1278,17 +1283,19 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter }: O
       </AnimatePresence>
 
       {/* Multi-Spreadsheet Link Manager Modal */}
-      <SheetManagerModal
-        isOpen={isSheetModalOpen}
-        onClose={() => setIsSheetModalOpen(false)}
-        sources={sheetSources}
-        onUpdateSources={(updated) => {
-          handleUpdateSheetSources(updated);
-          syncGoogleSheets(false, updated);
-        }}
-        onSyncAll={() => syncGoogleSheets(true, sheetSources)}
-        isSyncing={isSyncingSheets}
-      />
+      {isSuperAdmin && (
+        <SheetManagerModal
+          isOpen={isSheetModalOpen}
+          onClose={() => setIsSheetModalOpen(false)}
+          sources={sheetSources}
+          onUpdateSources={(updated) => {
+            handleUpdateSheetSources(updated);
+            syncGoogleSheets(false, updated);
+          }}
+          onSyncAll={() => syncGoogleSheets(true, sheetSources)}
+          isSyncing={isSyncingSheets}
+        />
+      )}
 
       {/* Detail List Modal for KPI Clicks */}
       <DetailListModal

@@ -24,7 +24,15 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [showAboutUsView, setShowAboutUsView] = useState(false);
   const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false);
+  const [language, setLanguage] = useState<"EN" | "ID">(() => {
+    return (localStorage.getItem("app_lang") as "EN" | "ID") || "ID";
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleSetLanguage = (lang: "EN" | "ID") => {
+    setLanguage(lang);
+    localStorage.setItem("app_lang", lang);
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -139,7 +147,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
           </div>
 
           {/* Navigation Links & Action Button */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <nav className="hidden md:flex items-center gap-8 text-xs font-bold tracking-widest text-slate-600">
               <button 
                 onClick={() => setShowAboutUsView(true)} 
@@ -160,6 +168,30 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 PORTALS
               </button>
             </nav>
+
+            {/* Language Switcher Pill Toggle EN | ID */}
+            <div className="bg-slate-100/90 p-1 rounded-full flex items-center gap-1 border border-slate-200/80 shadow-inner shrink-0">
+              <button
+                onClick={() => handleSetLanguage("EN")}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold transition-all cursor-pointer ${
+                  language === "EN"
+                    ? "bg-white text-sky-700 shadow-xs ring-1 ring-slate-200/60"
+                    : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => handleSetLanguage("ID")}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold transition-all cursor-pointer ${
+                  language === "ID"
+                    ? "bg-white text-sky-700 shadow-xs ring-1 ring-slate-200/60"
+                    : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                ID
+              </button>
+            </div>
 
             {/* Login Portal Button with Dropdown Options */}
             <div className="relative" ref={dropdownRef}>

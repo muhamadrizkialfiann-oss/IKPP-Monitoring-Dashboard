@@ -38,12 +38,8 @@ export default function App() {
 
   const handleLoginSuccess = (user: UserAccount | null) => {
     setCurrentUser(user);
-    // If logged in as Super Admin, default to Overview or User Approval
-    if (user?.role === "Super Admin" || user?.email.toLowerCase() === "digital.solution@pancaran-logistic.id") {
-      setActiveTab("user_approval");
-    } else {
-      setActiveTab("overview");
-    }
+    // Default to Overview tab for all logged in accounts
+    setActiveTab("overview");
     setView("dashboard");
   };
 
@@ -131,13 +127,14 @@ export default function App() {
           )}
 
           {activeTab === "overview" && (
-            <Overview onNavigate={handleNavigate} />
+            <Overview onNavigate={handleNavigate} currentUser={currentUser} />
           )}
 
           {activeTab === "order" && (
             <OrderPage
               initialTypeFilter={initialOrderFilter}
               onClearInitialFilter={() => setInitialOrderFilter(undefined)}
+              currentUser={currentUser}
             />
           )}
 
