@@ -17,42 +17,20 @@ import {
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
 
 function IkppLogo({ className = "h-8 sm:h-9" }: { className?: string }) {
-  const [srcIndex, setSrcIndex] = useState(0);
-  const [hasError, setHasError] = useState(false);
-
-  const sources = [
-    "https://drive.google.com/thumbnail?id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP&sz=w1000",
-    "https://lh3.googleusercontent.com/d/17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP=w1000",
-    "https://drive.google.com/uc?export=view&id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP",
-    "https://wsrv.nl/?url=drive.google.com/uc?id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP"
-  ];
-
-  const handleError = () => {
-    if (srcIndex + 1 < sources.length) {
-      setSrcIndex(prev => prev + 1);
-    } else {
-      setHasError(true);
-    }
-  };
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const driveImgUrl = "https://lh3.googleusercontent.com/d/17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP=w800";
 
   return (
     <div className={`flex items-center shrink-0 ${className}`}>
-      {!hasError ? (
-        <img
-          src={sources[srcIndex]}
-          onError={handleError}
-          alt="IKPP Logo"
-          className="max-h-full max-w-[200px] object-contain rounded-lg bg-white p-0.5 border border-slate-200 shadow-sm shrink-0"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-sm shrink-0 h-full">
+      <div className="flex items-center gap-2 bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-sm shrink-0 h-full relative">
+        {/* Instant high-res IKPP Brand Vector Badge - visible immediately */}
+        <div className="flex items-center gap-2">
           <svg 
             viewBox="0 0 100 100" 
-            className="w-7 h-7 shrink-0 rounded-md"
+            className="w-6 h-6 sm:w-7 sm:h-7 shrink-0 rounded-md"
             shapeRendering="geometricPrecision"
           >
-            <rect width="100" height="100" rx="20" fill="#E1251B" />
+            <rect width="100" height="100" rx="18" fill="#E1251B" />
             <g fill="white">
               <path d="M 14,50 A 36,36 0 0,1 86,50 A 33,33 0 0,0 20,50 Z" />
               <path d="M 26,50 A 30,30 0 0,1 86,50 A 27,27 0 0,0 32,50 Z" />
@@ -67,16 +45,27 @@ function IkppLogo({ className = "h-8 sm:h-9" }: { className?: string }) {
             </g>
             <line x1="14" y1="50" x2="86" y2="50" stroke="#E1251B" strokeWidth="2.5" />
           </svg>
-          <div className="flex flex-col text-left justify-center">
-            <span className="text-[#031B4E] font-extrabold text-[11px] tracking-wider leading-none uppercase">
+          <div className="flex flex-col text-left justify-center pr-1">
+            <span className="text-[#031B4E] font-black text-[11px] sm:text-[12px] tracking-wider leading-none uppercase">
               INDAH KIAT
             </span>
-            <span className="text-gray-500 font-bold text-[7.5px] leading-none tracking-widest mt-0.5 uppercase">
-              PULP & PAPER
+            <span className="text-gray-500 font-bold text-[7.5px] sm:text-[8px] leading-none tracking-widest mt-0.5 uppercase">
+              PULP & PAPER (IKPP)
             </span>
           </div>
         </div>
-      )}
+
+        {/* Overlay Image when loaded seamlessly without blocking initial render */}
+        <img
+          src={driveImgUrl}
+          onLoad={() => setImgLoaded(true)}
+          alt="IKPP Logo"
+          className={`absolute inset-0 w-full h-full object-contain rounded-lg bg-white p-0.5 border border-slate-200 transition-opacity duration-300 ${
+            imgLoaded ? "opacity-100 z-10" : "opacity-0 -z-10"
+          }`}
+          referrerPolicy="no-referrer"
+        />
+      </div>
     </div>
   );
 }
