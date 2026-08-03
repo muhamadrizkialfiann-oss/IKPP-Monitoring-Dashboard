@@ -149,44 +149,47 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
 
     const activeTotal = needAction + confirm;
 
-    const ekspor = filteredOrders.filter((o) => o.type === "ekspor");
-    const impor = filteredOrders.filter((o) => o.type === "impor");
-    
-    // REPO PDT: COMMERCIAL ROUTE or drop location/destination mentioning PDT, Depo PDT, Pancaran, Priok, 0 - 36
-    const repoPdt = filteredOrders.filter((o) => {
+    const isRepoPdtOrder = (o: Order) => {
       const cr = (o.commercialRoute || "").toLowerCase();
-      const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""}`.toLowerCase();
+      const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""} ${o.noJobOrder || ""} ${o.id || ""}`.toLowerCase();
       return (
         cr.includes("pancaran") ||
         cr.includes("0 - 36") ||
         cr.includes("0-36") ||
         cr.includes("pdt") ||
         cr.includes("depo pdt") ||
-        text.includes("depo arround priok - pancaran") ||
-        text.includes("pancaran depo")
+        text.includes("depo around priok") ||
+        text.includes("depo arround priok") ||
+        text.includes("pancaran depo") ||
+        text.includes("0 - 36") ||
+        text.includes("0-36") ||
+        text.includes("repo pdt")
       );
-    });
+    };
 
-    const repo = filteredOrders.filter((o) => o.type === "repo" && !repoPdt.includes(o));
+    const ekspor = filteredOrders.filter((o) => o.type === "ekspor" && !isRepoPdtOrder(o));
+    const impor = filteredOrders.filter((o) => o.type === "impor" && !isRepoPdtOrder(o));
+    const repoPdt = filteredOrders.filter((o) => isRepoPdtOrder(o));
+    const repo = filteredOrders.filter((o) => o.type === "repo" && !isRepoPdtOrder(o));
 
     const getBreakdown = (list: Order[]) => {
       const listTotal = list.length || 1;
-      const tr = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM")).length;
-      const dn = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL")).length;
-      const op = list.filter((o) => {
-        const s = (o.statusPooling || "").toUpperCase();
-        return !s.includes("CONFIRM") && !s.includes("CANCEL");
-      }).length;
+      const preTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "pre_trip").length;
+      const onTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "on_trip").length;
+      const endTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "end_trip").length;
+      const cancel = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "cancel").length;
 
       return {
         total: list.length,
-        open: op,
-        transit: tr,
-        done: dn,
+        preTrip,
+        onTrip,
+        endTrip,
+        cancel,
         segments: [
-          { label: "need action", count: op, percentage: Math.round((op / listTotal) * 100), color: "bg-amber-500", hoverColor: "bg-amber-400", shadowColor: "#f59e0b" },
-          { label: "confirm", count: tr, percentage: Math.round((tr / listTotal) * 100), color: "bg-blue-600", hoverColor: "bg-blue-500", shadowColor: "#2563eb" },
-          { label: "cancel", count: dn, percentage: Math.round((dn / listTotal) * 100), color: "bg-rose-500", hoverColor: "bg-rose-400", shadowColor: "#f43f5e" },
+          { label: "pre trip", count: preTrip, percentage: Math.round((preTrip / listTotal) * 100), color: "bg-amber-500", hoverColor: "bg-amber-400", shadowColor: "#f59e0b" },
+          { label: "on trip", count: onTrip, percentage: Math.round((onTrip / listTotal) * 100), color: "bg-blue-600", hoverColor: "bg-blue-500", shadowColor: "#2563eb" },
+          { label: "end trip", count: endTrip, percentage: Math.round((endTrip / listTotal) * 100), color: "bg-emerald-500", hoverColor: "bg-emerald-400", shadowColor: "#10b981" },
+          { label: "cancel", count: cancel, percentage: Math.round((cancel / listTotal) * 100), color: "bg-rose-500", hoverColor: "bg-rose-400", shadowColor: "#f43f5e" }
         ]
       };
     };

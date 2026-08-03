@@ -7,7 +7,9 @@ import {
   getExecutedLookupMap,
   enrichAndDeduplicateOrders,
   resolveCSStatus,
-  parseCSVRecords
+  parseCSVRecords,
+  cleanVehiclePlate,
+  cleanDriver
 } from "./sheetsEngine";
 
 async function fetchSinarmasLookupMap(): Promise<Map<string, { unit: string; driver: string; location: string; eta: string }>> {
@@ -43,8 +45,8 @@ async function fetchSinarmasLookupMap(): Promise<Map<string, { unit: string; dri
           return trimmed;
         };
 
-        const unitVal = sanitize(r[nopolIdx] || r[30] || r[29] || r[41] || r[61] || r[25] || "");
-        const driverVal = sanitize(r[driverIdx] || r[31] || r[60] || r[26] || "");
+        const unitVal = cleanVehiclePlate(r[nopolIdx] || r[30] || r[29] || r[41] || r[61] || "");
+        const driverVal = cleanDriver(r[driverIdx] || r[31] || r[60] || "");
         const locVal = sanitize(r[statusRealtimeIdx] || r[32] || r[56] || r[13] || r[10] || "");
         const etaVal = sanitize(r[etaIdx] || r[50] || r[51] || r[7] || "");
 
@@ -155,8 +157,8 @@ export async function fetchExecutedShipmentsClient(): Promise<Order[]> {
           customer: cleanCustomer,
           quantity: 1,
           status: resolveCSStatus(ord.lastUpdateCS).status,
-          vehiclePlate: lookup && lookup.unit ? lookup.unit : (ord.vehiclePlate || ""),
-          driver: lookup && lookup.driver ? lookup.driver : (ord.driver || ""),
+          vehiclePlate: cleanVehiclePlate(lookup && lookup.unit ? lookup.unit : (ord.vehiclePlate || "")),
+          driver: cleanDriver(lookup && lookup.driver ? lookup.driver : (ord.driver || "")),
           origin: ord.origin || "IKK Karawang",
           statusRealtime: lookup && lookup.location ? lookup.location : (ord.statusRealtime || ""),
           eta: lookup && lookup.eta ? lookup.eta : (ord.eta || "")
@@ -196,12 +198,30 @@ function generateFallbackExecutedShipments(): Order[] {
       status = "cancel";
     }
 
+    let ordType: "ekspor" | "impor" | "repo" = "ekspor";
+    let commRoute = "EKSPOR SERVICE RUTE IKK - PORT";
+    let notesText = status === "cancel" ? "Canceled CS" : "";
+
+    if (i % 10 === 1 || i % 10 === 2) {
+      ordType = "repo";
+      commRoute = "REPO SERVICE RELOKASI EMPTY";
+      notesText = "RELOKASI REPO CONTAINER";
+    } else if (i % 10 === 3) {
+      ordType = "repo";
+      commRoute = "DEPO AROUND PRIOK - PANCARAN 0 - 36 PDT";
+      notesText = "REPO PDT";
+    } else if (i % 10 === 4) {
+      ordType = "impor";
+      commRoute = "IMPOR SERVICE PORT - IKK";
+    }
+
     const poolingNum = Math.ceil(i / 6);
     items.push({
       id: `SM-D${String(poolingNum).padStart(6, '0')}.${String((i % 6) + 1).padStart(2, '0')}`,
-      type: "ekspor",
+      type: ordType,
+      commercialRoute: commRoute,
       customer: "INDAH KIAT PULP & PAPER TBK.",
-      origin: "IKK Karawang",
+      origin: ordType === "repo" ? "DEPO REPO" : "IKK Karawang",
       destination: i % 3 === 0 ? "KOJA" : i % 3 === 1 ? "BSA" : "NPCT 1",
       unitType: "Trailer 4x2 40ft",
       status,
@@ -210,7 +230,7 @@ function generateFallbackExecutedShipments(): Order[] {
       quantity: 1,
       driver: status === "done" || status === "in_progress" ? `208260${300 + i} - DRIVER ${i}` : "",
       vehiclePlate: status === "done" || status === "in_progress" ? `B 97${10 + (i % 80)} UIW` : "",
-      notes: status === "cancel" ? "Canceled CS" : "",
+      notes: notesText,
       lastUpdateCS,
       source: "Google Sheet",
       sourceSheetName: "EXECUTED SINARMAS",

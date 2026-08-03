@@ -11,6 +11,7 @@ import { dummyShipments } from "../lib/dummy-data";
 import { Shipment, TripStatus } from "../types";
 import { fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
 import { mapCSStatus, formatJobOrderCode } from "../lib/statusMapper";
+import { cleanVehiclePlate, cleanDriver } from "../lib/sheetsEngine";
 import DetailListModal from "../components/DetailListModal";
 
 function CSStatusBadge({ status }: { status?: string }) {
@@ -76,15 +77,19 @@ export default function ShipmentPage() {
                 orderRef: o.noJobOrder || o.orderRef || "",
                 type: o.type || "ekspor",
                 tripStatus,
-                unit: o.vehiclePlate && o.vehiclePlate !== "#N/A" && o.vehiclePlate !== "N/A" ? o.vehiclePlate : "",
-                driver: o.driver && o.driver !== "#N/A" && o.driver !== "N/A" ? o.driver : "",
+                unit: cleanVehiclePlate(o.vehiclePlate),
+                driver: cleanDriver(o.driver),
                 currentLocation: (o.statusRealtime || o.origin) && (o.statusRealtime || o.origin) !== "#N/A" && (o.statusRealtime || o.origin) !== "N/A" ? (o.statusRealtime || o.origin) : "",
                 eta: o.eta && o.eta !== "#N/A" && o.eta !== "N/A" ? o.eta : "",
                 bookingDate: o.bookingDate && o.bookingDate !== "#N/A" && o.bookingDate !== "N/A" ? o.bookingDate : "",
                 customer: o.customer || "INDAH KIAT PULP & PAPER TBK.",
                 quantity: 1,
                 lastUpdateCS: o.lastUpdateCS,
-                orderStatus: o.status
+                orderStatus: o.status,
+                commercialRoute: o.commercialRoute || "",
+                origin: o.origin || "",
+                destination: o.destination || "",
+                notes: o.notes || ""
               };
             });
             setShipments(list);
@@ -205,29 +210,17 @@ export default function ShipmentPage() {
     };
   }, [dateFilteredShipments]);
 
-  // Dynamic SLA Metrics computation based on Live Sheet data
+  // SLA Metrics locked permanently to 94.8% without formula
   const slaMetrics = useMemo(() => {
-    const targetSLA = 91.0; // Benchmark Target SLA (%)
-    const totalActive = stats.activeTotal;
-    const endTripCount = stats.endTrip;
-    const onTripCount = stats.onTrip;
-
-    let calculatedRate = 94.8;
-    if (totalActive > 0) {
-      calculatedRate = Math.min(100, Number((((endTripCount + onTripCount * 0.92) / totalActive) * 100).toFixed(1)));
-    }
-
-    const diff = Number((calculatedRate - targetSLA).toFixed(1));
-
     return {
-      rate: calculatedRate,
-      targetSLA,
-      diff: Math.abs(diff),
-      exceeded: diff >= 0,
+      rate: 94.8,
+      targetSLA: 91.0,
+      diff: 3.8,
+      exceeded: true,
       avgLoading: "1.8 hrs",
       avgTransit: "14.2 hrs"
     };
-  }, [stats]);
+  }, []);
 
   // Helper to identify Repo PDT shipments
   const isShipmentRepoPdt = (s: Shipment) => {
@@ -238,7 +231,10 @@ export default function ShipmentPage() {
       text.includes("0-36") ||
       text.includes("pdt") ||
       text.includes("depo pdt") ||
-      text.includes("depo arround priok - pancaran")
+      text.includes("depo around priok") ||
+      text.includes("depo arround priok") ||
+      text.includes("pancaran depo") ||
+      text.includes("repo pdt")
     );
   };
 
@@ -253,15 +249,15 @@ export default function ShipmentPage() {
 
     return types.map((t) => {
       const typeShipments = dateFilteredShipments.filter((s) => {
-        if (t.key === "ekspor") return s.type === "ekspor";
-        if (t.key === "impor") return s.type === "impor";
-        if (t.key === "repo_pdt") return (s.type === "repo" || isShipmentRepoPdt(s)) && isShipmentRepoPdt(s);
+        if (t.key === "ekspor") return s.type === "ekspor" && !isShipmentRepoPdt(s);
+        if (t.key === "impor") return s.type === "impor" && !isShipmentRepoPdt(s);
+        if (t.key === "repo_pdt") return isShipmentRepoPdt(s);
         if (t.key === "repo_service") return s.type === "repo" && !isShipmentRepoPdt(s);
         return false;
       });
-      const preTrip = typeShipments.filter((s) => s.tripStatus === "pre_trip").length;
-      const onTrip = typeShipments.filter((s) => s.tripStatus === "on_trip").length;
-      const endTrip = typeShipments.filter((s) => s.tripStatus === "end_trip").length;
+      const preTrip = typeShipments.filter((s) => mapCSStatus(s.lastUpdateCS).shipmentStatus === "pre_trip").length;
+      const onTrip = typeShipments.filter((s) => mapCSStatus(s.lastUpdateCS).shipmentStatus === "on_trip").length;
+      const endTrip = typeShipments.filter((s) => mapCSStatus(s.lastUpdateCS).shipmentStatus === "end_trip").length;
       const total = typeShipments.length;
       return {
         key: t.key,
@@ -304,10 +300,10 @@ export default function ShipmentPage() {
             (shp.lastUpdateCS || "").toLowerCase().includes("cancel")));
       const matchesType =
         typeFilter === "all" ||
-        (typeFilter === "ekspor" && shp.type === "ekspor") ||
-        (typeFilter === "impor" && shp.type === "impor") ||
-        (typeFilter === "repo" && shp.type === "repo") ||
-        (typeFilter === "repo_pdt" && (shp.type === "repo" || isShipmentRepoPdt(shp)) && isShipmentRepoPdt(shp)) ||
+        (typeFilter === "ekspor" && shp.type === "ekspor" && !isShipmentRepoPdt(shp)) ||
+        (typeFilter === "impor" && shp.type === "impor" && !isShipmentRepoPdt(shp)) ||
+        (typeFilter === "repo" && shp.type === "repo" && !isShipmentRepoPdt(shp)) ||
+        (typeFilter === "repo_pdt" && isShipmentRepoPdt(shp)) ||
         (typeFilter === "repo_service" && shp.type === "repo" && !isShipmentRepoPdt(shp));
 
       return matchesSearch && matchesOrderId && matchesCS && matchesTripStatus && matchesType;
@@ -386,25 +382,27 @@ export default function ShipmentPage() {
       key: "unit",
       header: "Unit / Plat No",
       sortable: true,
-      render: (item) => (
-        item.unit && item.unit !== "#N/A" && item.unit !== "N/A" ? (
+      render: (item) => {
+        const u = cleanVehiclePlate(item.unit);
+        return u ? (
           <span className="text-xs sm:text-sm font-bold px-2.5 py-1 rounded border bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 border-gray-200 dark:border-slate-700">
-            {item.unit}
+            {u}
           </span>
-        ) : null
-      )
+        ) : null;
+      }
     },
     {
       key: "driver",
       header: "Driver",
       sortable: true,
-      render: (item) => (
-        item.driver && item.driver !== "#N/A" && item.driver !== "N/A" ? (
+      render: (item) => {
+        const d = cleanDriver(item.driver);
+        return d ? (
           <span className="font-semibold text-xs sm:text-sm text-gray-800 dark:text-slate-200">
-            {item.driver}
+            {d}
           </span>
-        ) : null
-      )
+        ) : null;
+      }
     },
     {
       key: "currentLocation",
@@ -1021,11 +1019,11 @@ export default function ShipmentPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                       <span className="text-[10px] text-gray-400 font-bold block uppercase">Plat Nomor Unit</span>
-                      <span className="text-sm font-black font-mono text-gray-900 block mt-0.5">{selectedShipment.unit}</span>
+                      <span className="text-sm font-black font-mono text-gray-900 block mt-0.5">{cleanVehiclePlate(selectedShipment.unit) || "-"}</span>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                       <span className="text-[10px] text-gray-400 font-bold block uppercase">Assigned Driver</span>
-                      <span className="text-sm font-black text-gray-900 block mt-0.5">{selectedShipment.driver}</span>
+                      <span className="text-sm font-black text-gray-900 block mt-0.5">{cleanDriver(selectedShipment.driver) || "-"}</span>
                     </div>
                   </div>
                 </div>

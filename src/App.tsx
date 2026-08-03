@@ -13,8 +13,8 @@ import { UserAccount } from "./types";
 
 export default function App() {
   // Navigation View State ('landing' | 'login' | 'dashboard')
-  const [view, setView] = useState<"landing" | "login" | "dashboard">("landing");
-  const [initialPortal, setInitialPortal] = useState<"customer" | "internal" | "partner">("customer");
+  const [view, setView] = useState<"landing" | "login" | "dashboard">("login");
+  const [initialPortal, setInitialPortal] = useState<"customer" | "internal" | "partner">("internal");
 
   // Current Logged In User Account
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
@@ -115,8 +115,8 @@ export default function App() {
           title={headerDetails.title}
           subtitle={headerDetails.subtitle}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          showBackButton={activeTab !== "logistik_pro"}
-          onBackClick={() => setActiveTab("logistik_pro")}
+          showBackButton={activeTab !== "logistik_pro" && activeTab !== "overview"}
+          onBackClick={() => setActiveTab("overview")}
           currentUser={currentUser}
         />
 

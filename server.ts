@@ -192,6 +192,75 @@ function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_progress
   return { status: "cancel" };
 }
 
+function cleanVehiclePlate(val?: string): string {
+  if (!val) return "";
+  const cleaned = val.trim();
+  const upper = cleaned.toUpperCase();
+  if (
+    !upper ||
+    upper === "#N/A" ||
+    upper === "N/A" ||
+    upper === "-" ||
+    upper === "NONE" ||
+    upper === "NULL" ||
+    upper === "UNMAPPED" ||
+    upper === "NO UNIT" ||
+    upper === "EMPTY" ||
+    upper === "UNDEFINED" ||
+    upper.includes("KOJA") ||
+    upper.includes("NPCT") ||
+    upper.includes("UTC") ||
+    upper.includes("BSA") ||
+    upper.includes("PDT") ||
+    upper.includes("PORT") ||
+    upper.includes("IKK") ||
+    upper.includes("FULL TRUCKING") ||
+    upper.includes("TRUCKING") ||
+    upper.includes("SERVICE") ||
+    upper.includes("TRAILER") ||
+    upper.includes("EXP") ||
+    upper.includes("IMP") ||
+    upper.includes("RUTE") ||
+    upper.includes("CONTAINER")
+  ) {
+    return "";
+  }
+  return cleaned;
+}
+
+function cleanDriver(val?: string): string {
+  if (!val) return "";
+  const cleaned = val.trim();
+  const upper = cleaned.toUpperCase();
+  if (
+    !upper ||
+    upper === "#N/A" ||
+    upper === "N/A" ||
+    upper === "-" ||
+    upper === "NONE" ||
+    upper === "NULL" ||
+    upper === "UNMAPPED" ||
+    upper === "NO DRIVER" ||
+    upper === "EMPTY" ||
+    upper === "UNDEFINED" ||
+    upper.includes("FULL TRUCKING") ||
+    upper.includes("TRUCKING") ||
+    upper.includes("SERVICE") ||
+    upper.includes("RUTE") ||
+    upper.includes("EXP - IMP") ||
+    upper.includes("EXP") ||
+    upper.includes("IMP") ||
+    upper.includes("KOJA") ||
+    upper.includes("NPCT") ||
+    upper.includes("IKK") ||
+    upper.includes("PORT") ||
+    upper.includes("CONTAINER")
+  ) {
+    return "";
+  }
+  return cleaned;
+}
+
 // Map raw spreadsheet row object to standard Order interface
 function mapSpreadsheetRowToOrder(
   row: Record<string, string>,
@@ -428,23 +497,29 @@ function mapSpreadsheetRowToOrder(
   const parsedQty = parseInt(rawQty, 10);
   const quantity = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
 
-  const driver = getVal(
+  const rawDriver = getVal(
     mapping?.driverField,
-    [51, 12, 11, 13],
+    [30, 59, 51],
+    "id - driver name",
     "driver name",
     "driver_name",
     "driver",
     "supir",
     "pengemudi"
   );
-  const vehiclePlate = getVal(
+  const driver = cleanDriver(rawDriver);
+
+  const rawVehiclePlate = getVal(
     mapping?.vehiclePlateField,
-    [52, 13, 14, 12],
+    [29, 28, 40, 60, 52],
     "nopol",
     "plat",
+    "nopol dedicated",
+    "mirror nopol",
     "vehicle",
     "unit id"
   );
+  const vehiclePlate = cleanVehiclePlate(rawVehiclePlate);
 
   let notes = getVal("notes", [32, 31], "catatan", "keterangan");
 
@@ -914,8 +989,8 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
               return trimmed;
             };
 
-            const unitVal = sanitize(r[nopolIdx] || r[30] || r[29] || r[41] || r[61] || r[25] || "");
-            const driverVal = sanitize(r[driverIdx] || r[31] || r[60] || r[26] || "");
+            const unitVal = cleanVehiclePlate(r[nopolIdx] || r[30] || r[29] || r[41] || r[61] || "");
+            const driverVal = cleanDriver(r[driverIdx] || r[31] || r[60] || "");
             const locVal = sanitize(r[statusRealtimeIdx] || r[32] || r[56] || r[13] || r[10] || "");
             const etaVal = sanitize(r[etaIdx] || r[50] || r[51] || r[7] || "");
 
@@ -951,8 +1026,8 @@ function enrichAndDeduplicateOrders(rawOrders: any[], executedMap: Map<string, a
             quantity: 1,
             status: resolveCSStatus(ord.lastUpdateCS).status,
             // VLOOKUP result fields (UNIT / PLAT NO, DRIVER, LOKASI TERKINI, ETA):
-            vehiclePlate: lookup && lookup.unit ? lookup.unit : (ord.vehiclePlate || ""),
-            driver: lookup && lookup.driver ? lookup.driver : (ord.driver || ""),
+            vehiclePlate: cleanVehiclePlate(lookup && lookup.unit ? lookup.unit : (ord.vehiclePlate || "")),
+            driver: cleanDriver(lookup && lookup.driver ? lookup.driver : (ord.driver || "")),
             origin: ord.origin || "IKK Karawang",
             statusRealtime: lookup && lookup.location ? lookup.location : (ord.statusRealtime || ""),
             eta: lookup && lookup.eta ? lookup.eta : (ord.eta || "")

@@ -98,6 +98,10 @@ export interface Shipment {
   quantity?: number;
   lastUpdateCS?: string;
   orderStatus?: string;
+  commercialRoute?: string;
+  origin?: string;
+  destination?: string;
+  notes?: string;
 }
 
 export interface TikProStatusItem {

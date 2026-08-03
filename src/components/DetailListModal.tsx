@@ -28,6 +28,36 @@ function PoolingBadge({ status }: { status?: string }) {
   );
 }
 
+function CSStatusBadge({ status }: { status?: string }) {
+  const val = (status || "WAITING CONFIRM").toUpperCase().trim();
+  let badgeStyle = "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800";
+  let dotStyle = "bg-emerald-500";
+
+  if (val.includes("WAITING") || val.includes("CONFIRM")) {
+    badgeStyle = "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800";
+    dotStyle = "bg-amber-500";
+  } else if (val.includes("FINISH") || val.includes("FIN") || val.includes("DONE") || val.includes("COMPLETE")) {
+    badgeStyle = "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800";
+    dotStyle = "bg-emerald-500";
+  } else if (val.includes("JOB") || val.includes("TRIP") || val.includes("TRANSIT") || val.includes("JALAN")) {
+    badgeStyle = "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800";
+    dotStyle = "bg-sky-500";
+  } else if (val.includes("CANCEL") || val.includes("BATAL") || val.includes("REJECT")) {
+    badgeStyle = "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800";
+    dotStyle = "bg-rose-500";
+  } else if (val.includes("PLANNING") || val.includes("OPR")) {
+    badgeStyle = "bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800";
+    dotStyle = "bg-indigo-500";
+  }
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md border ${badgeStyle}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotStyle}`} />
+      <span>{val}</span>
+    </span>
+  );
+}
+
 interface DetailListModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -222,6 +252,7 @@ export default function DetailListModal({
                     <tr>
                       <th className="px-3 py-2.5 rounded-l-xl">Shipment ID</th>
                       <th className="px-3 py-2.5">No Job Order</th>
+                      <th className="px-3 py-2.5">Last Update CS</th>
                       <th className="px-3 py-2.5">Status Trip</th>
                       <th className="px-3 py-2.5 rounded-r-xl">Tgl Booking</th>
                     </tr>
@@ -234,6 +265,9 @@ export default function DetailListModal({
                         </td>
                         <td className="px-3 py-2.5 font-mono font-extrabold text-blue-900 dark:text-sky-300">
                           {formatJobOrderCode(item.orderRef || item.noJobOrder) || ""}
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap font-bold text-slate-700 dark:text-slate-200">
+                          <CSStatusBadge status={item.lastUpdateCS || item.csStatus || "WAITING CONFIRM"} />
                         </td>
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <StatusBadge status={item.tripStatus || "pre_trip"} />

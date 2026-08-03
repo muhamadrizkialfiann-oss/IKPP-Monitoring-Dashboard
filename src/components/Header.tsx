@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Shield, Menu, ArrowLeft, UserCheck, Check, Info, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { Bell, Shield, ArrowLeft, UserCheck, Check, Info, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { useTheme } from "../ThemeContext";
 import { UserAccount } from "../types";
 
@@ -16,7 +16,7 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
   const isSuperAdmin = currentUser?.role === "Super Admin" || currentUser?.email?.toLowerCase() === "digital.solution@pancaran-logistic.id";
 
   const [language, setLanguage] = useState<"EN" | "ID">(() => {
-    return (localStorage.getItem("app_lang") as "EN" | "ID") || "ID";
+    return (localStorage.getItem("app_lang") as "EN" | "ID") || "EN";
   });
 
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -77,19 +77,8 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
 
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 h-16 md:h-20 px-3 md:px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm transition-colors duration-200">
-      {/* Title & Subtitle + Sidebar Toggle */}
+      {/* Title & Subtitle */}
       <div className="flex items-center gap-2 md:gap-4 min-w-0">
-        {/* Sleek, futuristic pulsing Menu Toggle Button */}
-        <button
-          onClick={onMenuClick}
-          className="group flex items-center justify-center p-2 md:p-2.5 bg-sky-50 dark:bg-slate-800 text-[#0B2C6B] dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-slate-700 hover:text-[#00AEEF] border border-sky-200/60 dark:border-slate-700 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer relative shrink-0"
-          title="Open Dashboard Navigation"
-        >
-          <Menu className="w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:scale-110" />
-          {/* Subtle neon indicator dot */}
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 md:w-2.5 md:h-2.5 bg-[#00AEEF] rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></span>
-        </button>
-
         {showBackButton && onBackClick && (
           <button
             id="header-back-button"

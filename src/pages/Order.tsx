@@ -9,7 +9,7 @@ import DateRangeFilter, { DateFilterState, filterByDate, parseBookingDate, forma
 import { dummyOrders } from "../lib/dummy-data";
 import { Order, OrderType, OrderStatus, SheetSource, UserAccount } from "../types";
 import { fetchLiveOrdersClient, fetchExecutedShipmentsClient } from "../lib/fetchOrdersClient";
-import { formatJobOrderCode } from "../lib/statusMapper";
+import { formatJobOrderCode, mapCSStatus } from "../lib/statusMapper";
 import DetailListModal from "../components/DetailListModal";
 
 interface OrderProps {
@@ -354,44 +354,47 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
 
   // Dynamic Service Type Breakdown calculated from live orders (filtered by dateFilter)
   const typeBreakdowns = useMemo(() => {
-    const eksporOrders = dateFilteredOrders.filter((o) => o.type === "ekspor");
-    const imporOrders = dateFilteredOrders.filter((o) => o.type === "impor");
-    
-    // REPO PDT: COMMERCIAL ROUTE or drop location/destination mentioning PDT, Depo PDT, Pancaran, Priok, 0 - 36
-    const repoPdtOrders = dateFilteredOrders.filter((o) => {
+    const isRepoPdtOrder = (o: Order) => {
       const cr = (o.commercialRoute || "").toLowerCase();
-      const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""}`.toLowerCase();
+      const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""} ${o.noJobOrder || ""} ${o.id || ""}`.toLowerCase();
       return (
         cr.includes("pancaran") ||
         cr.includes("0 - 36") ||
         cr.includes("0-36") ||
         cr.includes("pdt") ||
         cr.includes("depo pdt") ||
-        text.includes("depo arround priok - pancaran") ||
-        text.includes("pancaran depo")
+        text.includes("depo around priok") ||
+        text.includes("depo arround priok") ||
+        text.includes("pancaran depo") ||
+        text.includes("0 - 36") ||
+        text.includes("0-36") ||
+        text.includes("repo pdt")
       );
-    });
+    };
 
-    const repoOrders = dateFilteredOrders.filter((o) => o.type === "repo" && !repoPdtOrders.includes(o));
+    const eksporOrders = dateFilteredOrders.filter((o) => o.type === "ekspor" && !isRepoPdtOrder(o));
+    const imporOrders = dateFilteredOrders.filter((o) => o.type === "impor" && !isRepoPdtOrder(o));
+    const repoPdtOrders = dateFilteredOrders.filter((o) => isRepoPdtOrder(o));
+    const repoOrders = dateFilteredOrders.filter((o) => o.type === "repo" && !isRepoPdtOrder(o));
 
     const buildItem = (id: string, label: string, list: Order[], styles: { tag: string; totalText: string }) => {
       const total = list.length;
-      const confirm = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM")).length;
-      const cancel = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL")).length;
-      const needAction = list.filter((o) => {
-        const s = (o.statusPooling || "").toUpperCase();
-        return !s.includes("CONFIRM") && !s.includes("CANCEL");
-      }).length;
+      const preTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "pre_trip").length;
+      const onTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "on_trip").length;
+      const endTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "end_trip").length;
+      const cancel = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "cancel").length;
 
       return {
         id,
         label,
         total,
-        needAction,
-        confirm,
+        preTrip,
+        onTrip,
+        endTrip,
         cancel,
-        needActionPct: total > 0 ? (needAction / total) * 100 : 0,
-        confirmPct: total > 0 ? (confirm / total) * 100 : 0,
+        preTripPct: total > 0 ? (preTrip / total) * 100 : 0,
+        onTripPct: total > 0 ? (onTrip / total) * 100 : 0,
+        endTripPct: total > 0 ? (endTrip / total) * 100 : 0,
         cancelPct: total > 0 ? (cancel / total) * 100 : 0,
         styles
       };
@@ -905,20 +908,21 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
               </div>
               <div className="space-y-2 mt-3">
                 <div className="flex justify-between text-[11px] font-semibold text-gray-500 dark:text-slate-400">
-                  <span>Action: {b.needAction}</span>
-                  <span>Confirm: {b.confirm}</span>
-                  <span>Cancel: {b.cancel}</span>
+                  <span>Pre Trip: {b.preTrip}</span>
+                  <span>On Trip: {b.onTrip}</span>
+                  <span>End Trip: {b.endTrip}</span>
                 </div>
                 {/* Custom Multi-Segment Segmented Progress Bar */}
                 <div className="w-full h-3 bg-gray-100 dark:bg-slate-800 rounded-full flex overflow-hidden border border-gray-200/80 dark:border-slate-700 shadow-inner">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.needActionPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="bg-amber-500 h-full" title={`Need Action: ${b.needAction}`} />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.confirmPct}%` }} transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }} className="bg-blue-500 h-full" title={`Confirm: ${b.confirm}`} />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.cancelPct}%` }} transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }} className="bg-rose-500 h-full" title={`Cancel: ${b.cancel}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.preTripPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="bg-amber-500 h-full" title={`Pre Trip: ${b.preTrip}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.onTripPct}%` }} transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }} className="bg-blue-500 h-full" title={`On Trip: ${b.onTrip}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.endTripPct}%` }} transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }} className="bg-emerald-500 h-full" title={`End Trip: ${b.endTrip}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.cancelPct}%` }} transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} className="bg-rose-500 h-full" title={`Cancel: ${b.cancel}`} />
                 </div>
                 <div className="flex justify-between text-[10px] text-gray-400 dark:text-slate-500 font-bold pt-0.5 uppercase tracking-wider">
-                  <span>{b.needAction} Action</span>
-                  <span>{b.confirm} Confirm</span>
-                  <span>{b.cancel} Cancel</span>
+                  <span>{b.preTrip} Pre Trip</span>
+                  <span>{b.onTrip} On Trip</span>
+                  <span>{b.endTrip} End Trip</span>
                 </div>
               </div>
             </div>

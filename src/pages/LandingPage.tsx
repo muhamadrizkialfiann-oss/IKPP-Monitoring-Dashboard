@@ -25,7 +25,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
   const [showAboutUsView, setShowAboutUsView] = useState(false);
   const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false);
   const [language, setLanguage] = useState<"EN" | "ID">(() => {
-    return (localStorage.getItem("app_lang") as "EN" | "ID") || "ID";
+    return (localStorage.getItem("app_lang") as "EN" | "ID") || "EN";
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +69,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             </button>
 
             {/* Logo Center */}
-            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setShowAboutUsView(false)}>
+            <div className="flex items-center gap-2 sm:gap-2.5 cursor-pointer" onClick={() => setShowAboutUsView(false)}>
               <img 
                 src={PANCARAN_LOGO_DATA_URL} 
                 alt="Pancaran Logo" 
@@ -80,6 +80,16 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 <span className="text-[#0B2C6B]">PANCARAN</span>
                 <span className="text-[#00AEEF]">ONE</span>
               </div>
+              <span className="text-slate-400 font-black text-sm px-0.5 shrink-0 select-none">X</span>
+              <img 
+                src="https://lh3.googleusercontent.com/d/17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://drive.google.com/thumbnail?id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP&sz=w800";
+                }}
+                alt="IKPP Logo" 
+                className="w-28 sm:w-[180px] h-7 sm:h-8 object-contain rounded-lg bg-white p-0.5 border border-slate-200 shadow-sm shrink-0"
+                referrerPolicy="no-referrer"
+              />
             </div>
 
             {/* Spacer to balance layout */}
@@ -133,7 +143,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 px-6 py-3.5 transition-all shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Logo Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <div className="flex items-center gap-2.5 sm:gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
             <img 
               src={PANCARAN_LOGO_DATA_URL} 
               alt="Pancaran Logo" 
@@ -144,6 +154,16 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               <span className="text-slate-900 font-black tracking-wider text-lg">PANCARAN</span>
               <span className="bg-gradient-to-r from-sky-600 to-blue-700 bg-clip-text text-transparent font-black tracking-widest text-lg">ONE</span>
             </div>
+            <span className="text-slate-400 font-black text-sm sm:text-base px-0.5 shrink-0 select-none">X</span>
+            <img 
+              src="https://lh3.googleusercontent.com/d/17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "https://drive.google.com/thumbnail?id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP&sz=w800";
+              }}
+              alt="IKPP Logo" 
+              className="w-36 sm:w-[200px] h-8 sm:h-9 object-contain rounded-lg bg-white p-1 border border-slate-200 shadow-sm shrink-0"
+              referrerPolicy="no-referrer"
+            />
           </div>
 
           {/* Navigation Links & Action Button */}
@@ -238,22 +258,6 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                       <div className="text-[10px] text-slate-400 font-medium">Management & Operations</div>
                     </div>
                   </button>
-
-                  <button
-                    onClick={() => {
-                      setIsLoginDropdownOpen(false);
-                      onLogin("partner");
-                    }}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-sky-50/80 text-left transition-colors cursor-pointer group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-sky-100/80 text-sky-600 flex items-center justify-center shrink-0 group-hover:bg-sky-200/80 transition-colors">
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-800 group-hover:text-sky-900">Partner Portal</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Vendor & Fleet Ecosystem</div>
-                    </div>
-                  </button>
                 </div>
               )}
             </div>
@@ -278,7 +282,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             />
           </video>
           {/* Clear video on top with smooth white gradient transition at the bottom */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-slate-50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-50" />
         </div>
 
         {/* Ambient Radial Blurs */}
@@ -388,29 +392,27 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               </div>
             </div>
 
-            {/* Card 3: Partner Portal */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 flex flex-col justify-between space-y-6 hover:border-sky-500 transition-all duration-300 group shadow-sm hover:shadow-xl hover:shadow-sky-500/10">
+            {/* Card 3: Partner Portal (OFF / Disabled) */}
+            <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-8 flex flex-col justify-between space-y-6 opacity-75 shadow-sm relative overflow-hidden">
+              <div className="absolute top-4 right-4 bg-slate-200 text-slate-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+                OFF / INACTIVE
+              </div>
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-slate-200/80 border border-slate-300 flex items-center justify-center text-slate-500">
                   <Users className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Partner Portal</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Empowering vendors to update availability, bid for orders, and manage trips.
+                <h3 className="text-xl font-bold text-slate-700">Partner Portal</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Vendor and fleet ecosystem portal is currently turned off.
                 </p>
-                <div className="pt-1">
-                  <span className="inline-block bg-sky-50 border border-sky-200 text-sky-700 font-semibold text-[11px] px-3 py-1 rounded-full">
-                    Join as a Partner ›
-                  </span>
-                </div>
               </div>
               <div>
                 <button
-                  onClick={() => onLogin("partner")}
-                  className="text-sky-600 hover:text-sky-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer group-hover:translate-x-1 transition-all"
+                  disabled
+                  onClick={(e) => e.preventDefault()}
+                  className="text-slate-400 font-bold text-xs flex items-center gap-1.5 cursor-not-allowed"
                 >
-                  <span>Enter Portal</span>
-                  <ChevronRight className="w-4 h-4" />
+                  <span>Portal Disabled (OFF)</span>
                 </button>
               </div>
             </div>

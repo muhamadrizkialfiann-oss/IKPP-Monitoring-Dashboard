@@ -190,6 +190,75 @@ export function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_p
   return { status: "cancel" };
 }
 
+export function cleanVehiclePlate(val?: string): string {
+  if (!val) return "";
+  const cleaned = val.trim();
+  const upper = cleaned.toUpperCase();
+  if (
+    !upper ||
+    upper === "#N/A" ||
+    upper === "N/A" ||
+    upper === "-" ||
+    upper === "NONE" ||
+    upper === "NULL" ||
+    upper === "UNMAPPED" ||
+    upper === "NO UNIT" ||
+    upper === "EMPTY" ||
+    upper === "UNDEFINED" ||
+    upper.includes("KOJA") ||
+    upper.includes("NPCT") ||
+    upper.includes("UTC") ||
+    upper.includes("BSA") ||
+    upper.includes("PDT") ||
+    upper.includes("PORT") ||
+    upper.includes("IKK") ||
+    upper.includes("FULL TRUCKING") ||
+    upper.includes("TRUCKING") ||
+    upper.includes("SERVICE") ||
+    upper.includes("TRAILER") ||
+    upper.includes("EXP") ||
+    upper.includes("IMP") ||
+    upper.includes("RUTE") ||
+    upper.includes("CONTAINER")
+  ) {
+    return "";
+  }
+  return cleaned;
+}
+
+export function cleanDriver(val?: string): string {
+  if (!val) return "";
+  const cleaned = val.trim();
+  const upper = cleaned.toUpperCase();
+  if (
+    !upper ||
+    upper === "#N/A" ||
+    upper === "N/A" ||
+    upper === "-" ||
+    upper === "NONE" ||
+    upper === "NULL" ||
+    upper === "UNMAPPED" ||
+    upper === "NO DRIVER" ||
+    upper === "EMPTY" ||
+    upper === "UNDEFINED" ||
+    upper.includes("FULL TRUCKING") ||
+    upper.includes("TRUCKING") ||
+    upper.includes("SERVICE") ||
+    upper.includes("RUTE") ||
+    upper.includes("EXP - IMP") ||
+    upper.includes("EXP") ||
+    upper.includes("IMP") ||
+    upper.includes("KOJA") ||
+    upper.includes("NPCT") ||
+    upper.includes("IKK") ||
+    upper.includes("PORT") ||
+    upper.includes("CONTAINER")
+  ) {
+    return "";
+  }
+  return cleaned;
+}
+
 export function mapSpreadsheetRowToOrder(
   row: Record<string, string>,
   index: number,
@@ -286,10 +355,16 @@ export function mapSpreadsheetRowToOrder(
     "jenis"
   ).toLowerCase();
 
+  const routeAndNotesText = `${getVal("", [14, 15, 13], "commercial route", "route", "rute")} ${getVal("", [8, 9], "asal", "origin")} ${getVal("", [10, 11], "tujuan", "destination")} ${getVal("", [20, 21], "notes", "catatan")}`.toLowerCase();
+
   let type: "ekspor" | "impor" | "repo" = "ekspor";
-  if (rawType.includes("impor") || rawType.includes("import")) type = "impor";
-  else if (rawType.includes("repo") || rawType.includes("relokasi")) type = "repo";
-  else if (rawType.includes("ekspor") || rawType.includes("export")) type = "ekspor";
+  if (rawType.includes("impor") || rawType.includes("import") || routeAndNotesText.includes("impor") || routeAndNotesText.includes("import")) {
+    type = "impor";
+  } else if (rawType.includes("repo") || rawType.includes("relokasi") || routeAndNotesText.includes("repo") || routeAndNotesText.includes("relokasi") || routeAndNotesText.includes("rtb")) {
+    type = "repo";
+  } else if (rawType.includes("ekspor") || rawType.includes("export") || routeAndNotesText.includes("ekspor") || routeAndNotesText.includes("export")) {
+    type = "ekspor";
+  }
 
   const customer =
     getVal(
@@ -393,9 +468,9 @@ export function mapSpreadsheetRowToOrder(
   const parsedQty = parseInt(rawQty, 10);
   const quantity = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
 
-  const driver = getVal(
+  const rawDriver = getVal(
     mapping?.driverField,
-    [30, 59, 25, 51, 12, 11, 13],
+    [30, 59, 51],
     "id - driver name",
     "driver name",
     "driver_name",
@@ -403,9 +478,11 @@ export function mapSpreadsheetRowToOrder(
     "supir",
     "pengemudi"
   );
-  const vehiclePlate = getVal(
+  const driver = cleanDriver(rawDriver);
+
+  const rawVehiclePlate = getVal(
     mapping?.vehiclePlateField,
-    [29, 28, 40, 60, 24, 52, 13, 14, 12],
+    [29, 28, 40, 60, 52],
     "nopol",
     "plat",
     "nopol dedicated",
@@ -413,6 +490,7 @@ export function mapSpreadsheetRowToOrder(
     "vehicle",
     "unit id"
   );
+  const vehiclePlate = cleanVehiclePlate(rawVehiclePlate);
   const statusRealtime = getVal(
     mapping?.statusRealtimeField,
     [31, 55, 13, 10],

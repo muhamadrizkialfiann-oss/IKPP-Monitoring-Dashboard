@@ -524,72 +524,44 @@ export default function LoginPage({ initialPortal = "customer", onBackToHome, on
             </>
           )}
 
-          {/* PARTNER PORTAL VIEW */}
+          {/* PARTNER PORTAL VIEW (OFF / INACTIVE) */}
           {activePortal === "partner" && (
             <>
               {/* Logo & Header */}
               <div className="text-center space-y-2 mb-6">
-                <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-[#00AEEF]/10 border border-[#00AEEF]/20 text-[#00AEEF] mb-1">
+                <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-slate-100 border border-slate-200 text-slate-500 mb-1">
                   <Users className="w-7 h-7" />
                 </div>
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  <div className="inline-block bg-slate-200 text-slate-700 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase mb-1">
+                    OFF / INACTIVE
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
                     Partner Portal
                   </h2>
                   <p className="text-slate-500 text-xs sm:text-sm font-medium mt-1">
-                    Vendor & Fleet Logistics Ecosystem
+                    Partner Portal access is currently turned off.
                   </p>
                 </div>
               </div>
 
-              {/* Partner Login Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    Partner Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="vendor@partner-logistics.com"
-                      className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-sky-500 focus:bg-white rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all"
-                    />
-                  </div>
+              {/* Inactive Notice Banner */}
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 space-y-2 text-center">
+                <AlertCircle className="w-6 h-6 text-amber-600 mx-auto" />
+                <div className="text-xs font-bold leading-relaxed">
+                  Partner Portal is currently OFF / Inactive. Login access is disabled.
                 </div>
+              </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-sky-500 focus:bg-white rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
+              <div className="mt-6 pt-4 border-t border-slate-100 text-center">
                 <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs sm:text-sm py-3 px-4 rounded-xl transition-all shadow-md shadow-sky-600/20 cursor-pointer transform active:scale-[0.99] mt-3 flex items-center justify-center gap-2"
+                  type="button"
+                  onClick={() => setActivePortal("internal")}
+                  className="text-xs font-extrabold text-[#0B2C6B] hover:underline cursor-pointer"
                 >
-                  {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span>Sign In to Partner Portal</span>
-                  )}
+                  Switch to Internal Portal ›
                 </button>
-              </form>
+              </div>
             </>
           )}
 
