@@ -16,6 +16,71 @@ import {
 } from "lucide-react";
 import PANCARAN_LOGO_DATA_URL from "../assets/logo";
 
+function IkppLogo({ className = "h-8 sm:h-9" }: { className?: string }) {
+  const [srcIndex, setSrcIndex] = useState(0);
+  const [hasError, setHasError] = useState(false);
+
+  const sources = [
+    "https://drive.google.com/thumbnail?id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP&sz=w1000",
+    "https://lh3.googleusercontent.com/d/17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP=w1000",
+    "https://drive.google.com/uc?export=view&id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP",
+    "https://wsrv.nl/?url=drive.google.com/uc?id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP"
+  ];
+
+  const handleError = () => {
+    if (srcIndex + 1 < sources.length) {
+      setSrcIndex(prev => prev + 1);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  return (
+    <div className={`flex items-center shrink-0 ${className}`}>
+      {!hasError ? (
+        <img
+          src={sources[srcIndex]}
+          onError={handleError}
+          alt="IKPP Logo"
+          className="max-h-full max-w-[200px] object-contain rounded-lg bg-white p-0.5 border border-slate-200 shadow-sm shrink-0"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-sm shrink-0 h-full">
+          <svg 
+            viewBox="0 0 100 100" 
+            className="w-7 h-7 shrink-0 rounded-md"
+            shapeRendering="geometricPrecision"
+          >
+            <rect width="100" height="100" rx="20" fill="#E1251B" />
+            <g fill="white">
+              <path d="M 14,50 A 36,36 0 0,1 86,50 A 33,33 0 0,0 20,50 Z" />
+              <path d="M 26,50 A 30,30 0 0,1 86,50 A 27,27 0 0,0 32,50 Z" />
+              <path d="M 38,50 A 24,24 0 0,1 86,50 A 21,21 0 0,0 44,50 Z" />
+              <path d="M 50,50 A 18,18 0 0,1 86,50 A 15,15 0 0,0 56,50 Z" />
+            </g>
+            <g fill="white" transform="rotate(180, 50, 50)">
+              <path d="M 14,50 A 36,36 0 0,1 86,50 A 33,33 0 0,0 20,50 Z" />
+              <path d="M 26,50 A 30,30 0 0,1 86,50 A 27,27 0 0,0 32,50 Z" />
+              <path d="M 38,50 A 24,24 0 0,1 86,50 A 21,21 0 0,0 44,50 Z" />
+              <path d="M 50,50 A 18,18 0 0,1 86,50 A 15,15 0 0,0 56,50 Z" />
+            </g>
+            <line x1="14" y1="50" x2="86" y2="50" stroke="#E1251B" strokeWidth="2.5" />
+          </svg>
+          <div className="flex flex-col text-left justify-center">
+            <span className="text-[#031B4E] font-extrabold text-[11px] tracking-wider leading-none uppercase">
+              INDAH KIAT
+            </span>
+            <span className="text-gray-500 font-bold text-[7.5px] leading-none tracking-widest mt-0.5 uppercase">
+              PULP & PAPER
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface LandingPageProps {
   onLogin: (portal?: "customer" | "internal" | "partner") => void;
 }
@@ -81,15 +146,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 <span className="text-[#00AEEF]">ONE</span>
               </div>
               <span className="text-slate-400 font-black text-sm px-0.5 shrink-0 select-none">X</span>
-              <img 
-                src="https://lh3.googleusercontent.com/d/17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://drive.google.com/thumbnail?id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP&sz=w800";
-                }}
-                alt="IKPP Logo" 
-                className="w-28 sm:w-[180px] h-7 sm:h-8 object-contain rounded-lg bg-white p-0.5 border border-slate-200 shadow-sm shrink-0"
-                referrerPolicy="no-referrer"
-              />
+              <IkppLogo className="h-7 sm:h-8" />
             </div>
 
             {/* Spacer to balance layout */}
@@ -155,15 +212,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               <span className="bg-gradient-to-r from-sky-600 to-blue-700 bg-clip-text text-transparent font-black tracking-widest text-lg">ONE</span>
             </div>
             <span className="text-slate-400 font-black text-sm sm:text-base px-0.5 shrink-0 select-none">X</span>
-            <img 
-              src="https://lh3.googleusercontent.com/d/17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://drive.google.com/thumbnail?id=17KbyZDiuRMZnzr9ikou_5y0xOKKaKKJP&sz=w800";
-              }}
-              alt="IKPP Logo" 
-              className="w-36 sm:w-[200px] h-8 sm:h-9 object-contain rounded-lg bg-white p-1 border border-slate-200 shadow-sm shrink-0"
-              referrerPolicy="no-referrer"
-            />
+            <IkppLogo className="h-8 sm:h-9" />
           </div>
 
           {/* Navigation Links & Action Button */}
