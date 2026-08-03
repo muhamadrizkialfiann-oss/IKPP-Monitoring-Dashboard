@@ -349,16 +349,24 @@ function mapSpreadsheetRowToOrder(
     [16, 17, 15],
     "freight type",
     "freight_type",
+    "order type",
+    "tipe order",
+    "tipe freight",
     "tipe",
     "type",
-    "order type",
     "jenis"
   ).toLowerCase();
 
   let type: "ekspor" | "impor" | "repo" = "ekspor";
-  if (rawType.includes("impor") || rawType.includes("import")) type = "impor";
-  else if (rawType.includes("repo") || rawType.includes("relokasi")) type = "repo";
-  else if (rawType.includes("ekspor") || rawType.includes("export")) type = "ekspor";
+  if (rawType.includes("impor") || rawType.includes("import")) {
+    type = "impor";
+  } else if (rawType.includes("repo") || rawType.includes("relokasi")) {
+    type = "repo";
+  } else if (rawType.includes("ekspor") || rawType.includes("export")) {
+    type = "ekspor";
+  } else {
+    type = "ekspor";
+  }
 
   const customer =
     getVal(

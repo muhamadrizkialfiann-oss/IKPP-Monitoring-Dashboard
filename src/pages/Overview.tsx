@@ -153,24 +153,23 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
       const cr = (o.commercialRoute || "").toLowerCase();
       const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""} ${o.noJobOrder || ""} ${o.id || ""}`.toLowerCase();
       return (
-        cr.includes("pancaran") ||
+        cr.includes("pancaran depo") ||
         cr.includes("0 - 36") ||
         cr.includes("0-36") ||
+        cr.includes("pancaran") ||
+        cr.includes("depo arround priok") ||
+        cr.includes("depo around priok") ||
         cr.includes("pdt") ||
-        cr.includes("depo pdt") ||
-        text.includes("depo around priok") ||
-        text.includes("depo arround priok") ||
         text.includes("pancaran depo") ||
         text.includes("0 - 36") ||
-        text.includes("0-36") ||
         text.includes("repo pdt")
       );
     };
 
-    const ekspor = filteredOrders.filter((o) => o.type === "ekspor" && !isRepoPdtOrder(o));
-    const impor = filteredOrders.filter((o) => o.type === "impor" && !isRepoPdtOrder(o));
     const repoPdt = filteredOrders.filter((o) => isRepoPdtOrder(o));
-    const repo = filteredOrders.filter((o) => o.type === "repo" && !isRepoPdtOrder(o));
+    const repo = filteredOrders.filter((o) => !isRepoPdtOrder(o) && o.type === "repo");
+    const impor = filteredOrders.filter((o) => !isRepoPdtOrder(o) && o.type === "impor");
+    const ekspor = filteredOrders.filter((o) => !isRepoPdtOrder(o) && o.type !== "repo" && o.type !== "impor");
 
     const getBreakdown = (list: Order[]) => {
       const listTotal = list.length || 1;

@@ -349,20 +349,22 @@ export function mapSpreadsheetRowToOrder(
     [16, 17, 15],
     "freight type",
     "freight_type",
+    "order type",
+    "tipe order",
+    "tipe freight",
     "tipe",
     "type",
-    "order type",
     "jenis"
   ).toLowerCase();
 
-  const routeAndNotesText = `${getVal("", [14, 15, 13], "commercial route", "route", "rute")} ${getVal("", [8, 9], "asal", "origin")} ${getVal("", [10, 11], "tujuan", "destination")} ${getVal("", [20, 21], "notes", "catatan")}`.toLowerCase();
-
   let type: "ekspor" | "impor" | "repo" = "ekspor";
-  if (rawType.includes("impor") || rawType.includes("import") || routeAndNotesText.includes("impor") || routeAndNotesText.includes("import")) {
+  if (rawType.includes("impor") || rawType.includes("import")) {
     type = "impor";
-  } else if (rawType.includes("repo") || rawType.includes("relokasi") || routeAndNotesText.includes("repo") || routeAndNotesText.includes("relokasi") || routeAndNotesText.includes("rtb")) {
+  } else if (rawType.includes("repo") || rawType.includes("relokasi")) {
     type = "repo";
-  } else if (rawType.includes("ekspor") || rawType.includes("export") || routeAndNotesText.includes("ekspor") || routeAndNotesText.includes("export")) {
+  } else if (rawType.includes("ekspor") || rawType.includes("export")) {
+    type = "ekspor";
+  } else {
     type = "ekspor";
   }
 
