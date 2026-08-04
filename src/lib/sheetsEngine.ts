@@ -157,7 +157,9 @@ export function resolveCSStatus(lastUpdateCS?: string): { status: "open" | "in_p
     cs.includes("IN TRANSIT") ||
     cs.includes("TRANSIT") ||
     cs.includes("ON TRIP") ||
-    cs.includes("TRIP")
+    cs.includes("TRIP") ||
+    cs.includes("WAITING TILA") ||
+    cs.includes("TILA")
   ) {
     return { status: "in_progress" };
   }

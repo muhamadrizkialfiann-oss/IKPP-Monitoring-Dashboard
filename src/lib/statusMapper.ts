@@ -22,7 +22,14 @@ export function mapCSStatus(lastUpdateCS?: string): MappedStatus {
     return { orderStatus: "cancel", shipmentStatus: "cancel" };
   }
 
-  if (cs === "ON JOB" || cs.includes("ON JOB") || cs.includes("ON TRIP") || cs.includes("IN TRANSIT")) {
+  if (
+    cs === "ON JOB" ||
+    cs.includes("ON JOB") ||
+    cs.includes("ON TRIP") ||
+    cs.includes("IN TRANSIT") ||
+    cs.includes("WAITING TILA") ||
+    cs.includes("TILA")
+  ) {
     return { orderStatus: "in_progress", shipmentStatus: "on_trip" };
   }
 
