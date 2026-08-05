@@ -115,6 +115,7 @@ export default function App() {
           title={headerDetails.title}
           subtitle={headerDetails.subtitle}
           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          isSidebarOpen={isSidebarOpen}
           showBackButton={activeTab !== "logistik_pro" && activeTab !== "overview"}
           onBackClick={() => setActiveTab("overview")}
           currentUser={currentUser}

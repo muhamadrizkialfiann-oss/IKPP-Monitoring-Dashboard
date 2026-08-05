@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Shield, ArrowLeft, UserCheck, Check, Info, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { Bell, Shield, ArrowLeft, UserCheck, Check, Info, AlertTriangle, CheckCircle2, X, Menu, ChevronRight, ChevronLeft } from "lucide-react";
 import { useTheme } from "../ThemeContext";
 import { UserAccount } from "../types";
 
@@ -7,12 +7,13 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   onMenuClick: () => void;
+  isSidebarOpen?: boolean;
   showBackButton?: boolean;
   onBackClick?: () => void;
   currentUser?: UserAccount | null;
 }
 
-export default function Header({ title, subtitle, onMenuClick, showBackButton, onBackClick, currentUser }: HeaderProps) {
+export default function Header({ title, subtitle, onMenuClick, isSidebarOpen, showBackButton, onBackClick, currentUser }: HeaderProps) {
   const isSuperAdmin = currentUser?.role === "Super Admin" || currentUser?.email?.toLowerCase() === "digital.solution@pancaran-logistic.id";
 
   const [language, setLanguage] = useState<"EN" | "ID">(() => {
@@ -79,6 +80,20 @@ export default function Header({ title, subtitle, onMenuClick, showBackButton, o
     <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 h-16 md:h-20 px-3 md:px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm transition-colors duration-200">
       {/* Title & Subtitle */}
       <div className="flex items-center gap-2 md:gap-4 min-w-0">
+        <button
+          id="header-menu-toggle"
+          onClick={onMenuClick}
+          className="flex items-center justify-center p-2 bg-[#0B2C6B] hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl transition-all duration-200 shadow-sm cursor-pointer shrink-0 border border-slate-900 dark:border-slate-700 mr-1"
+          title={isSidebarOpen ? "Hide Navigation Menu" : "Show Navigation Menu"}
+        >
+          <Menu className="w-4 h-4 md:w-5 md:h-5 text-white" />
+          {isSidebarOpen ? (
+            <ChevronLeft className="w-3.5 h-3.5 md:w-4 md:h-4 text-sky-300 ml-0.5" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4 text-sky-300 ml-0.5" />
+          )}
+        </button>
+
         {showBackButton && onBackClick && (
           <button
             id="header-back-button"
