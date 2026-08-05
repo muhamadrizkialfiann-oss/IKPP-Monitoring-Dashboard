@@ -178,7 +178,7 @@ export default function ShipmentPage() {
         (s.lastUpdateCS || "").toLowerCase().includes("cancel cust")
     ).length;
 
-    const cancel = dateFilteredShipments.filter((s) => s.tripStatus === "cancel").length;
+    const cancel = dateFilteredShipments.filter((s) => s.tripStatus === "cancel" || mapCSStatus(s.lastUpdateCS).shipmentStatus === "cancel").length;
 
     const preTrip = dateFilteredShipments.filter((s) => s.tripStatus === "pre_trip").length;
     const onTrip = dateFilteredShipments.filter((s) => s.tripStatus === "on_trip").length;
@@ -242,7 +242,6 @@ export default function ShipmentPage() {
   const breakdownMatrix = useMemo(() => {
     const types = [
       { key: "ekspor", label: "Ekspor" },
-      { key: "repo_pdt", label: "Repo PDT" },
       { key: "repo_service", label: "Repo Service" },
       { key: "impor", label: "Impor" }
     ];
@@ -251,13 +250,16 @@ export default function ShipmentPage() {
       const typeShipments = dateFilteredShipments.filter((s) => {
         if (t.key === "ekspor") return s.type === "ekspor" && !isShipmentRepoPdt(s);
         if (t.key === "impor") return s.type === "impor" && !isShipmentRepoPdt(s);
-        if (t.key === "repo_pdt") return isShipmentRepoPdt(s);
-        if (t.key === "repo_service") return s.type === "repo" && !isShipmentRepoPdt(s);
+        if (t.key === "repo_service") return s.type === "repo" || isShipmentRepoPdt(s);
         return false;
       });
       const preTrip = typeShipments.filter((s) => mapCSStatus(s.lastUpdateCS).shipmentStatus === "pre_trip").length;
       const onTrip = typeShipments.filter((s) => mapCSStatus(s.lastUpdateCS).shipmentStatus === "on_trip").length;
       const endTrip = typeShipments.filter((s) => mapCSStatus(s.lastUpdateCS).shipmentStatus === "end_trip").length;
+      const cancel = typeShipments.filter((s) => {
+        const status = mapCSStatus(s.lastUpdateCS).shipmentStatus;
+        return status === "cancel" || s.tripStatus === "cancel";
+      }).length;
       const total = typeShipments.length;
       return {
         key: t.key,
@@ -265,6 +267,7 @@ export default function ShipmentPage() {
         preTrip,
         onTrip,
         endTrip,
+        cancel,
         total
       };
     });
@@ -302,9 +305,7 @@ export default function ShipmentPage() {
         typeFilter === "all" ||
         (typeFilter === "ekspor" && shp.type === "ekspor" && !isShipmentRepoPdt(shp)) ||
         (typeFilter === "impor" && shp.type === "impor" && !isShipmentRepoPdt(shp)) ||
-        (typeFilter === "repo" && shp.type === "repo" && !isShipmentRepoPdt(shp)) ||
-        (typeFilter === "repo_pdt" && isShipmentRepoPdt(shp)) ||
-        (typeFilter === "repo_service" && shp.type === "repo" && !isShipmentRepoPdt(shp));
+        ((typeFilter === "repo" || typeFilter === "repo_service") && (shp.type === "repo" || isShipmentRepoPdt(shp)));
 
       return matchesSearch && matchesOrderId && matchesCS && matchesTripStatus && matchesType;
     });
@@ -508,8 +509,8 @@ export default function ShipmentPage() {
         </div>
       </div>
 
-      {/* 6 Kolom KPI Stats (Clickable to view detail modal popup & filter) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      {/* 7 Kolom KPI Stats (Clickable to view detail modal popup & filter) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         <div
           onClick={() => {
             setTripStatusFilter("all");
@@ -527,8 +528,29 @@ export default function ShipmentPage() {
             value={String(stats.total)}
             statusType="neutral"
             valueOnTop={false}
-            description={`Total Cancel: ${stats.cancel}`}
-            descriptionColor="text-rose-600 dark:text-rose-400 font-extrabold"
+            description="Total Shipment Executed"
+          />
+        </div>
+        <div
+          onClick={() => {
+            const cancelList = dateFilteredShipments.filter(
+              (s) => s.tripStatus === "cancel" || mapCSStatus(s.lastUpdateCS).shipmentStatus === "cancel"
+            );
+            setDetailModal({
+              isOpen: true,
+              title: "Detail Data: Total Cancel",
+              subtitle: "Seluruh trip shipment dengan status cancel",
+              data: cancelList,
+            });
+          }}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Total Cancel"
+            value={String(stats.cancel)}
+            icon={XCircle}
+            statusType="danger"
+            description="Status Trip Cancel"
           />
         </div>
         <div
@@ -673,6 +695,7 @@ export default function ShipmentPage() {
                   <th className="pb-3 text-center">Pre-Trip</th>
                   <th className="pb-3 text-center">On Trip</th>
                   <th className="pb-3 text-center">End Trip</th>
+                  <th className="pb-3 text-center text-rose-700 dark:text-rose-400">Total Cancel</th>
                   <th className="pb-3 text-center bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-t-lg">Total Shipment</th>
                 </tr>
               </thead>
@@ -689,8 +712,6 @@ export default function ShipmentPage() {
                       <span className={`w-3 h-3 rounded-full ${
                         row.type === "Ekspor"
                           ? "bg-sky-500"
-                          : row.type === "Repo PDT"
-                          ? "bg-amber-500"
                           : row.type === "Repo Service"
                           ? "bg-emerald-500"
                           : "bg-blue-600"
@@ -700,6 +721,7 @@ export default function ShipmentPage() {
                     <td className="py-4 text-center text-sky-800 dark:text-sky-400 font-extrabold font-mono text-sm sm:text-base">{row.preTrip}</td>
                     <td className="py-4 text-center text-blue-800 dark:text-blue-400 font-extrabold font-mono text-sm sm:text-base">{row.onTrip}</td>
                     <td className="py-4 text-center text-emerald-800 dark:text-emerald-400 font-extrabold font-mono text-sm sm:text-base">{row.endTrip}</td>
+                    <td className="py-4 text-center text-rose-700 dark:text-rose-400 font-extrabold font-mono text-sm sm:text-base">{row.cancel}</td>
                     <td className="py-4 text-center font-black text-gray-950 dark:text-slate-100 bg-gray-50/75 dark:bg-slate-800/80 rounded-b-lg font-mono text-sm sm:text-base">{row.total}</td>
                   </tr>
                 ))}
@@ -850,9 +872,7 @@ export default function ShipmentPage() {
                 >
                   <option value="all">Order Tipe: All</option>
                   <option value="ekspor">Ekspor Only</option>
-                  <option value="repo_pdt">Repo PDT Only</option>
                   <option value="repo_service">Repo Service Only</option>
-                  <option value="repo">Repo All (PDT & Service)</option>
                   <option value="impor">Impor Only</option>
                 </select>
               </div>

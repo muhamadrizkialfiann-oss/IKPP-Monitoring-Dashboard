@@ -23,87 +23,95 @@ export default function ServiceStreamCard({ title, total, themeColor, segments }
   // Theme configuration for headers
   const themeStyles = {
     sky: {
-      badge: "bg-sky-50 text-sky-700 border border-sky-200/50",
-      glow: "group-hover:border-sky-200 group-hover:shadow-sky-500/5",
+      badge: "bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/60",
+      glow: "group-hover:border-sky-300 dark:group-hover:border-sky-700 group-hover:shadow-sky-500/5",
     },
     blue: {
-      badge: "bg-blue-50 text-blue-700 border border-blue-200/50",
-      glow: "group-hover:border-blue-200 group-hover:shadow-blue-500/5",
+      badge: "bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60",
+      glow: "group-hover:border-blue-300 dark:group-hover:border-blue-700 group-hover:shadow-blue-500/5",
     },
     emerald: {
-      badge: "bg-emerald-50 text-emerald-700 border border-emerald-200/50",
-      glow: "group-hover:border-emerald-200 group-hover:shadow-emerald-500/5",
+      badge: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60",
+      glow: "group-hover:border-emerald-300 dark:group-hover:border-emerald-700 group-hover:shadow-emerald-500/5",
     },
     amber: {
-      badge: "bg-amber-50 text-amber-800 border border-amber-200/50",
-      glow: "group-hover:border-amber-200 group-hover:shadow-amber-500/5",
+      badge: "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60",
+      glow: "group-hover:border-amber-300 dark:group-hover:border-amber-700 group-hover:shadow-amber-500/5",
     },
     teal: {
-      badge: "bg-teal-50 text-teal-800 border border-teal-200/50",
-      glow: "group-hover:border-teal-200 group-hover:shadow-teal-500/5",
+      badge: "bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60",
+      glow: "group-hover:border-teal-300 dark:group-hover:border-teal-700 group-hover:shadow-teal-500/5",
     },
     purple: {
-      badge: "bg-purple-50 text-purple-800 border border-purple-200/50",
-      glow: "group-hover:border-purple-200 group-hover:shadow-purple-500/5",
+      badge: "bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60",
+      glow: "group-hover:border-purple-300 dark:group-hover:border-purple-700 group-hover:shadow-purple-500/5",
     },
   };
 
   const activeTheme = themeStyles[themeColor];
 
+  // Check if all segments are 0 or total is 0
+  const isZeroTotal = total === 0 || segments.every((s) => s.count === 0);
+
   return (
     <div 
-      className={`bg-white border border-gray-100 rounded-xl p-3.5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:border-gray-200 group ${activeTheme.glow}`}
+      className={`bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-3.5 flex flex-col justify-between transition-all duration-300 hover:shadow-md dark:hover:shadow-slate-950/50 group ${activeTheme.glow}`}
     >
       {/* Title & Total Count Header */}
       <div className="flex justify-between items-center text-[10px] mb-3">
-        <span className={`font-black px-2 py-0.5 rounded-md tracking-wider ${activeTheme.badge}`}>
+        <span className={`font-black px-2.5 py-1 rounded-lg tracking-wider text-[10px] uppercase shadow-2xs ${activeTheme.badge}`}>
           {title}
         </span>
-        <span className="font-extrabold text-gray-700 bg-gray-50 border border-gray-200/40 px-1.5 py-0.5 rounded">
-          {total} <span className="text-[8px] text-gray-400 font-bold uppercase">Total</span>
-        </span>
+        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200/80 dark:border-slate-700/80 px-2.5 py-1 rounded-lg">
+          <span className="font-black text-xs md:text-sm text-gray-900 dark:text-slate-100 tabular-nums">{total}</span>
+          <span className="text-[8px] font-extrabold text-gray-400 dark:text-slate-400 uppercase tracking-wider">TOTAL</span>
+        </div>
       </div>
 
-      {/* Interactive Interactive Segmented Bar */}
-      <div className="relative my-2.5">
-        <div className="w-full h-3.5 bg-gray-50 border border-gray-200/40 rounded-full flex overflow-hidden p-[2px] relative">
-          {segments.map((segment, idx) => {
-            if (segment.count === 0) return null;
-            const isHovered = hoveredIdx === idx;
-            const isAnyHovered = hoveredIdx !== null;
+      {/* Interactive Segmented Progress Bar */}
+      <div className="relative my-2">
+        <div className="w-full h-3 bg-gray-100 dark:bg-slate-800/80 border border-gray-200/50 dark:border-slate-700/50 rounded-full flex overflow-hidden p-[2px] relative">
+          {isZeroTotal ? (
+            <div className="w-full h-full bg-gray-200/60 dark:bg-slate-700/50 rounded-full" />
+          ) : (
+            segments.map((segment, idx) => {
+              if (segment.count === 0) return null;
+              const isHovered = hoveredIdx === idx;
+              const isAnyHovered = hoveredIdx !== null;
 
-            return (
-              <motion.div
-                key={idx}
-                initial={{ width: 0 }}
-                animate={{ width: `${segment.percentage}%` }}
-                transition={{ duration: 1.0, delay: idx * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                onMouseEnter={() => setHoveredIdx(idx)}
-                onMouseLeave={() => setHoveredIdx(null)}
-                className={`h-full cursor-pointer relative transition-all duration-300 first:rounded-l-full last:rounded-r-full ${segment.color}`}
-                style={{
-                  opacity: isAnyHovered ? (isHovered ? 1 : 0.4) : 0.95,
-                  transform: isHovered ? "scaleY(1.18)" : "scaleY(1)",
-                  boxShadow: isHovered ? `0 0 12px ${segment.shadowColor}` : "none",
-                  zIndex: isHovered ? 10 : 1,
-                }}
-              >
-                {/* Visual scan effect inside segment */}
+              return (
                 <motion.div
-                  initial={{ left: "-100%" }}
-                  animate={{ left: "100%" }}
-                  transition={{
-                    repeat: Infinity,
-                    repeatType: "loop",
-                    duration: 3.5,
-                    delay: idx * 0.4,
-                    ease: "linear",
+                  key={idx}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${segment.percentage}%` }}
+                  transition={{ duration: 0.8, delay: idx * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  className={`h-full cursor-pointer relative transition-all duration-200 first:rounded-l-full last:rounded-r-full ${segment.color}`}
+                  style={{
+                    opacity: isAnyHovered ? (isHovered ? 1 : 0.4) : 0.95,
+                    transform: isHovered ? "scaleY(1.15)" : "scaleY(1)",
+                    boxShadow: isHovered ? `0 0 10px ${segment.shadowColor}` : "none",
+                    zIndex: isHovered ? 10 : 1,
                   }}
-                  className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 pointer-events-none"
-                />
-              </motion.div>
-            );
-          })}
+                >
+                  {/* Subtle glossy scan line */}
+                  <motion.div
+                    initial={{ left: "-100%" }}
+                    animate={{ left: "100%" }}
+                    transition={{
+                      repeat: Infinity,
+                      repeatType: "loop",
+                      duration: 3.5,
+                      delay: idx * 0.4,
+                      ease: "linear",
+                    }}
+                    className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 pointer-events-none"
+                  />
+                </motion.div>
+              );
+            })
+          )}
         </div>
 
         {/* Float Tooltip */}
@@ -111,23 +119,23 @@ export default function ServiceStreamCard({ title, total, themeColor, segments }
           {hoveredIdx !== null && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: -42, scale: 1 }}
+              animate={{ opacity: 1, y: -40, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="absolute left-1/2 -translate-x-1/2 -top-6 z-20 bg-gray-950 text-white px-3 py-1 rounded-lg text-[9px] font-black shadow-lg border border-gray-800 pointer-events-none flex items-center gap-1.5 whitespace-nowrap"
+              className="absolute left-1/2 -translate-x-1/2 -top-6 z-20 bg-gray-950 text-white px-2.5 py-1 rounded-lg text-[9px] font-black shadow-lg border border-gray-800 pointer-events-none flex items-center gap-1.5 whitespace-nowrap"
             >
               <span className={`w-2 h-2 rounded-full ${segments[hoveredIdx].color}`}></span>
               <span className="uppercase text-gray-300">{segments[hoveredIdx].label}:</span>
               <span className="text-cyan-300 font-mono font-bold">
-                {segments[hoveredIdx].count} units ({segments[hoveredIdx].percentage}%)
+                {segments[hoveredIdx].count} ({segments[hoveredIdx].percentage}%)
               </span>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Legend Block containing larger high-contrast metrics underneath */}
-      <div className="grid grid-cols-3 gap-1 text-center mt-1 pt-2 border-t border-gray-100/60">
+      {/* Legend Block containing status metrics underneath */}
+      <div className="grid grid-cols-3 gap-y-2 gap-x-1 text-center mt-1 pt-2.5 border-t border-gray-100 dark:border-slate-800/80">
         {segments.map((segment, idx) => {
           const isHovered = hoveredIdx === idx;
           const isAnyHovered = hoveredIdx !== null;
@@ -137,18 +145,20 @@ export default function ServiceStreamCard({ title, total, themeColor, segments }
               key={idx}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className="flex flex-col items-center justify-center p-1 rounded-lg cursor-pointer transition-all duration-200"
+              className="flex flex-col items-center justify-center p-0.5 rounded-lg cursor-pointer transition-all duration-200"
               style={{
-                backgroundColor: isHovered ? `${segment.shadowColor}0d` : "transparent",
+                backgroundColor: isHovered ? `${segment.shadowColor}12` : "transparent",
                 transform: isHovered ? "translateY(-1px)" : "none",
-                opacity: isAnyHovered ? (isHovered ? 1 : 0.6) : 1,
+                opacity: isAnyHovered ? (isHovered ? 1 : 0.5) : 1,
               }}
             >
-              <div className="flex items-center gap-1">
-                <span className={`w-1.5 h-1.5 rounded-full ${segment.color}`}></span>
-                <span className="text-[8px] text-gray-500 font-black uppercase tracking-wider">{segment.label}</span>
+              <div className="flex items-center gap-1 min-w-0">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${segment.color}`}></span>
+                <span className="text-[8px] text-gray-500 dark:text-slate-400 font-extrabold uppercase tracking-tight truncate max-w-[55px] sm:max-w-none">
+                  {segment.label}
+                </span>
               </div>
-              <span className="text-xs font-black text-gray-900 mt-0.5 tabular-nums leading-none">
+              <span className="text-xs md:text-sm font-black text-gray-900 dark:text-slate-100 mt-0.5 tabular-nums leading-tight">
                 {segment.count}
               </span>
             </div>
@@ -158,3 +168,4 @@ export default function ServiceStreamCard({ title, total, themeColor, segments }
     </div>
   );
 }
+

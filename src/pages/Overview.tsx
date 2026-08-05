@@ -166,28 +166,27 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
       );
     };
 
-    const repoPdt = filteredOrders.filter((o) => isRepoPdtOrder(o));
-    const repo = filteredOrders.filter((o) => !isRepoPdtOrder(o) && o.type === "repo");
-    const impor = filteredOrders.filter((o) => !isRepoPdtOrder(o) && o.type === "impor");
-    const ekspor = filteredOrders.filter((o) => !isRepoPdtOrder(o) && o.type !== "repo" && o.type !== "impor");
+    const repo = filteredOrders.filter((o) => o.type === "repo" || isRepoPdtOrder(o));
+    const impor = filteredOrders.filter((o) => o.type === "impor" && !isRepoPdtOrder(o));
+    const ekspor = filteredOrders.filter((o) => o.type !== "repo" && o.type !== "impor" && !isRepoPdtOrder(o));
 
     const getBreakdown = (list: Order[]) => {
       const listTotal = list.length || 1;
-      const preTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "pre_trip").length;
-      const onTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "on_trip").length;
-      const endTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "end_trip").length;
-      const cancel = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "cancel").length;
+      const needAction = list.filter((o) => {
+        const s = (o.statusPooling || "").toUpperCase();
+        return !s.includes("CONFIRM") && !s.includes("CANCEL");
+      }).length;
+      const confirm = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM")).length;
+      const cancel = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL")).length;
 
       return {
         total: list.length,
-        preTrip,
-        onTrip,
-        endTrip,
+        needAction,
+        confirm,
         cancel,
         segments: [
-          { label: "pre trip", count: preTrip, percentage: Math.round((preTrip / listTotal) * 100), color: "bg-amber-500", hoverColor: "bg-amber-400", shadowColor: "#f59e0b" },
-          { label: "on trip", count: onTrip, percentage: Math.round((onTrip / listTotal) * 100), color: "bg-blue-600", hoverColor: "bg-blue-500", shadowColor: "#2563eb" },
-          { label: "end trip", count: endTrip, percentage: Math.round((endTrip / listTotal) * 100), color: "bg-emerald-500", hoverColor: "bg-emerald-400", shadowColor: "#10b981" },
+          { label: "need action", count: needAction, percentage: Math.round((needAction / listTotal) * 100), color: "bg-amber-500", hoverColor: "bg-amber-400", shadowColor: "#f59e0b" },
+          { label: "confirm", count: confirm, percentage: Math.round((confirm / listTotal) * 100), color: "bg-blue-600", hoverColor: "bg-blue-500", shadowColor: "#2563eb" },
           { label: "cancel", count: cancel, percentage: Math.round((cancel / listTotal) * 100), color: "bg-rose-500", hoverColor: "bg-rose-400", shadowColor: "#f43f5e" }
         ]
       };
@@ -200,11 +199,9 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
       needAction,
       confirm,
       ekspor: getBreakdown(ekspor),
-      repoPdt: getBreakdown(repoPdt),
       repo: getBreakdown(repo),
       impor: getBreakdown(impor),
       eksporCount: ekspor.length,
-      repoPdtCount: repoPdt.length,
       repoCount: repo.length,
       imporCount: impor.length
     };
@@ -272,14 +269,12 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
   // Stacked bar segments for Order Types
   const orderTypeSegments = [
     { label: "Ekspor", count: orderStats.eksporCount, percentage: totalOrders ? Math.round((orderStats.eksporCount / totalOrders) * 100) : 0, color: "bg-sky-500" },
-    { label: "Repo PDT", count: orderStats.repoPdtCount, percentage: totalOrders ? Math.round((orderStats.repoPdtCount / totalOrders) * 100) : 0, color: "bg-amber-500" },
     { label: "Repo Service", count: orderStats.repoCount, percentage: totalOrders ? Math.round((orderStats.repoCount / totalOrders) * 100) : 0, color: "bg-emerald-500" },
     { label: "Impor", count: orderStats.imporCount, percentage: totalOrders ? Math.round((orderStats.imporCount / totalOrders) * 100) : 0, color: "bg-blue-600" }
   ];
 
   const orderDistributionData = [
     { name: "Ekspor", value: orderStats.eksporCount, color: "#0EA5E9" },    // sky-500
-    { name: "Repo PDT", value: orderStats.repoPdtCount, color: "#F59E0B" },  // amber-500
     { name: "Repo Service", value: orderStats.repoCount, color: "#10B981" }, // emerald-500
     { name: "Impor", value: orderStats.imporCount, color: "#2563EB" }        // blue-600
   ];
@@ -551,19 +546,12 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
               <span className="text-[9px] text-gray-400 dark:text-slate-400 font-extrabold uppercase tracking-wider block mb-2.5">
                 Service Streams Progress Breakdown
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <ServiceStreamCard
                   title="EKSPOR SERVICE"
                   total={orderStats.ekspor.total}
                   themeColor="sky"
                   segments={orderStats.ekspor.segments}
-                />
-
-                <ServiceStreamCard
-                  title="REPO PDT"
-                  total={orderStats.repoPdt.total}
-                  themeColor="amber"
-                  segments={orderStats.repoPdt.segments}
                 />
 
                 <ServiceStreamCard
@@ -605,8 +593,8 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
           </div>
 
           <div className="flex-1 flex flex-col justify-between space-y-4">
-            {/* 6 Stat Cards Highlighted - Equal height & alignment */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+            {/* 7 Stat Cards Highlighted - Equal height & alignment */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
               {/* Total Shipment */}
               <div
                 onClick={() => {
@@ -631,8 +619,44 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                   </span>
                 </div>
                 <div className="pt-1 mt-auto min-h-[20px] flex items-center">
+                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block">
+                    Total Executed
+                  </span>
+                </div>
+              </div>
+
+              {/* Total Cancel */}
+              <div
+                onClick={() => {
+                  const cancelList = filteredExecutedShipments.filter(
+                    (s) => mapCSStatus(s.lastUpdateCS).shipmentStatus === "cancel" || (s.orderStatus || "").toLowerCase().includes("cancel")
+                  );
+                  setDetailModal({
+                    isOpen: true,
+                    title: "Detail Data: Total Cancel",
+                    subtitle: "Seluruh trip shipment dengan status cancel",
+                    data: cancelList,
+                    dataType: "shipment"
+                  });
+                }}
+                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-rose-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[115px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-1 min-h-[28px] sm:min-h-[32px]">
+                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
+                    Total Cancel
+                  </span>
+                  <div className="p-0.5 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
+                    <XCircle className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="my-1">
+                  <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none block">
+                    {shipmentStats.cancel}
+                  </span>
+                </div>
+                <div className="pt-1 mt-auto min-h-[20px] flex items-center">
                   <span className="text-[9.5px] text-rose-600 dark:text-rose-400 font-bold leading-tight block">
-                    Total Cancel: {shipmentStats.cancel}
+                    Status Trip Cancel
                   </span>
                 </div>
               </div>
@@ -857,20 +881,13 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
           </div>
 
           <div className="flex-1 flex flex-col justify-between space-y-4">
-            {/* 4 Stat Cards Highlighted - Equal height & alignment */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {/* 3 Stat Cards Highlighted - Equal height & alignment */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Ekspor */}
               <div className="bg-sky-50/25 dark:bg-sky-950/20 border-l-4 border-l-sky-400 border border-sky-200/60 dark:border-sky-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 tracking-tight leading-none">{orderStats.eksporCount}</span>
-                <span className="text-[10px] font-black text-sky-800 dark:text-sky-300 uppercase tracking-wider mt-1.5 leading-none block">Ekspor</span>
+                <span className="text-[10px] font-black text-sky-800 dark:text-sky-300 uppercase tracking-wider mt-1.5 leading-none block">Ekspor Service</span>
                 <span className="text-[9px] text-sky-500 dark:text-sky-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.eksporCount / totalOrders) * 100) : 0}% Share</span>
-              </div>
-
-              {/* Repo PDT */}
-              <div className="bg-amber-50/25 dark:bg-amber-950/20 border-l-4 border-l-amber-500 border border-amber-200/60 dark:border-amber-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
-                <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight leading-none">{orderStats.repoPdtCount}</span>
-                <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider mt-1.5 leading-none block">Repo PDT</span>
-                <span className="text-[9px] text-amber-500 dark:text-amber-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.repoPdtCount / totalOrders) * 100) : 0}% Share</span>
               </div>
 
               {/* Repo Service */}
@@ -883,7 +900,7 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
               {/* Impor */}
               <div className="bg-blue-50/25 dark:bg-blue-950/20 border-l-4 border-l-blue-500 border border-blue-200/60 dark:border-blue-800/40 p-3 rounded-xl flex flex-col justify-center min-h-[84px] transition-all hover:shadow-md hover:scale-[1.015]">
                 <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none">{orderStats.imporCount}</span>
-                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">Impor</span>
+                <span className="text-[10px] font-black text-blue-800 dark:text-blue-300 uppercase tracking-wider mt-1.5 leading-none block">Impor Service</span>
                 <span className="text-[9px] text-blue-500 dark:text-blue-400 font-bold mt-1 block leading-none">{totalOrders ? Math.round((orderStats.imporCount / totalOrders) * 100) : 0}% Share</span>
               </div>
             </div>

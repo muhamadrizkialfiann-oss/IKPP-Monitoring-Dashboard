@@ -374,27 +374,26 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
 
     const eksporOrders = dateFilteredOrders.filter((o) => o.type === "ekspor" && !isRepoPdtOrder(o));
     const imporOrders = dateFilteredOrders.filter((o) => o.type === "impor" && !isRepoPdtOrder(o));
-    const repoPdtOrders = dateFilteredOrders.filter((o) => isRepoPdtOrder(o));
-    const repoOrders = dateFilteredOrders.filter((o) => o.type === "repo" && !isRepoPdtOrder(o));
+    const repoOrders = dateFilteredOrders.filter((o) => o.type === "repo" || isRepoPdtOrder(o));
 
     const buildItem = (id: string, label: string, list: Order[], styles: { tag: string; totalText: string }) => {
       const total = list.length;
-      const preTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "pre_trip").length;
-      const onTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "on_trip").length;
-      const endTrip = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "end_trip").length;
-      const cancel = list.filter((o) => mapCSStatus(o.lastUpdateCS).shipmentStatus === "cancel").length;
+      const needAction = list.filter((o) => {
+        const s = (o.statusPooling || "").toUpperCase();
+        return !s.includes("CONFIRM") && !s.includes("CANCEL");
+      }).length;
+      const confirm = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CONFIRM")).length;
+      const cancel = list.filter((o) => (o.statusPooling || "").toUpperCase().includes("CANCEL")).length;
 
       return {
         id,
         label,
         total,
-        preTrip,
-        onTrip,
-        endTrip,
+        needAction,
+        confirm,
         cancel,
-        preTripPct: total > 0 ? (preTrip / total) * 100 : 0,
-        onTripPct: total > 0 ? (onTrip / total) * 100 : 0,
-        endTripPct: total > 0 ? (endTrip / total) * 100 : 0,
+        needActionPct: total > 0 ? (needAction / total) * 100 : 0,
+        confirmPct: total > 0 ? (confirm / total) * 100 : 0,
         cancelPct: total > 0 ? (cancel / total) * 100 : 0,
         styles
       };
@@ -402,7 +401,6 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
 
     return [
       buildItem("ekspor", "EKSPOR SERVICE", eksporOrders, { tag: "text-sky-700 bg-sky-50 dark:bg-sky-950/60 dark:text-sky-300", totalText: "text-sky-800 dark:text-sky-300" }),
-      buildItem("repo_pdt", "REPO PDT", repoPdtOrders, { tag: "text-amber-700 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300", totalText: "text-amber-800 dark:text-amber-300" }),
       buildItem("repo", "REPO SERVICE", repoOrders, { tag: "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300", totalText: "text-emerald-800 dark:text-emerald-300" }),
       buildItem("impor", "IMPOR SERVICE", imporOrders, { tag: "text-blue-700 bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300", totalText: "text-blue-800 dark:text-blue-300" }),
     ];
@@ -442,12 +440,8 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
 
       const matchesType =
         typeFilter === "all" ||
-        (typeFilter === "repo_pdt"
-          ? (
-              `${order.commercialRoute || ""} ${order.origin || ""} ${order.destination || ""} ${order.notes || ""}`
-            )
-              .toLowerCase()
-              .match(/pancaran|0 - 36|0-36|depo pdt|pdt/) !== null
+        (typeFilter === "repo"
+          ? (order.type === "repo" || isRepoPdtOrder(order))
           : order.type === typeFilter);
       const matchesStatus = statusFilter === "all" || order.status === statusFilter;
 
@@ -866,20 +860,12 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
       </div>
 
       {/* Breakdown Tipe Order (Clickable Cards with Live Segmented Bars) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {typeBreakdowns.map((b) => {
           const typeOrders = dateFilteredOrders.filter((o) => {
-            if (b.id === "ekspor") return o.type === "ekspor";
-            if (b.id === "impor") return o.type === "impor";
-            if (b.id === "repo_pdt") {
-              const text = `${o.commercialRoute || ""} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""}`.toLowerCase();
-              return text.match(/pancaran|0 - 36|0-36|depo pdt|pdt/) !== null;
-            }
-            if (b.id === "repo") {
-              const text = `${o.commercialRoute || ""} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""}`.toLowerCase();
-              const isPdt = text.match(/pancaran|0 - 36|0-36|depo pdt|pdt/) !== null;
-              return o.type === "repo" && !isPdt;
-            }
+            if (b.id === "ekspor") return o.type === "ekspor" && !isRepoPdtOrder(o);
+            if (b.id === "impor") return o.type === "impor" && !isRepoPdtOrder(o);
+            if (b.id === "repo") return o.type === "repo" || isRepoPdtOrder(o);
             return false;
           });
 
@@ -887,7 +873,7 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
             <div
               key={b.id}
               onClick={() => {
-                setTypeFilter(b.id === "repo_pdt" ? "repo" : b.id);
+                setTypeFilter(b.id);
                 setDetailModal({
                   isOpen: true,
                   title: `Detail Data: ${b.label}`,
@@ -908,21 +894,20 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
               </div>
               <div className="space-y-2 mt-3">
                 <div className="flex justify-between text-[11px] font-semibold text-gray-500 dark:text-slate-400">
-                  <span>Pre Trip: {b.preTrip}</span>
-                  <span>On Trip: {b.onTrip}</span>
-                  <span>End Trip: {b.endTrip}</span>
+                  <span>Need Action: {b.needAction}</span>
+                  <span>Confirm: {b.confirm}</span>
+                  <span>Cancel: {b.cancel}</span>
                 </div>
                 {/* Custom Multi-Segment Segmented Progress Bar */}
                 <div className="w-full h-3 bg-gray-100 dark:bg-slate-800 rounded-full flex overflow-hidden border border-gray-200/80 dark:border-slate-700 shadow-inner">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.preTripPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="bg-amber-500 h-full" title={`Pre Trip: ${b.preTrip}`} />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.onTripPct}%` }} transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }} className="bg-blue-500 h-full" title={`On Trip: ${b.onTrip}`} />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.endTripPct}%` }} transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }} className="bg-emerald-500 h-full" title={`End Trip: ${b.endTrip}`} />
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.cancelPct}%` }} transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} className="bg-rose-500 h-full" title={`Cancel: ${b.cancel}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.needActionPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="bg-amber-500 h-full" title={`Need Action: ${b.needAction}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.confirmPct}%` }} transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }} className="bg-blue-500 h-full" title={`Confirm: ${b.confirm}`} />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${b.cancelPct}%` }} transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }} className="bg-rose-500 h-full" title={`Cancel: ${b.cancel}`} />
                 </div>
                 <div className="flex justify-between text-[10px] text-gray-400 dark:text-slate-500 font-bold pt-0.5 uppercase tracking-wider">
-                  <span>{b.preTrip} Pre Trip</span>
-                  <span>{b.onTrip} On Trip</span>
-                  <span>{b.endTrip} End Trip</span>
+                  <span>{b.needAction} Need Action</span>
+                  <span>{b.confirm} Confirm</span>
+                  <span>{b.cancel} Cancel</span>
                 </div>
               </div>
             </div>
