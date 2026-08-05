@@ -606,20 +606,23 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     dataType: "shipment"
                   });
                 }}
-                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-[#0B2C6B] dark:border-l-sky-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[115px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
+                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-[#0B2C6B] dark:border-l-sky-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[125px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
               >
-                <div className="flex items-start justify-between gap-1 min-h-[28px] sm:min-h-[32px]">
-                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
+                <div className="flex items-start justify-between gap-1.5 h-[34px]">
+                  <span className="text-[9.5px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
                     Total Shipment
                   </span>
+                  <div className="p-1 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
+                    <Truck className="w-3.5 h-3.5" />
+                  </div>
                 </div>
                 <div className="my-1">
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none block">
                     {shipmentStats.total}
                   </span>
                 </div>
-                <div className="pt-1 mt-auto min-h-[20px] flex items-center">
-                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block">
+                <div className="pt-1.5 mt-auto border-t border-slate-100 dark:border-slate-700/50 flex items-center min-h-[22px]">
+                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block truncate">
                     Total Executed
                   </span>
                 </div>
@@ -639,13 +642,13 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     dataType: "shipment"
                   });
                 }}
-                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-rose-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[115px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
+                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-rose-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[125px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
               >
-                <div className="flex items-start justify-between gap-1 min-h-[28px] sm:min-h-[32px]">
-                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
+                <div className="flex items-start justify-between gap-1.5 h-[34px]">
+                  <span className="text-[9.5px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
                     Total Cancel
                   </span>
-                  <div className="p-0.5 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
+                  <div className="p-1 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
                     <XCircle className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -654,8 +657,8 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     {shipmentStats.cancel}
                   </span>
                 </div>
-                <div className="pt-1 mt-auto min-h-[20px] flex items-center">
-                  <span className="text-[9.5px] text-rose-600 dark:text-rose-400 font-bold leading-tight block">
+                <div className="pt-1.5 mt-auto border-t border-slate-100 dark:border-slate-700/50 flex items-center min-h-[22px]">
+                  <span className="text-[9.5px] text-rose-600 dark:text-rose-400 font-bold leading-tight block truncate">
                     Status Trip Cancel
                   </span>
                 </div>
@@ -678,13 +681,13 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     dataType: "shipment"
                   });
                 }}
-                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-rose-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[115px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
+                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-rose-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[125px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
               >
-                <div className="flex items-start justify-between gap-1 min-h-[28px] sm:min-h-[32px]">
-                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
-                    Total Cancel Customer
+                <div className="flex items-start justify-between gap-1.5 h-[34px]">
+                  <span className="text-[9.5px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
+                    Total Cancel Cust
                   </span>
-                  <div className="p-0.5 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
+                  <div className="p-1 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
                     <XCircle className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -693,8 +696,8 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     {shipmentStats.cancelCustomer}
                   </span>
                 </div>
-                <div className="pt-1 mt-auto min-h-[20px] flex items-center">
-                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block">
+                <div className="pt-1.5 mt-auto border-t border-slate-100 dark:border-slate-700/50 flex items-center min-h-[22px]">
+                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block truncate">
                     Status Order Cancel
                   </span>
                 </div>
@@ -715,13 +718,13 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     dataType: "shipment"
                   });
                 }}
-                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-rose-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[115px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
+                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-rose-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[125px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
               >
-                <div className="flex items-start justify-between gap-1 min-h-[28px] sm:min-h-[32px]">
-                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
+                <div className="flex items-start justify-between gap-1.5 h-[34px]">
+                  <span className="text-[9.5px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
                     Pending Shipment
                   </span>
-                  <div className="p-0.5 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
+                  <div className="p-1 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
                     <AlertCircle className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -730,8 +733,8 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     {shipmentStats.pendingShipment}
                   </span>
                 </div>
-                <div className="pt-1 mt-auto min-h-[20px] flex items-center">
-                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block">
+                <div className="pt-1.5 mt-auto border-t border-slate-100 dark:border-slate-700/50 flex items-center min-h-[22px]">
+                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block truncate">
                     Waiting Bon Muat
                   </span>
                 </div>
@@ -756,21 +759,24 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     dataType: "shipment"
                   });
                 }}
-                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-sky-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[115px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
+                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-sky-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[125px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
               >
-                <div className="flex items-start justify-between gap-1 min-h-[28px] sm:min-h-[32px]">
-                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
+                <div className="flex items-start justify-between gap-1.5 h-[34px]">
+                  <span className="text-[9.5px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
                     Pre-Trip
                   </span>
+                  <div className="p-1 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
+                    <CircleDot className="w-3.5 h-3.5" />
+                  </div>
                 </div>
                 <div className="my-1">
                   <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 tracking-tight leading-none block">
                     {shipmentStats.preTrip}
                   </span>
                 </div>
-                <div className="pt-1 mt-auto min-h-[20px] flex items-center gap-1">
+                <div className="pt-1.5 mt-auto border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-1 min-h-[22px]">
                   <span className="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block shrink-0"></span>
-                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block">
+                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block truncate">
                     Prep &amp; loading ({shipmentStats.preTripPct}%)
                   </span>
                 </div>
@@ -788,21 +794,24 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     dataType: "shipment"
                   });
                 }}
-                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-blue-600 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[115px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
+                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-blue-600 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[125px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
               >
-                <div className="flex items-start justify-between gap-1 min-h-[28px] sm:min-h-[32px]">
-                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
+                <div className="flex items-start justify-between gap-1.5 h-[34px]">
+                  <span className="text-[9.5px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
                     On Trip
                   </span>
+                  <div className="p-1 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
+                    <Truck className="w-3.5 h-3.5" />
+                  </div>
                 </div>
                 <div className="my-1">
                   <span className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight leading-none block">
                     {shipmentStats.onTrip}
                   </span>
                 </div>
-                <div className="pt-1 mt-auto min-h-[20px] flex items-center gap-1">
+                <div className="pt-1.5 mt-auto border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-1 min-h-[22px]">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block shrink-0"></span>
-                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block">
+                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block truncate">
                     Active in transit ({shipmentStats.onTripPct}%)
                   </span>
                 </div>
@@ -820,21 +829,24 @@ export default function Overview({ onNavigate, currentUser }: OverviewProps) {
                     dataType: "shipment"
                   });
                 }}
-                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-emerald-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[115px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
+                className="bg-white dark:bg-slate-800/90 border-l-4 border-l-emerald-500 border border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-3.5 rounded-xl flex flex-col justify-between min-h-[125px] h-full transition-all hover:shadow-md hover:scale-[1.015] cursor-pointer shadow-sm"
               >
-                <div className="flex items-start justify-between gap-1 min-h-[28px] sm:min-h-[32px]">
-                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
+                <div className="flex items-start justify-between gap-1.5 h-[34px]">
+                  <span className="text-[9.5px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-tight block">
                     End Trip
                   </span>
+                  <div className="p-1 bg-slate-100 dark:bg-slate-700/80 rounded text-slate-400 shrink-0">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  </div>
                 </div>
                 <div className="my-1">
                   <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none block">
                     {shipmentStats.endTrip}
                   </span>
                 </div>
-                <div className="pt-1 mt-auto min-h-[20px] flex items-center gap-1">
+                <div className="pt-1.5 mt-auto border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-1 min-h-[22px]">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0"></span>
-                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block">
+                  <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-tight block truncate">
                     Safely arrived ({shipmentStats.endTripPct}%)
                   </span>
                 </div>

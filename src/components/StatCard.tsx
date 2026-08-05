@@ -54,7 +54,7 @@ export default function StatCard({
       whileHover={onClick ? { scale: 1.015, y: -2 } : {}}
       transition={{ duration: 0.15 }}
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 rounded-xl border p-5 shadow-sm flex flex-col justify-between min-h-[140px] relative transition-colors duration-200 ${borderClasses} ${
+      className={`bg-white dark:bg-slate-900 rounded-xl border p-3.5 sm:p-4 shadow-sm flex flex-col justify-between min-h-[125px] h-full relative transition-colors duration-200 ${borderClasses} ${
         onClick ? "cursor-pointer hover:shadow-md transition-all group hover:border-blue-200 dark:hover:border-slate-700" : ""
       }`}
     >
@@ -62,28 +62,28 @@ export default function StatCard({
       <div>
         {valueOnTop ? (
           <div>
-            <h3 className={`text-3xl font-extrabold tabular-nums tracking-tight ${valueColor}`}>
+            <h3 className={`text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight ${valueColor}`}>
               {value}
             </h3>
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mt-1 block">
+            <span className="text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-tight text-gray-500 dark:text-slate-400 mt-1 block">
               {title}
             </span>
           </div>
         ) : (
           <div>
-            <div className="flex items-start justify-between gap-1 min-h-[32px]">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 leading-tight block">
+            <div className="flex items-start justify-between gap-1.5 h-[34px]">
+              <span className="text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-tight text-gray-500 dark:text-slate-400 leading-tight block line-clamp-2">
                 {title}
               </span>
               {Icon && (
-                <div className={`p-1.5 rounded-lg shrink-0 ${
-                  onClick ? "bg-blue-50 dark:bg-slate-800 text-[#0B2C6B] dark:text-sky-400 group-hover:bg-[#0B2C6B] group-hover:text-white" : "bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-400"
+                <div className={`p-1 rounded shrink-0 ${
+                  onClick ? "bg-blue-50 dark:bg-slate-800 text-[#0B2C6B] dark:text-sky-400 group-hover:bg-[#0B2C6B] group-hover:text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-400"
                 } transition-colors`}>
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                 </div>
               )}
             </div>
-            <h3 className={`text-2xl sm:text-3xl font-extrabold tabular-nums mt-1 tracking-tight leading-none ${valueColor}`}>
+            <h3 className={`text-2xl sm:text-3xl font-black tabular-nums my-1 tracking-tight leading-none ${valueColor}`}>
               {value}
             </h3>
           </div>
@@ -91,15 +91,15 @@ export default function StatCard({
       </div>
 
       {/* Breakdown or Description */}
-      <div className="mt-3">
+      <div className="pt-1.5 mt-auto border-t border-gray-100 dark:border-slate-800/80">
         {breakdown ? (
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+          <div className="grid grid-cols-3 gap-2 pt-1">
             {breakdown.map((item, idx) => (
               <div key={idx} className="flex flex-col">
-                <span className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
+                <span className="text-[9px] text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
                   {item.label}
                 </span>
-                <span className={`text-sm font-bold mt-0.5 ${item.color}`}>
+                <span className={`text-xs font-extrabold mt-0.5 ${item.color}`}>
                   {item.value}
                 </span>
               </div>
@@ -107,14 +107,16 @@ export default function StatCard({
           </div>
         ) : (
           description && (
-            <p className={`text-xs font-semibold tracking-wide flex items-center gap-1.5 ${
-              descriptionColor ? descriptionColor : "text-gray-400 dark:text-slate-400"
-            }`}>
-              {statusType === "success" && <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0"></span>}
-              {statusType === "warning" && <span className="w-2 h-2 rounded-full bg-sky-500 inline-block shrink-0"></span>}
-              {statusType === "info" && <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shrink-0"></span>}
-              {description}
-            </p>
+            <div className="min-h-[22px] flex items-center">
+              <p className={`text-[9.5px] font-bold tracking-tight leading-tight flex items-center gap-1 truncate ${
+                descriptionColor ? descriptionColor : "text-gray-500 dark:text-slate-400"
+              }`}>
+                {statusType === "success" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0"></span>}
+                {statusType === "warning" && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block shrink-0"></span>}
+                {statusType === "info" && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block shrink-0"></span>}
+                <span className="truncate">{description}</span>
+              </p>
+            </div>
           )
         )}
       </div>

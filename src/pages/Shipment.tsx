@@ -526,6 +526,7 @@ export default function ShipmentPage() {
           <StatCard
             title="Total Shipment"
             value={String(stats.total)}
+            icon={Truck}
             statusType="neutral"
             valueOnTop={false}
             description="Total Shipment Executed"
@@ -571,7 +572,7 @@ export default function ShipmentPage() {
           className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           <StatCard
-            title="Total Cancel Customer"
+            title="Total Cancel Cust"
             value={String(stats.cancelCustomer)}
             icon={XCircle}
             statusType="danger"
@@ -624,6 +625,7 @@ export default function ShipmentPage() {
           <StatCard
             title="Pre-Trip"
             value={String(stats.preTrip)}
+            icon={CircleDot}
             statusType="warning"
             description={`Prep & loading queues (${stats.preTripPct}%)`}
           />
@@ -644,6 +646,7 @@ export default function ShipmentPage() {
           <StatCard
             title="On Trip"
             value={String(stats.onTrip)}
+            icon={Truck}
             statusType="info"
             description={`Active in transit (${stats.onTripPct}%)`}
           />
@@ -664,6 +667,7 @@ export default function ShipmentPage() {
           <StatCard
             title="End Trip"
             value={String(stats.endTrip)}
+            icon={ShieldCheck}
             statusType="success"
             description={`Safely arrived (${stats.endTripPct}%)`}
           />

@@ -77,6 +77,24 @@ function PoolingStatusBadge({ status }: { status?: string }) {
   );
 }
 
+export const isRepoPdtOrder = (o: Order) => {
+  const cr = (o.commercialRoute || "").toLowerCase();
+  const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""} ${o.noJobOrder || ""} ${o.id || ""}`.toLowerCase();
+  return (
+    cr.includes("pancaran") ||
+    cr.includes("0 - 36") ||
+    cr.includes("0-36") ||
+    cr.includes("pdt") ||
+    cr.includes("depo pdt") ||
+    text.includes("depo around priok") ||
+    text.includes("depo arround priok") ||
+    text.includes("pancaran depo") ||
+    text.includes("0 - 36") ||
+    text.includes("0-36") ||
+    text.includes("repo pdt")
+  );
+};
+
 export default function OrderPage({ initialTypeFilter, onClearInitialFilter, currentUser }: OrderProps) {
   const isSuperAdmin = currentUser?.role === "Super Admin" || currentUser?.email?.toLowerCase() === "digital.solution@pancaran-logistic.id";
 
@@ -354,24 +372,6 @@ export default function OrderPage({ initialTypeFilter, onClearInitialFilter, cur
 
   // Dynamic Service Type Breakdown calculated from live orders (filtered by dateFilter)
   const typeBreakdowns = useMemo(() => {
-    const isRepoPdtOrder = (o: Order) => {
-      const cr = (o.commercialRoute || "").toLowerCase();
-      const text = `${cr} ${o.origin || ""} ${o.destination || ""} ${o.notes || ""} ${o.noJobOrder || ""} ${o.id || ""}`.toLowerCase();
-      return (
-        cr.includes("pancaran") ||
-        cr.includes("0 - 36") ||
-        cr.includes("0-36") ||
-        cr.includes("pdt") ||
-        cr.includes("depo pdt") ||
-        text.includes("depo around priok") ||
-        text.includes("depo arround priok") ||
-        text.includes("pancaran depo") ||
-        text.includes("0 - 36") ||
-        text.includes("0-36") ||
-        text.includes("repo pdt")
-      );
-    };
-
     const eksporOrders = dateFilteredOrders.filter((o) => o.type === "ekspor" && !isRepoPdtOrder(o));
     const imporOrders = dateFilteredOrders.filter((o) => o.type === "impor" && !isRepoPdtOrder(o));
     const repoOrders = dateFilteredOrders.filter((o) => o.type === "repo" || isRepoPdtOrder(o));
